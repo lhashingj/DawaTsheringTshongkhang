@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatPrice, cn } from "@/lib/utils";
 import type { Product, ProductCategory } from "@/types";
 
-const CATEGORY_ICONS: Record<ProductCategory, React.ComponentType<{ className?: string }>> = {
+const CATEGORY_ICONS: Record<ProductCategory, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   "Power Tools": Zap,
   "Agricultural Machinery": Tractor,
   "Hand Tools": Hammer,
