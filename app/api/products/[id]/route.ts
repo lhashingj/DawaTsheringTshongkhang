@@ -5,12 +5,11 @@ import {
   deleteProduct,
 } from "@/lib/products";
 
-interface Params {
-  params: { id: string };
-}
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params) {
-  const product = getProductById(params.id);
+  const { id } = await params;
+  const product = getProductById(id);
   if (!product) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
@@ -19,8 +18,9 @@ export async function GET(_: Request, { params }: Params) {
 
 export async function PUT(request: Request, { params }: Params) {
   try {
+    const { id } = await params;
     const body = await request.json();
-    const updated = updateProduct(params.id, {
+    const updated = updateProduct(id, {
       ...body,
       ...(body.price != null && { price: Number(body.price) }),
       ...(body.stock != null && { stock: Number(body.stock) }),
@@ -35,7 +35,8 @@ export async function PUT(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_: Request, { params }: Params) {
-  const deleted = deleteProduct(params.id);
+  const { id } = await params;
+  const deleted = deleteProduct(id);
   if (!deleted) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
