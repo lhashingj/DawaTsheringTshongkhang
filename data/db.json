@@ -21,7 +21,8 @@
       "description": "Medium-weight 1.7kg axe for everyday farm and homestead use.",
       "featured": false,
       "unit": "piece",
-      "sku": "AXE-1.7KG"
+      "sku": "AXE-1.7KG",
+      "image": "https://images.unsplash.com/photo-jZWmw6007EY?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "3",
@@ -44,7 +45,8 @@
       "description": "Compact foldable sickle, safe to carry in pockets. 23mm blade width.",
       "featured": false,
       "unit": "piece",
-      "sku": "SICKLE-FOLD-23"
+      "sku": "SICKLE-FOLD-23",
+      "image": "https://images.unsplash.com/photo-YP1Lz5B4nOk?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "5",
@@ -67,7 +69,8 @@
       "description": "Round-head shovel for digging trenches and soft earth.",
       "featured": false,
       "unit": "piece",
-      "sku": "SHOVEL-RD-750"
+      "sku": "SHOVEL-RD-750",
+      "image": "https://images.unsplash.com/photo-IcivHlHMpTM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "7",
@@ -78,7 +81,8 @@
       "description": "800g head shovel with a 1030mm hardwood handle. Built for heavy-duty digging.",
       "featured": false,
       "unit": "piece",
-      "sku": "SHOVEL-800-H"
+      "sku": "SHOVEL-800-H",
+      "image": "https://images.unsplash.com/photo-IcivHlHMpTM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "8",
@@ -89,7 +93,8 @@
       "description": "3-pound flat spade for mixing concrete, earth, and spreading materials.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPADE-3LBS"
+      "sku": "SPADE-3LBS",
+      "image": "https://images.unsplash.com/photo-IcivHlHMpTM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "9",
@@ -100,7 +105,8 @@
       "description": "Lightweight 2-pound spade, ideal for gardening and light earthwork.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPADE-2LBS"
+      "sku": "SPADE-2LBS",
+      "image": "https://images.unsplash.com/photo-IcivHlHMpTM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "10",
@@ -111,7 +117,8 @@
       "description": "5-pound pick axe for breaking hard ground, rock, and compacted soil.",
       "featured": false,
       "unit": "piece",
-      "sku": "PICKAXE-5LB"
+      "sku": "PICKAXE-5LB",
+      "image": "https://images.pexels.com/photos/2382665/pexels-photo-2382665.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "11",
@@ -122,7 +129,8 @@
       "description": "5-pound double-pointed pick axe, perfect for rocky terrain.",
       "featured": false,
       "unit": "piece",
-      "sku": "PICKAXE-5LB-PT"
+      "sku": "PICKAXE-5LB-PT",
+      "image": "https://images.pexels.com/photos/3794760/pexels-photo-3794760.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "12",
@@ -133,7 +141,8 @@
       "description": "Classic claw hammer with traditional wooden handle. 550g head weight.",
       "featured": false,
       "unit": "piece",
-      "sku": "HAMMER-CLAW-WD"
+      "sku": "HAMMER-CLAW-WD",
+      "image": "https://images.pexels.com/photos/209235/pexels-photo-209235.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "13",
@@ -144,7 +153,8 @@
       "description": "Claw hammer with shock-absorbing metal handle. 500g head weight.",
       "featured": false,
       "unit": "piece",
-      "sku": "HAMMER-CLAW-MT"
+      "sku": "HAMMER-CLAW-MT",
+      "image": "https://images.pexels.com/photos/209235/pexels-photo-209235.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "14",
@@ -155,7 +165,8 @@
       "description": "12-inch adjustable wrench with wide jaw opening. Chrome vanadium steel.",
       "featured": false,
       "unit": "piece",
-      "sku": "WRENCH-ADJ-12"
+      "sku": "WRENCH-ADJ-12",
+      "image": "https://images.pexels.com/photos/210881/pexels-photo-210881.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "15",
@@ -166,7 +177,8 @@
       "description": "8-inch compact adjustable wrench. Drop-forged for strength.",
       "featured": false,
       "unit": "piece",
-      "sku": "WRENCH-ADJ-8"
+      "sku": "WRENCH-ADJ-8",
+      "image": "https://images.pexels.com/photos/162553/pexels-photo-162553.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "16",
@@ -177,7 +189,8 @@
       "description": "8-inch combination plier with wire cutter. Anti-slip grip handles.",
       "featured": false,
       "unit": "piece",
-      "sku": "PLIER-COMBO-8"
+      "sku": "PLIER-COMBO-8",
+      "image": "https://images.pexels.com/photos/7019367/pexels-photo-7019367.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "17",
@@ -188,7 +201,8 @@
       "description": "Heavy-duty pipe wrench with serrated jaws for gripping pipes and fittings.",
       "featured": false,
       "unit": "piece",
-      "sku": "WRENCH-PIPE-14"
+      "sku": "WRENCH-PIPE-14",
+      "image": "https://images.pexels.com/photos/8488060/pexels-photo-8488060.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "18",
@@ -199,7 +213,8 @@
       "description": "Extra-large 18-inch pipe wrench for heavy plumbing applications.",
       "featured": false,
       "unit": "piece",
-      "sku": "WRENCH-PIPE-18"
+      "sku": "WRENCH-PIPE-18",
+      "image": "https://images.pexels.com/photos/8488060/pexels-photo-8488060.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "19",
@@ -210,7 +225,8 @@
       "description": "Professional 18-inch handsaw with TPR comfort grip handle. Fine teeth for smooth cuts.",
       "featured": false,
       "unit": "piece",
-      "sku": "HANDSAW-18"
+      "sku": "HANDSAW-18",
+      "image": "https://images.pexels.com/photos/5974279/pexels-photo-5974279.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "20",
@@ -221,7 +237,8 @@
       "description": "Durable 18-inch SALI brand hand saw for timber and lumber cutting.",
       "featured": false,
       "unit": "piece",
-      "sku": "HANDSAW-SALI-18"
+      "sku": "HANDSAW-SALI-18",
+      "image": "https://images.pexels.com/photos/5974243/pexels-photo-5974243.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "21",
@@ -232,7 +249,8 @@
       "description": "5-meter retractable measuring tape with mm and inch markings. Auto-lock function.",
       "featured": false,
       "unit": "piece",
-      "sku": "TAPE-5M"
+      "sku": "TAPE-5M",
+      "image": "https://images.pexels.com/photos/4048078/pexels-photo-4048078.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "22",
@@ -243,7 +261,8 @@
       "description": "3-meter pocket measuring tape. Durable ABS casing.",
       "featured": false,
       "unit": "piece",
-      "sku": "TAPE-3M"
+      "sku": "TAPE-3M",
+      "image": "https://images.pexels.com/photos/5383189/pexels-photo-5383189.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "23",
@@ -254,7 +273,8 @@
       "description": "Electronic digital caliper with 0.01mm resolution. LCD display. 0-150mm range.",
       "featured": false,
       "unit": "piece",
-      "sku": "CALIPER-DIG-150"
+      "sku": "CALIPER-DIG-150",
+      "image": "https://images.pexels.com/photos/4048078/pexels-photo-4048078.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "24",
@@ -265,7 +285,8 @@
       "description": "Heavy-duty bolt cutter for chains, padlocks, and thick wire.",
       "featured": false,
       "unit": "piece",
-      "sku": "BOLT-CUTTER"
+      "sku": "BOLT-CUTTER",
+      "image": "https://images.pexels.com/photos/7019367/pexels-photo-7019367.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "25",
@@ -288,7 +309,8 @@
       "description": "Professional 1800W heavy-duty angle grinder. 180mm disc. For demanding metal work.",
       "featured": false,
       "unit": "piece",
-      "sku": "GRINDER-1800W"
+      "sku": "GRINDER-1800W",
+      "image": "https://images.unsplash.com/photo-LymIqp2n7GQ?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "27",
@@ -299,7 +321,8 @@
       "description": "Powerful 9-inch circular saw with 24-tooth blade. Ideal for timber framing.",
       "featured": false,
       "unit": "piece",
-      "sku": "CIRC-SAW-9IN"
+      "sku": "CIRC-SAW-9IN",
+      "image": "https://images.pexels.com/photos/8820180/pexels-photo-8820180.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "28",
@@ -310,7 +333,8 @@
       "description": "Heavy-duty 10-inch circular saw for professional carpentry and construction.",
       "featured": false,
       "unit": "piece",
-      "sku": "CIRC-SAW-10IN"
+      "sku": "CIRC-SAW-10IN",
+      "image": "https://images.pexels.com/photos/18866926/pexels-photo-18866926.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "29",
@@ -333,7 +357,8 @@
       "description": "Battery-powered angle grinder for freedom of movement on job sites.",
       "featured": false,
       "unit": "piece",
-      "sku": "GRINDER-CORDLESS"
+      "sku": "GRINDER-CORDLESS",
+      "image": "https://images.pexels.com/photos/7461112/pexels-photo-7461112.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "31",
@@ -344,7 +369,8 @@
       "description": "1350W heavy demolition hammer for breaking concrete and masonry.",
       "featured": false,
       "unit": "piece",
-      "sku": "DEMO-HAMMER-1350"
+      "sku": "DEMO-HAMMER-1350",
+      "image": "https://images.pexels.com/photos/3846086/pexels-photo-3846086.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "32",
@@ -355,7 +381,8 @@
       "description": "SDS-plus rotary hammer for drilling concrete, brick, and stone. 3 function modes.",
       "featured": false,
       "unit": "piece",
-      "sku": "ROTARY-HAMMER-2132"
+      "sku": "ROTARY-HAMMER-2132",
+      "image": "https://images.pexels.com/photos/3846086/pexels-photo-3846086.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "33",
@@ -366,7 +393,8 @@
       "description": "Orbital finishing sander for smooth wood surfaces. 93×185mm sheet size.",
       "featured": false,
       "unit": "piece",
-      "sku": "SANDER-ORB-185"
+      "sku": "SANDER-ORB-185",
+      "image": "https://images.pexels.com/photos/5974243/pexels-photo-5974243.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "34",
@@ -389,7 +417,8 @@
       "description": "STIHL FS 230 brushcutter with anti-vibration system. Ideal for tough vegetation on slopes.",
       "featured": false,
       "unit": "piece",
-      "sku": "BRUSHCUT-STIHL-230"
+      "sku": "BRUSHCUT-STIHL-230",
+      "image": "https://images.unsplash.com/photo-vlSEEZSHpUI?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "36",
@@ -424,7 +453,8 @@
       "description": "Single-pass rice mill model 6NJ-40. Compact design for small-scale milling operations.",
       "featured": false,
       "unit": "piece",
-      "sku": "RICE-MILL-6NJ40"
+      "sku": "RICE-MILL-6NJ40",
+      "image": "https://images.unsplash.com/photo-SWbjWvvubZM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "39",
@@ -435,7 +465,8 @@
       "description": "12-batten paddy thresher for efficient rice harvesting. Engine-powered, high capacity output.",
       "featured": false,
       "unit": "piece",
-      "sku": "THRESHER-PADDY-12"
+      "sku": "THRESHER-PADDY-12",
+      "image": "https://images.pexels.com/photos/13882449/pexels-photo-13882449.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "40",
@@ -446,7 +477,8 @@
       "description": "20-litre motorized knapsack sprayer for pesticide and fertilizer application. Aluminium tank.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPRAYER-ST767-20L"
+      "sku": "SPRAYER-ST767-20L",
+      "image": "https://images.pexels.com/photos/13882449/pexels-photo-13882449.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "41",
@@ -457,15 +489,16 @@
       "description": "Dual-mode 16L knapsack sprayer: battery-powered or manual pump. Lightweight design.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPRAYER-16L-DUAL"
+      "sku": "SPRAYER-16L-DUAL",
+      "image": "https://images.pexels.com/photos/13882449/pexels-photo-13882449.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "42",
-      "name": "CHAINSAW 125, 18 INCH",
+      "name": "CHAINSAW STIHL MS 382 (18 INCH)",
       "category": "Agricultural Machinery",
       "price": 65000,
       "stock": 8,
-      "description": "18-inch bar chainsaw, ideal for felling trees and cutting timber on farms and forests.",
+      "description": "STIHL MS 382 professional 18-inch bar chainsaw. Powerful 2-stroke engine for felling trees and cutting timber on farms and forests.",
       "featured": true,
       "unit": "piece",
       "sku": "CHAINSAW-125-18",
@@ -480,7 +513,8 @@
       "description": "Cold-press oil expeller for mustard, sunflower, and sesame. Stainless steel contact parts.",
       "featured": false,
       "unit": "piece",
-      "sku": "OIL-PRESS"
+      "sku": "OIL-PRESS",
+      "image": "https://images.unsplash.com/photo-SWbjWvvubZM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "44",
@@ -491,7 +525,8 @@
       "description": "Motor-driven maize thresher for separating corn kernels. High throughput capacity.",
       "featured": false,
       "unit": "piece",
-      "sku": "THRESHER-MAIZE"
+      "sku": "THRESHER-MAIZE",
+      "image": "https://images.pexels.com/photos/13882449/pexels-photo-13882449.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "45",
@@ -502,7 +537,8 @@
       "description": "Automated incense stick making machine. Adjustable stick thickness and length.",
       "featured": false,
       "unit": "piece",
-      "sku": "INCENSE-MACHINE"
+      "sku": "INCENSE-MACHINE",
+      "image": "https://images.unsplash.com/photo-SWbjWvvubZM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "46",
@@ -525,7 +561,8 @@
       "description": "High-ankle steel-cap safety boot with waterproof lining.",
       "featured": false,
       "unit": "pair",
-      "sku": "SAFETY-SHOE-SFS003"
+      "sku": "SAFETY-SHOE-SFS003",
+      "image": "https://images.unsplash.com/photo-x3GmDLxdWE0?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "48",
@@ -536,7 +573,8 @@
       "description": "Composite toe safety shoe with ESD-resistant outsole. Lightweight comfort.",
       "featured": false,
       "unit": "pair",
-      "sku": "SAFETY-SHOE-SFS005"
+      "sku": "SAFETY-SHOE-SFS005",
+      "image": "https://images.unsplash.com/photo-x3GmDLxdWE0?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "49",
@@ -547,7 +585,8 @@
       "description": "Premium safety boot with Kevlar midsole and steel toecap. Max protection.",
       "featured": false,
       "unit": "pair",
-      "sku": "SAFETY-SHOE-SFS006"
+      "sku": "SAFETY-SHOE-SFS006",
+      "image": "https://images.unsplash.com/photo-x3GmDLxdWE0?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "50",
@@ -558,7 +597,8 @@
       "description": "Anti-fog safety goggles with UV protection and wraparound design.",
       "featured": false,
       "unit": "piece",
-      "sku": "SAFETY-GOGGLE"
+      "sku": "SAFETY-GOGGLE",
+      "image": "https://images.pexels.com/photos/4971539/pexels-photo-4971539.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "51",
@@ -569,7 +609,8 @@
       "description": "Over-ear hearing protection earmuff. SNR 28dB attenuation. Adjustable headband.",
       "featured": false,
       "unit": "piece",
-      "sku": "EARMUFF"
+      "sku": "EARMUFF",
+      "image": "https://images.pexels.com/photos/744922/pexels-photo-744922.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "52",
@@ -580,7 +621,8 @@
       "description": "Cut-resistant work gloves with reinforced palm. Suitable for general handling.",
       "featured": false,
       "unit": "pair",
-      "sku": "GLOVES-SALI"
+      "sku": "GLOVES-SALI",
+      "image": "https://images.pexels.com/photos/357538/pexels-photo-357538.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "53",
@@ -591,7 +633,8 @@
       "description": "High-visibility reflective safety vest for road and construction work.",
       "featured": false,
       "unit": "piece",
-      "sku": "SAFETY-JACKET"
+      "sku": "SAFETY-JACKET",
+      "image": "https://images.pexels.com/photos/8293678/pexels-photo-8293678.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "54",
@@ -602,7 +645,8 @@
       "description": "Waterproof rubber gum boots for agricultural and construction use.",
       "featured": false,
       "unit": "pair",
-      "sku": "GUM-BOOT"
+      "sku": "GUM-BOOT",
+      "image": "https://images.pexels.com/photos/8968046/pexels-photo-8968046.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "55",
@@ -613,7 +657,8 @@
       "description": "Shade-5 welding goggles for gas welding and cutting. Heat-resistant frame.",
       "featured": false,
       "unit": "piece",
-      "sku": "WELD-GLASSES"
+      "sku": "WELD-GLASSES",
+      "image": "https://images.pexels.com/photos/4971539/pexels-photo-4971539.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "56",
@@ -624,7 +669,8 @@
       "description": "Full-length waterproof PVC rain coat with hood. One size fits most.",
       "featured": false,
       "unit": "piece",
-      "sku": "RAIN-COAT"
+      "sku": "RAIN-COAT",
+      "image": "https://images.pexels.com/photos/16442684/pexels-photo-16442684.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "57",
@@ -635,7 +681,8 @@
       "description": "360-degree rotating micro sprinkler for garden and greenhouse irrigation. 1/2-inch thread.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPRINKLER-360"
+      "sku": "SPRINKLER-360",
+      "image": "https://images.pexels.com/photos/25283561/pexels-photo-25283561.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "58",
@@ -646,7 +693,8 @@
       "description": "1.2-metre telescopic sprinkler riser stand. Compatible with standard 1/2-inch fittings.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPRINKLER-STAND"
+      "sku": "SPRINKLER-STAND",
+      "image": "https://images.pexels.com/photos/25283561/pexels-photo-25283561.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "59",
@@ -657,7 +705,8 @@
       "description": "Heavy-duty zinc alloy rotary sprinkler head. Long-lasting corrosion-resistant body.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPRINKLER-ZINC"
+      "sku": "SPRINKLER-ZINC",
+      "image": "https://images.pexels.com/photos/25283561/pexels-photo-25283561.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "60",
@@ -668,7 +717,8 @@
       "description": "Precision microsprinkler on 40cm stake. 8L/hr output. Suitable for vegetable beds.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPRINKLER-ANTI-INSECT"
+      "sku": "SPRINKLER-ANTI-INSECT",
+      "image": "https://images.pexels.com/photos/4750273/pexels-photo-4750273.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "61",
@@ -679,7 +729,8 @@
       "description": "Wall-mounted hose reel for 25mm hose. Auto-rewind mechanism. Capacity: 30 metres.",
       "featured": false,
       "unit": "piece",
-      "sku": "HOSE-REEL-25"
+      "sku": "HOSE-REEL-25",
+      "image": "https://images.pexels.com/photos/189466/pexels-photo-189466.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "62",
@@ -690,7 +741,8 @@
       "description": "Reinforced canvas suction/delivery pipe, 3-inch diameter, 30-metre roll.",
       "featured": false,
       "unit": "roll",
-      "sku": "CANVAS-PIPE-3IN"
+      "sku": "CANVAS-PIPE-3IN",
+      "image": "https://images.pexels.com/photos/189466/pexels-photo-189466.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "63",
@@ -701,7 +753,8 @@
       "description": "3-inch submersible water pump for deep wells and water supply. High flow rate.",
       "featured": false,
       "unit": "piece",
-      "sku": "PUMP-SUBMERSIBLE-3"
+      "sku": "PUMP-SUBMERSIBLE-3",
+      "image": "https://images.pexels.com/photos/4750273/pexels-photo-4750273.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "64",
@@ -712,7 +765,8 @@
       "description": "SALI brand 1HP centrifugal water pump. Single-phase, 220V. For irrigation and water transfer.",
       "featured": false,
       "unit": "piece",
-      "sku": "PUMP-SALI-1HP"
+      "sku": "PUMP-SALI-1HP",
+      "image": "https://images.pexels.com/photos/4750273/pexels-photo-4750273.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "65",
@@ -735,7 +789,8 @@
       "description": "Dual-function MIG/MMA 200A inverter welder. Suitable for wire and stick welding.",
       "featured": false,
       "unit": "piece",
-      "sku": "WELDER-MIGMMA-200"
+      "sku": "WELDER-MIGMMA-200",
+      "image": "https://images.pexels.com/photos/327049/pexels-photo-327049.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "67",
@@ -746,7 +801,8 @@
       "description": "SALI MM225 inverter welder with hot-start and anti-stick function. 225A output.",
       "featured": false,
       "unit": "piece",
-      "sku": "WELDER-SALI-225"
+      "sku": "WELDER-SALI-225",
+      "image": "https://images.pexels.com/photos/327049/pexels-photo-327049.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "68",
@@ -757,7 +813,8 @@
       "description": "Heavy-duty 300A welding ground/earth clamp. Copper-plated contacts for low resistance.",
       "featured": false,
       "unit": "piece",
-      "sku": "WELD-CLAMP-300A"
+      "sku": "WELD-CLAMP-300A",
+      "image": "https://images.pexels.com/photos/327049/pexels-photo-327049.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "69",
@@ -768,7 +825,8 @@
       "description": "100W electric soldering iron with ceramic heating element. Includes solder wire.",
       "featured": false,
       "unit": "piece",
-      "sku": "SOLDER-IRON-100W"
+      "sku": "SOLDER-IRON-100W",
+      "image": "https://images.pexels.com/photos/7819764/pexels-photo-7819764.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "70",
@@ -779,7 +837,8 @@
       "description": "Premium 8-inch garden shears with brass pivot bolt. Hardened steel blades for clean cuts.",
       "featured": false,
       "unit": "piece",
-      "sku": "SHEAR-GARDEN-8"
+      "sku": "SHEAR-GARDEN-8",
+      "image": "https://images.pexels.com/photos/4270181/pexels-photo-4270181.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "71",
@@ -790,7 +849,8 @@
       "description": "Bypass hand pruner for cutting branches up to 20mm diameter. Ergonomic soft-grip handle.",
       "featured": false,
       "unit": "piece",
-      "sku": "PRUNER-8IN"
+      "sku": "PRUNER-8IN",
+      "image": "https://images.pexels.com/photos/12142540/pexels-photo-12142540.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "72",
@@ -801,7 +861,8 @@
       "description": "Japanese-made Z-18 professional pruner. Razor-sharp blade, sap groove, and safety lock.",
       "featured": false,
       "unit": "piece",
-      "sku": "PRUNER-JP-Z18"
+      "sku": "PRUNER-JP-Z18",
+      "image": "https://images.pexels.com/photos/12142540/pexels-photo-12142540.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "73",
@@ -812,7 +873,8 @@
       "description": "210mm Japanese pull-saw for fine woodworking and pruning. Tri-edge teeth for clean cuts.",
       "featured": false,
       "unit": "piece",
-      "sku": "SAW-JP-210"
+      "sku": "SAW-JP-210",
+      "image": "https://images.pexels.com/photos/5974279/pexels-photo-5974279.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "74",
@@ -823,7 +885,8 @@
       "description": "10-pin steel rake for levelling soil and collecting leaves. Strong wooden handle.",
       "featured": false,
       "unit": "piece",
-      "sku": "RAKE-10PIN"
+      "sku": "RAKE-10PIN",
+      "image": "https://images.pexels.com/photos/7728016/pexels-photo-7728016.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "75",
@@ -846,7 +909,8 @@
       "description": "Single-wheel garden barrow with 90kg load capacity. Galvanised steel tray, pneumatic tyre.",
       "featured": false,
       "unit": "piece",
-      "sku": "BARROW-SINGLE-90"
+      "sku": "BARROW-SINGLE-90",
+      "image": "https://images.pexels.com/photos/26827231/pexels-photo-26827231.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "77",
@@ -857,7 +921,8 @@
       "description": "300mm curved lopping saw for high branches. Tri-grind teeth for fast cutting.",
       "featured": false,
       "unit": "piece",
-      "sku": "LOPPING-SAW-300"
+      "sku": "LOPPING-SAW-300",
+      "image": "https://images.pexels.com/photos/5974243/pexels-photo-5974243.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "78",
@@ -868,7 +933,8 @@
       "description": "Telescoping fruit picker with soft catch basket. Reaches up to 3 metres.",
       "featured": false,
       "unit": "piece",
-      "sku": "FRUIT-PICKER"
+      "sku": "FRUIT-PICKER",
+      "image": "https://images.pexels.com/photos/12142540/pexels-photo-12142540.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "79",
@@ -879,7 +945,8 @@
       "description": "F7TC spark plug compatible with most 2-stroke and 4-stroke small engines (168F, CG430).",
       "featured": false,
       "unit": "piece",
-      "sku": "SPARK-PLUG-F7TC"
+      "sku": "SPARK-PLUG-F7TC",
+      "image": "https://images.pexels.com/photos/3846086/pexels-photo-3846086.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "80",
@@ -890,7 +957,8 @@
       "description": "Standard 4-stroke engine spark plug. Cross-references NGK, Champion, and Denso types.",
       "featured": false,
       "unit": "piece",
-      "sku": "SPARK-PLUG-4S"
+      "sku": "SPARK-PLUG-4S",
+      "image": "https://images.pexels.com/photos/3846086/pexels-photo-3846086.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "81",
@@ -901,7 +969,8 @@
       "description": "HSS 5mm drill bit for metal, wood, and plastic. Industrial quality coating.",
       "featured": false,
       "unit": "piece",
-      "sku": "DRILLBIT-5MM"
+      "sku": "DRILLBIT-5MM",
+      "image": "https://images.pexels.com/photos/46973/pexels-photo-46973.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "82",
@@ -912,7 +981,8 @@
       "description": "HSS 8.5mm jobber drill bit. Suitable for steel and non-ferrous metals.",
       "featured": false,
       "unit": "piece",
-      "sku": "DRILLBIT-8.5MM"
+      "sku": "DRILLBIT-8.5MM",
+      "image": "https://images.pexels.com/photos/51320/pexels-photo-51320.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "83",
@@ -923,7 +993,8 @@
       "description": "12mm HSS twist drill bit with 118° point angle. For general drilling.",
       "featured": false,
       "unit": "piece",
-      "sku": "DRILLBIT-12MM"
+      "sku": "DRILLBIT-12MM",
+      "image": "https://images.pexels.com/photos/47091/pexels-photo-47091.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "84",
@@ -934,7 +1005,8 @@
       "description": "6-piece HSS drill bit set (5/6/7/8/9/10mm). Ideal starter set for workshops.",
       "featured": false,
       "unit": "set",
-      "sku": "DRILLBIT-SET-5-10"
+      "sku": "DRILLBIT-SET-5-10",
+      "image": "https://images.pexels.com/photos/51320/pexels-photo-51320.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "85",
@@ -945,7 +1017,8 @@
       "description": "Full chisel chainsaw chain, 3/8\" pitch, 0.058\" gauge. Fast cutting for hardwood.",
       "featured": false,
       "unit": "piece",
-      "sku": "CHAIN-3-8-058"
+      "sku": "CHAIN-3-8-058",
+      "image": "https://images.pexels.com/photos/4206113/pexels-photo-4206113.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "86",
@@ -956,7 +1029,8 @@
       "description": "BOSCH 4-inch metal cutting disc. 1mm ultra-thin for fast, clean cuts.",
       "featured": false,
       "unit": "piece",
-      "sku": "CUT-WHEEL-4IN-BOSCH"
+      "sku": "CUT-WHEEL-4IN-BOSCH",
+      "image": "https://images.pexels.com/photos/4053706/pexels-photo-4053706.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "87",
@@ -967,7 +1041,8 @@
       "description": "SALI 4-inch abrasive metal cutting disc. High-density for longer life.",
       "featured": false,
       "unit": "piece",
-      "sku": "CUT-DISC-4IN-SALI"
+      "sku": "CUT-DISC-4IN-SALI",
+      "image": "https://images.pexels.com/photos/7461112/pexels-photo-7461112.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "88",
@@ -978,7 +1053,8 @@
       "description": "Hook-and-loop 4-inch sanding disc, P80 grit. For orbital sanders.",
       "featured": false,
       "unit": "piece",
-      "sku": "VELCRO-DISC-4P80"
+      "sku": "VELCRO-DISC-4P80",
+      "image": "https://images.pexels.com/photos/5974243/pexels-photo-5974243.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "89",
@@ -989,7 +1065,8 @@
       "description": "Deep groove ball bearing 6305 (25×62×17mm). For pumps, motors, and agricultural equipment.",
       "featured": false,
       "unit": "piece",
-      "sku": "BEARING-6305"
+      "sku": "BEARING-6305",
+      "image": "https://images.pexels.com/photos/3846086/pexels-photo-3846086.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "90",
@@ -1000,7 +1077,8 @@
       "description": "Standard B-section V-belt, B58 length. For rice mills, threshers, and pulley drives.",
       "featured": false,
       "unit": "piece",
-      "sku": "VBELT-B58"
+      "sku": "VBELT-B58",
+      "image": "https://images.pexels.com/photos/3846086/pexels-photo-3846086.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "91",
@@ -1011,7 +1089,8 @@
       "description": "5.5mm round chainsaw file for sharpening 3/8\" pitch chain. Professional grade.",
       "featured": false,
       "unit": "piece",
-      "sku": "FILE-5.5MM"
+      "sku": "FILE-5.5MM",
+      "image": "https://images.pexels.com/photos/162553/pexels-photo-162553.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     },
     {
       "id": "92",
@@ -1022,7 +1101,8 @@
       "description": "82mm HSS planer blade for SALI and compatible power planers. 1mm thickness.",
       "featured": false,
       "unit": "piece",
-      "sku": "PLANER-BLADE-82"
+      "sku": "PLANER-BLADE-82",
+      "image": "https://images.pexels.com/photos/5974279/pexels-photo-5974279.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop"
     }
   ]
 }
