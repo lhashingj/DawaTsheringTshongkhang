@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   ShoppingCart, Package, Zap, Tractor, Hammer, Shield,
@@ -95,20 +96,33 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         </div>
       )}
 
-      {/* Graphic area */}
+      {/* Image / Graphic area */}
       <div className={cn(
-        "relative h-40 flex items-center justify-center",
-        colorClass.split(" ")[1]
+        "relative h-44 flex items-center justify-center overflow-hidden",
+        product.image ? "bg-slate-100" : colorClass.split(" ")[1]
       )}>
-        <motion.div
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          <Icon className={cn("h-16 w-16 opacity-50", colorClass.split(" ")[0])} strokeWidth={1.2} />
-        </motion.div>
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+        ) : (
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <Icon className={cn("h-16 w-16 opacity-50", colorClass.split(" ")[0])} strokeWidth={1.2} />
+          </motion.div>
+        )}
         {/* Category label */}
-        <div className="absolute bottom-2 left-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+        <div className="absolute bottom-2 left-3 z-10">
+          <span className={cn(
+            "text-[10px] font-semibold uppercase tracking-wider",
+            product.image ? "text-white drop-shadow-md" : "text-slate-400"
+          )}>
             {product.category}
           </span>
         </div>

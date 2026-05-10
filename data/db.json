@@ -9,7 +9,8 @@
       "description": "Heavy-duty 2.3kg black forged steel axe with ergonomic handle. Ideal for chopping firewood and clearing vegetation.",
       "featured": true,
       "unit": "piece",
-      "sku": "AXE-2.3KG-BK"
+      "sku": "AXE-2.3KG-BK",
+      "image": "https://images.unsplash.com/photo-jZWmw6007EY?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "2",
@@ -31,7 +32,8 @@
       "description": "Traditional curved sickle for harvesting rice, wheat, and grass. Durable carbon steel blade.",
       "featured": true,
       "unit": "piece",
-      "sku": "SICKLE-2030"
+      "sku": "SICKLE-2030",
+      "image": "https://images.unsplash.com/photo-YP1Lz5B4nOk?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "4",
@@ -53,7 +55,8 @@
       "description": "Square-head shovel, 750g head weight, hardwood handle. Great for digging and moving soil.",
       "featured": true,
       "unit": "piece",
-      "sku": "SHOVEL-SQ-750"
+      "sku": "SHOVEL-SQ-750",
+      "image": "https://images.unsplash.com/photo-IcivHlHMpTM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "6",
@@ -273,7 +276,8 @@
       "description": "SALI 750W compact angle grinder. 110mm disc size. Variable speed. Includes guard.",
       "featured": true,
       "unit": "piece",
-      "sku": "GRINDER-750W"
+      "sku": "GRINDER-750W",
+      "image": "https://images.unsplash.com/photo-LymIqp2n7GQ?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "26",
@@ -317,7 +321,8 @@
       "description": "20V cordless drill with 2 speed settings. Includes battery and charger. 10mm chuck.",
       "featured": true,
       "unit": "piece",
-      "sku": "DRILL-CORDLESS-20V"
+      "sku": "DRILL-CORDLESS-20V",
+      "image": "https://images.unsplash.com/photo-Nn2mg1lUbZc?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "30",
@@ -372,7 +377,8 @@
       "description": "Professional-grade brushcutter for clearing dense undergrowth, grass, and weeds. Robust 2-stroke engine.",
       "featured": true,
       "unit": "piece",
-      "sku": "BRUSHCUT-541RB"
+      "sku": "BRUSHCUT-541RB",
+      "image": "https://images.unsplash.com/photo-vlSEEZSHpUI?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "35",
@@ -394,7 +400,8 @@
       "description": "7.5 HP mini power tiller for soil preparation. Adjustable tilling width. Ideal for small farms.",
       "featured": true,
       "unit": "piece",
-      "sku": "TILLER-7.5HP"
+      "sku": "TILLER-7.5HP",
+      "image": "https://images.unsplash.com/photo-sgOU6PJKo24?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "37",
@@ -405,7 +412,8 @@
       "description": "Combined rice milling machine with 3KW electric motor. Husks and mills in one pass. Capacity ~400kg/hr.",
       "featured": true,
       "unit": "piece",
-      "sku": "RICE-MILL-COMBO"
+      "sku": "RICE-MILL-COMBO",
+      "image": "https://images.unsplash.com/photo-SWbjWvvubZM?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "38",
@@ -460,7 +468,8 @@
       "description": "18-inch bar chainsaw, ideal for felling trees and cutting timber on farms and forests.",
       "featured": true,
       "unit": "piece",
-      "sku": "CHAINSAW-125-18"
+      "sku": "CHAINSAW-125-18",
+      "image": "https://images.unsplash.com/photo-5vKQOaAL3IQ?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "43",
@@ -504,7 +513,8 @@
       "description": "Steel-toed safety boots with anti-slip sole. EN ISO 20345 compliant. Multiple sizes available.",
       "featured": true,
       "unit": "pair",
-      "sku": "SAFETY-SHOE-SALI"
+      "sku": "SAFETY-SHOE-SALI",
+      "image": "https://images.unsplash.com/photo-x3GmDLxdWE0?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "47",
@@ -713,7 +723,8 @@
       "description": "250A MMA arc welder with IGBT inverter technology. Includes electrode holder, ground clamp, and mask.",
       "featured": true,
       "unit": "piece",
-      "sku": "WELDER-MMA-250"
+      "sku": "WELDER-MMA-250",
+      "image": "https://images.unsplash.com/photo-9sJMyPKlKhw?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "66",
@@ -823,7 +834,8 @@
       "description": "Rechargeable battery-powered pruning shear. Cuts branches up to 28mm. One-hand operation.",
       "featured": true,
       "unit": "piece",
-      "sku": "PRUNER-BATTERY-28"
+      "sku": "PRUNER-BATTERY-28",
+      "image": "https://images.unsplash.com/photo-GaFVo5A4FMU?w=400&h=300&fit=crop&q=80&auto=format"
     },
     {
       "id": "76",

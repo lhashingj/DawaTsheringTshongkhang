@@ -8,6 +8,7 @@ export interface Product {
   featured: boolean;
   unit: string;
   sku: string;
+  image?: string;
 }
 
 export type ProductCategory =
