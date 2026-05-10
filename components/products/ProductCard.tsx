@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/context/CartContext";
 import { toast } from "@/hooks/use-toast";
 import { formatPrice, cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 import type { Product, ProductCategory } from "@/types";
 
-const CATEGORY_ICONS: Record<ProductCategory, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+const CATEGORY_ICONS: Record<ProductCategory, LucideIcon> = {
   "Power Tools": Zap,
   "Agricultural Machinery": Tractor,
   "Hand Tools": Hammer,
