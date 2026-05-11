@@ -20,7 +20,7 @@ interface Message {
 }
 
 export function ChatWidget() {
-  const { user, loading } = useAuth();
+  const { user, loading, configured } = useAuth();
   const [open, setOpen] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -107,7 +107,7 @@ export function ChatWidget() {
     setSending(false);
   }
 
-  if (loading) return null;
+  if (loading || !configured) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">

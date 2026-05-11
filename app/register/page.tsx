@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Wrench, ArrowLeft, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    const { error: err } = await supabase.auth.signUp({
+    const { error: err } = await getSupabase()!.auth.signUp({
       email,
       password,
       options: { data: { name } },

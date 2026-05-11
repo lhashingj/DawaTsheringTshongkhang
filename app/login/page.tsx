@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Wrench, ArrowLeft, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: err } = await getSupabase()!.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (err) {
       setError(err.message);
