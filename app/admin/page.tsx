@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Pencil, Trash2, Search, X, LogOut, Wrench,
   Package, TrendingUp, AlertTriangle, CheckCircle,
-  ChevronUp, ChevronDown, ChevronsUpDown, ArrowLeft,
+  ChevronUp, ChevronDown, ChevronsUpDown, ArrowLeft, MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -201,6 +201,12 @@ export default function AdminPage() {
             <span className="hidden sm:block text-white/40 text-xs">Inventory Dashboard</span>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/admin/chat">
+              <Button variant="ghost" size="sm" className="text-white/60 hover:text-white hover:bg-white/10 gap-1.5 text-xs">
+                <MessageCircle className="h-3.5 w-3.5" />
+                <span className="hidden sm:block">Chat</span>
+              </Button>
+            </Link>
             <Button
               onClick={() => { setEditTarget(null); setModalOpen(true); }}
               size="sm"

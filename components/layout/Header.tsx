@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ShoppingCart, Menu, X, Wrench, Phone, MapPin, Mail
+  ShoppingCart, Menu, X, Wrench, Phone, MapPin, Mail, LogIn, LogOut, UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartDrawer } from "./CartDrawer";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -23,6 +24,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const { totalItems } = useCart();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -95,6 +97,25 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {user ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                className="hidden md:flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10"
+              >
+                <UserCircle className="h-4 w-4" />
+                <span className="text-xs max-w-[80px] truncate">{user.user_metadata?.name ?? user.email}</span>
+                <LogOut className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="hidden md:flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10">
+                  <LogIn className="h-4 w-4" />
+                  <span className="text-xs">Sign In</span>
+                </Button>
+              </Link>
+            )}
             <Button
               variant="ghost"
               size="icon"
