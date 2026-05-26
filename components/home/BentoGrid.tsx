@@ -44,7 +44,7 @@ export function BentoGrid({ products }: BentoGridProps) {
         </motion.div>
 
         {/* Bento grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {featured.map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />
           ))}

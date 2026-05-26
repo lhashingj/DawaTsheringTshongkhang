@@ -1,39 +1,47 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getAllConversations, getOrCreateConversation, hasAdminMessages, findConversation, deleteConversation, addMessage, getMessages } from "@/lib/chat-store";
+import { getSessionUser } from "@/lib/auth-store";
+import { cookies } from "next/headers";
 
-// GET: admin fetches all conversations
-export async function GET() {
-  const db = supabaseAdmin();
-  const { data, error } = await db
-    .from("conversations")
-    .select("*, messages(id, sender_type, content, created_at)")
-    .order("updated_at", { ascending: false });
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const userId = searchParams.get("userId");
+  const type = searchParams.get("type") as "general" | "order" | null;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  if (userId && type) {
+    return NextResponse.json(findConversation(userId, type));
+  }
+
+  return NextResponse.json(getAllConversations());
 }
 
-// POST: user creates or gets their conversation
 export async function POST(req: Request) {
-  const { user_id, user_name, user_email } = await req.json();
-  const db = supabaseAdmin();
+  const { user_id, user_name, user_email, type = "general" } = await req.json();
+  const conv = getOrCreateConversation(user_id, user_name, user_email, type);
 
-  // Return existing open conversation if one exists
-  const { data: existing } = await db
-    .from("conversations")
-    .select("*")
-    .eq("user_id", user_id)
-    .eq("status", "open")
-    .single();
+  // Auto-greet new general conversations
+  if ((type ?? "general") === "general" && getMessages(conv.id).length === 0) {
+    addMessage(
+      conv.id,
+      "bot",
+      "Hi! I'm Dawa, DTT Hardware's virtual assistant. 👋\n\nI can help you with:\n• Product prices and details\n• Stock availability\n• Our location and hours\n• Delivery options\n\nHow can I assist you today?",
+    );
+  }
 
-  if (existing) return NextResponse.json(existing);
+  return NextResponse.json({ ...conv, hasAdminMessages: hasAdminMessages(conv.id) });
+}
 
-  const { data, error } = await db
-    .from("conversations")
-    .insert({ user_id, user_name, user_email })
-    .select()
-    .single();
+export async function DELETE(req: Request) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("dtt-session")?.value;
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = getSessionUser(token);
+  if (!user || user.role !== "admin") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  deleteConversation(id);
+  return NextResponse.json({ ok: true });
 }

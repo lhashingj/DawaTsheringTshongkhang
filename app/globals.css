@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -77,14 +75,48 @@
   }
 
   .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+    @apply transition-all duration-300 hover:-translate-y-1;
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    }
+  }
+
+  .card-shadow {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  .card-shadow-hover {
+    @apply transition-shadow duration-200;
+    &:hover {
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+    }
   }
 
   .section-heading {
-    @apply text-3xl md:text-4xl font-black tracking-tight text-brand-slate;
+    @apply text-3xl md:text-4xl font-extrabold tracking-tight text-brand-slate;
   }
 
   .section-subheading {
-    @apply text-slate-500 text-lg mt-3 max-w-2xl;
+    @apply text-slate-500 text-base mt-3 max-w-2xl leading-relaxed;
+  }
+
+  /* Shimmer loading skeleton */
+  .skeleton {
+    @apply bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200;
+    background-size: 200% 100%;
+    animation: shimmer 1.5s linear infinite;
+  }
+
+  /* Glow pulse for featured elements */
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(249,115,22,0.25), 0 0 40px rgba(249,115,22,0.1);
+  }
+
+  /* Animated gradient border */
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(white, white) padding-box,
+      linear-gradient(135deg, #f97316, #ea580c) border-box;
+    border: 2px solid transparent;
   }
 }

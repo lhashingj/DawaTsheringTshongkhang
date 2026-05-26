@@ -1,0 +1,9 @@
+{
+  "name": "Dawa Tshering Tshongkhang",
+  "short_name": "DTT Hardware",
+  "description": "Professional hardware, tools and agricultural machinery in Paro, Bhutan",
+  "theme_color": "#1755b8",
+  "background_color": "#1e293b",
+  "display": "standalone",
+  "start_url": "/"
+}

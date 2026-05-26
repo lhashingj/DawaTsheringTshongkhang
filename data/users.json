@@ -1,0 +1,27 @@
+[
+  {
+    "id": "4ba4a455-697f-4577-bf2d-c186bd6d9974",
+    "name": "Lhashing",
+    "email": "lhashingj@gmail.com",
+    "passwordHash": "1e973c6e85a71b8448bbcd219e60bd46:bfb8b39834787eea0f883e2556f46e6a156780d22b90352958e47b70f581efc47031e4aa2ce77015e73cfa7ab8aef31c2d75bba516367375d28a590899ed368e",
+    "verified": true,
+    "createdAt": "2026-05-11T08:16:25.151Z"
+  },
+  {
+    "id": "14c52883-fc1b-430a-8342-257bc70b7424",
+    "name": "Admin",
+    "email": "tsheringdemajlw@gmail.com",
+    "passwordHash": "78c8df1a3021bc518c6b5023d1950172:cdcaed4e88df08fc1cc21c8902968d45a979ee5fd9dde4fbab1062b7758ef64ff0131224f47208938e7c1edc9bb896a91671bbd3ec73e7956cb95d3611a74bef",
+    "verified": true,
+    "role": "admin",
+    "createdAt": "2026-05-11T08:40:45.560Z"
+  },
+  {
+    "id": "102df5de-910c-454d-a52c-f54273cbb402",
+    "name": "Jamyang",
+    "email": "jamyangh@gmail.com",
+    "passwordHash": "15b7ed3b3f5e48f42f974cb77c74d7fc:3b9b49eee83962729008e48483b79dfcfa01be8aa63624cfeaf1d63061a5b1df099746baacbd4413f481314c3de20cb6dcfbde6753595ad2f80e683adfbf0874",
+    "verified": true,
+    "createdAt": "2026-05-11T08:52:03.315Z"
+  }
+]

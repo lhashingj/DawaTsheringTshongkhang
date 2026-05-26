@@ -8,8 +8,8 @@ import { StatsSection } from "@/components/home/StatsSection";
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const products = getAllProducts();
+export default async function HomePage() {
+  const products = await getAllProducts();
 
   return (
     <>

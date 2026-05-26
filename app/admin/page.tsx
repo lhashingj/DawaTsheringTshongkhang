@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Pencil, Trash2, Search, X, LogOut, Wrench,
   Package, TrendingUp, AlertTriangle, CheckCircle,
-  ChevronUp, ChevronDown, ChevronsUpDown, ArrowLeft, MessageCircle,
+  ChevronUp, ChevronDown, ChevronsUpDown, MessageCircle, Loader2,
+  Bell, ShoppingCart, Users,
+  Star, Zap, Tractor, Hammer, Shield, Droplets, Settings, Scissors,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +19,9 @@ import { ProductModal } from "@/components/admin/ProductModal";
 import { toast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { formatPrice } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 import type { Product, ProductCategory } from "@/types";
-
-const ADMIN_PASSWORD = "admin123";
 
 const CATEGORIES: ProductCategory[] = [
   "Power Tools", "Agricultural Machinery", "Hand Tools", "Safety Equipment",
@@ -25,13 +29,24 @@ const CATEGORIES: ProductCategory[] = [
   "Measuring Tools",
 ];
 
+const CATEGORY_ICONS: Record<ProductCategory, LucideIcon> = {
+  "Power Tools": Zap,
+  "Agricultural Machinery": Tractor,
+  "Hand Tools": Hammer,
+  "Safety Equipment": Shield,
+  "Irrigation & Water": Droplets,
+  "Spare Parts": Settings,
+  "Garden & Landscaping": Scissors,
+  "Welding Equipment": Wrench,
+  "Measuring Tools": Package,
+};
+
 type SortKey = keyof Pick<Product, "name" | "category" | "price" | "stock">;
 type SortDir = "asc" | "desc";
 
 export default function AdminPage() {
-  const [authed, setAuthed] = useState(false);
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
+  const { user, loading: authLoading, signOut } = useAuth();
+  const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,33 +59,97 @@ export default function AdminPage() {
   const [editTarget, setEditTarget] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const a = sessionStorage.getItem("dtt-admin");
-    if (a === "true") setAuthed(true);
-  }, []);
+  interface CartNotif {
+    id: string;
+    user_name: string;
+    user_email: string;
+    message_preview: string;
+    conversation_id: string;
+    created_at: string;
+  }
+  const [notifications, setNotifications] = useState<CartNotif[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!authed) return;
+    if (!authLoading && (!user || user.role !== "admin")) {
+      router.replace("/login");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function refreshProducts() {
     fetch("/api/products")
       .then((r) => r.json())
       .then((d) => { setProducts(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [authed]);
-
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem("dtt-admin", "true");
-      setAuthed(true);
-    } else {
-      setAuthError("Incorrect password.");
-    }
   }
 
-  function handleLogout() {
-    sessionStorage.removeItem("dtt-admin");
-    setAuthed(false);
-    setPassword("");
+  // Start fetching immediately on mount — don't wait for auth to resolve
+  useEffect(() => {
+    refreshProducts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.role !== "admin") return;
+
+    async function loadNotifs() {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("seen", false)
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.error("[Admin] Failed to load notifications:", error.message);
+        return;
+      }
+      if (data) setNotifications(data as CartNotif[]);
+    }
+
+    loadNotifs();
+
+    // Realtime subscription for instant updates
+    const channel = supabase
+      .channel("admin-notif-bell")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, loadNotifs)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications" }, loadNotifs)
+      .subscribe();
+
+    // Polling fallback every 15s in case realtime is not set up
+    const poll = setInterval(loadNotifs, 15_000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(poll);
+    };
+  }, [user]);
+
+  async function handleNotifClick(convId: string) {
+    await supabase.from("notifications").update({ seen: true }).eq("conversation_id", convId);
+    setNotifications((prev) => prev.filter((n) => n.conversation_id !== convId));
+    setNotifOpen(false);
+    router.push(`/admin/chat?conv=${convId}`);
+  }
+
+  async function handleClearAll() {
+    await supabase.from("notifications").update({ seen: true }).eq("seen", false);
+    setNotifications([]);
+    setNotifOpen(false);
+  }
+
+  async function handleLogout() {
+    await signOut();
+    router.push("/");
   }
 
   function handleSort(key: SortKey) {
@@ -103,8 +182,8 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      setProducts((p) => p.filter((x) => x.id !== id));
       toast({ title: "Product deleted.", variant: "success" });
+      refreshProducts();
     } catch {
       toast({ title: "Failed to delete product.", variant: "destructive" });
     } finally {
@@ -112,16 +191,8 @@ export default function AdminPage() {
     }
   }
 
-  function handleSaved(saved: Product) {
-    setProducts((prev) => {
-      const idx = prev.findIndex((p) => p.id === saved.id);
-      if (idx !== -1) {
-        const next = [...prev];
-        next[idx] = saved;
-        return next;
-      }
-      return [...prev, saved];
-    });
+  function handleSaved(_saved: Product) {
+    refreshProducts();
   }
 
   // Stats
@@ -130,56 +201,10 @@ export default function AdminPage() {
   const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
   const inventoryValue = products.reduce((s, p) => s + p.price * Math.max(p.stock, 0), 0);
 
-  // ---- Login screen ----
-  if (!authed) {
+  if (authLoading || !user || user.role !== "admin") {
     return (
-      <div className="min-h-screen industrial-grid-bg flex items-center justify-center p-4">
-        <Toaster />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8"
-        >
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-brand-orange transition-colors mb-6 -mt-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to site
-          </Link>
-
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-brand-orange flex items-center justify-center">
-              <Wrench className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="font-black text-brand-slate text-base leading-none">DTT Admin</p>
-              <p className="text-slate-400 text-xs mt-0.5">Inventory Management</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-slate-700">Password</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setAuthError(""); }}
-                placeholder="Enter admin password"
-                autoFocus
-              />
-              {authError && (
-                <p className="text-xs text-red-500 font-medium">{authError}</p>
-              )}
-            </div>
-            <Button type="submit" className="w-full" size="lg">
-              Sign In
-            </Button>
-          </form>
-          <p className="text-xs text-slate-300 text-center mt-6">
-            Default password: admin123
-          </p>
-        </motion.div>
+      <div className="min-h-screen industrial-grid-bg flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
       </div>
     );
   }
@@ -189,7 +214,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-slate-50">
       <Toaster />
 
-      {/* Sidebar / Top nav */}
+      {/* Top nav */}
       <header className="bg-brand-slate border-b border-white/5 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
@@ -201,6 +226,80 @@ export default function AdminPage() {
             <span className="hidden sm:block text-white/40 text-xs">Inventory Dashboard</span>
           </div>
           <div className="flex items-center gap-2">
+            {/* Notification bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen((v) => !v)}
+                className="relative flex items-center justify-center w-9 h-9 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Bell className="h-4 w-4" />
+                {notifications.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-orange" />
+                )}
+              </button>
+              {notifOpen && (
+                <div className="fixed inset-0 z-50 bg-white flex flex-col sm:absolute sm:inset-auto sm:right-0 sm:top-11 sm:w-[min(320px,_calc(100vw_-_1rem))] sm:rounded-xl sm:shadow-2xl sm:border sm:border-slate-100 sm:overflow-hidden">
+                  {/* Header */}
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between shrink-0">
+                    <p className="font-bold text-brand-slate text-sm">Cart Notifications</p>
+                    <div className="flex items-center gap-3">
+                      {notifications.length > 0 && (
+                        <button onClick={handleClearAll} className="text-xs text-slate-400 hover:text-red-500 transition-colors">
+                          Clear all
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setNotifOpen(false)}
+                        className="sm:hidden p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                  {/* Body */}
+                  {notifications.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 text-center">
+                      <ShoppingCart className="h-10 w-10 text-slate-200 mb-3" />
+                      <p className="text-sm text-slate-400">No new order enquiries</p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-50 sm:max-h-72">
+                      {notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => handleNotifClick(n.conversation_id)}
+                          className="w-full text-left px-4 py-4 hover:bg-orange-50 transition-colors group"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+                              <ShoppingCart className="h-5 w-5 sm:h-4 sm:w-4 text-brand-orange" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-base sm:text-sm font-semibold text-brand-slate leading-tight">
+                                {n.user_name}
+                              </p>
+                              <p className="text-sm sm:text-xs text-slate-500 mt-0.5 line-clamp-2">
+                                {n.message_preview}
+                              </p>
+                            </div>
+                            <span className="text-xs text-slate-300 group-hover:text-brand-orange transition-colors shrink-0 mt-1">
+                              View →
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <Link href="/admin/users">
+              <Button variant="ghost" size="sm" className="text-white/60 hover:text-white hover:bg-white/10 gap-1.5 text-xs">
+                <Users className="h-3.5 w-3.5" />
+                <span className="hidden sm:block">Users</span>
+              </Button>
+            </Link>
             <Link href="/admin/chat">
               <Button variant="ghost" size="sm" className="text-white/60 hover:text-white hover:bg-white/10 gap-1.5 text-xs">
                 <MessageCircle className="h-3.5 w-3.5" />
@@ -293,11 +392,75 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Mobile card list */}
+          <div className="md:hidden divide-y divide-slate-50">
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 rounded bg-slate-100 animate-pulse w-3/4" />
+                    <div className="h-3 rounded bg-slate-100 animate-pulse w-1/2" />
+                  </div>
+                </div>
+              ))
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center text-slate-400">
+                <Package className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">No products found.</p>
+              </div>
+            ) : (
+              filtered.map((p) => {
+                const CatIcon = CATEGORY_ICONS[p.category] ?? Package;
+                return (
+                  <div key={p.id} className="p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} className="w-10 h-10 object-cover" />
+                      ) : (
+                        <CatIcon className="h-5 w-5 text-slate-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-brand-slate text-sm leading-tight line-clamp-1">{p.name}</p>
+                        {p.featured
+                          ? <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 shrink-0" />
+                          : <Star className="h-3.5 w-3.5 text-slate-200 shrink-0" />
+                        }
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">{p.category} · {p.sku}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-sm font-bold text-brand-orange">{formatPrice(p.price)}</span>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          p.stock <= 0 ? "bg-red-100 text-red-700" : p.stock <= 5 ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                        }`}>
+                          {p.stock <= 0 ? "Out" : `${p.stock} in stock`}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" className="h-11 w-11 text-slate-400 hover:text-brand-orange hover:bg-orange-50"
+                        onClick={() => { setEditTarget(p); setModalOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-11 w-11 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                        onClick={() => setDeleteId(p.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="pl-4 pr-2 py-3 w-14" />
                   {[
                     { key: "name" as SortKey, label: "Product" },
                     { key: "category" as SortKey, label: "Category" },
@@ -315,6 +478,9 @@ export default function AdminPage() {
                       </div>
                     </th>
                   ))}
+                  <th className="px-4 py-3 text-xs uppercase text-slate-500 font-semibold tracking-wider">
+                    Featured
+                  </th>
                   <th className="px-4 py-3 text-xs uppercase text-slate-500 font-semibold tracking-wider text-right">
                     Actions
                   </th>
@@ -326,7 +492,7 @@ export default function AdminPage() {
                     <tr key={i}>
                       {Array.from({ length: 5 }).map((__, j) => (
                         <td key={j} className="px-4 py-3">
-                          <div className="h-4 rounded bg-slate-100 animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
+                          <div className="h-4 rounded bg-slate-100 animate-pulse w-3/4" />
                         </td>
                       ))}
                     </tr>
@@ -339,63 +505,61 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((p) => (
-                    <motion.tr
-                      key={p.id}
-                      layout
-                      className="hover:bg-slate-50/80 group"
-                    >
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-semibold text-brand-slate leading-tight line-clamp-1">
-                            {p.name}
-                          </p>
-                          <p className="text-xs text-slate-400 mt-0.5">{p.sku}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                          {p.category}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 font-bold text-brand-orange whitespace-nowrap">
-                        {formatPrice(p.price)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                            p.stock <= 0
-                              ? "bg-red-100 text-red-700"
-                              : p.stock <= 5
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {p.stock <= 0 ? "Out" : p.stock}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-slate-400 hover:text-brand-orange"
-                            onClick={() => { setEditTarget(p); setModalOpen(true); }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-slate-400 hover:text-red-500"
-                            onClick={() => setDeleteId(p.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
+                  filtered.map((p) => {
+                    const CatIcon = CATEGORY_ICONS[p.category] ?? Package;
+                    return (
+                      <motion.tr
+                        key={p.id}
+                        layout
+                        className="hover:bg-slate-50/80 group"
+                      >
+                        <td className="pl-4 pr-2 py-3">
+                          <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+                            {p.image ? (
+                              <img src={p.image} alt={p.name} className="w-10 h-10 object-cover" />
+                            ) : (
+                              <CatIcon className="h-5 w-5 text-slate-400" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="font-semibold text-brand-slate leading-tight line-clamp-1">{p.name}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{p.sku}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="secondary" className="text-xs whitespace-nowrap">{p.category}</Badge>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-brand-orange whitespace-nowrap">{formatPrice(p.price)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
+                            p.stock <= 0 ? "bg-red-100 text-red-700" : p.stock <= 5 ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                          }`}>
+                            {p.stock <= 0 ? "Out" : p.stock}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {p.featured
+                            ? <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            : <Star className="h-4 w-4 text-slate-200" />
+                          }
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-brand-orange"
+                              onClick={() => { setEditTarget(p); setModalOpen(true); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-red-500"
+                              onClick={() => setDeleteId(p.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -423,27 +587,39 @@ export default function AdminPage() {
               onClick={() => setDeleteId(null)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 10 }}
-              className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl p-6"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className={[
+                "fixed z-50 bg-white shadow-2xl",
+                // Mobile: full-width bottom sheet
+                "inset-x-0 bottom-0 rounded-t-2xl p-6 pb-10",
+                // Desktop: small centered card
+                "sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2",
+                "sm:w-full sm:max-w-sm sm:-translate-x-1/2 sm:-translate-y-1/2",
+                "sm:rounded-2xl sm:pb-6",
+              ].join(" ")}
             >
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="h-6 w-6 text-red-600" />
+              {/* Drag handle — mobile only */}
+              <div className="w-12 h-1.5 rounded-full bg-slate-200 mx-auto mb-5 sm:hidden" aria-hidden="true" />
+
+              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="h-7 w-7 text-red-600" />
               </div>
-              <h3 className="text-center font-black text-brand-slate text-lg mb-2">
+              <h3 className="text-center font-black text-brand-slate text-xl mb-2">
                 Delete Product?
               </h3>
-              <p className="text-center text-slate-500 text-sm mb-6">
-                This action cannot be undone. The product will be permanently removed from the database.
+              <p className="text-center text-slate-500 text-sm mb-6 leading-relaxed">
+                This action cannot be undone. The product will be permanently removed.
               </p>
-              <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setDeleteId(null)}>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button variant="outline" className="flex-1 h-12 text-base" onClick={() => setDeleteId(null)}>
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
-                  className="flex-1"
+                  className="flex-1 h-12 text-base"
                   onClick={() => handleDelete(deleteId)}
                 >
                   Delete

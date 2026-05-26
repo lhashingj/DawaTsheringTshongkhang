@@ -13,23 +13,26 @@ const WHY_US = [
     label: "Over 13 Years of Service",
     desc: "Trusted by builders, farmers, and craftsmen in Paro since 2012 — formerly known as JLW Enterprise.",
     color: "text-brand-orange",
-    bg: "bg-brand-orange/10",
+    bg: "bg-brand-orange/15",
+    border: "border-brand-orange/20",
   },
   {
     icon: Globe,
     value: "20 Dzongkhags",
     label: "Nationwide Supply",
     desc: "We supply hardware and machinery to all 20 Dzongkhags across Bhutan — for individuals and institutions alike.",
-    color: "text-green-400",
-    bg: "bg-green-400/10",
+    color: "text-emerald-400",
+    bg: "bg-emerald-400/15",
+    border: "border-emerald-400/20",
   },
   {
     icon: Building2,
     value: "Gov. Tenders",
     label: "Government & Bulk Supply",
     desc: "GST certified supplier with experience in government tenders and large-scale bulk procurement.",
-    color: "text-blue-400",
-    bg: "bg-blue-400/10",
+    color: "text-sky-400",
+    bg: "bg-sky-400/15",
+    border: "border-sky-400/20",
   },
   {
     icon: ShieldCheck,
@@ -37,41 +40,44 @@ const WHY_US = [
     label: "Registered & Compliant",
     desc: "Fully licensed business — GST Agent No. P10037232, TPN: JAB09739, LIC No. R1005542.",
     color: "text-yellow-400",
-    bg: "bg-yellow-400/10",
+    bg: "bg-yellow-400/15",
+    border: "border-yellow-400/20",
   },
   {
     icon: Hammer,
     value: "90+ Products",
     label: "Wide Range of Hardware",
     desc: "Power tools, hand tools, welding equipment, safety gear, measuring tools and spare parts — all under one roof.",
-    color: "text-purple-400",
-    bg: "bg-purple-400/10",
+    color: "text-violet-400",
+    bg: "bg-violet-400/15",
+    border: "border-violet-400/20",
   },
   {
     icon: Sprout,
     value: "Agri & Irrigation",
     label: "Farm & Garden Ready",
     desc: "Agricultural machinery, irrigation systems, and garden equipment to support Bhutan's farming community.",
-    color: "text-emerald-400",
-    bg: "bg-emerald-400/10",
+    color: "text-lime-400",
+    bg: "bg-lime-400/15",
+    border: "border-lime-400/20",
   },
 ];
 
 export function StatsSection() {
   return (
-    <section className="bg-brand-slate py-16 md:py-20 border-y border-white/5">
+    <section className="bg-brand-slate py-16 md:py-24 border-y border-white/5">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="text-center mb-14"
         >
           <p className="text-brand-orange font-bold text-sm uppercase tracking-widest mb-2">
             Why Choose Us
           </p>
-          <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
             Bhutan&apos;s Trusted Hardware Partner
           </h2>
         </motion.div>
@@ -84,19 +90,19 @@ export function StatsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ delay: i * 0.08, duration: 0.5 }}
-              className="flex gap-4 rounded-2xl border border-white/8 bg-white/4 p-5 hover:bg-white/8 transition-colors"
+              className={`flex gap-4 rounded-2xl border ${item.border} bg-white/5 p-5 hover:bg-white/10 transition-colors duration-200 cursor-default`}
             >
               <div className={`w-11 h-11 rounded-xl ${item.bg} flex items-center justify-center shrink-0 mt-0.5`}>
                 <item.icon className={`h-5 w-5 ${item.color}`} strokeWidth={1.5} />
               </div>
               <div>
-                <p className={`text-sm font-black uppercase tracking-wider ${item.color} mb-0.5`}>
+                <p className={`text-sm font-extrabold uppercase tracking-wider ${item.color} mb-0.5`}>
                   {item.value}
                 </p>
-                <p className="text-white font-bold text-base leading-tight mb-1">
+                <p className="text-white font-semibold text-base leading-tight mb-1.5">
                   {item.label}
                 </p>
-                <p className="text-white/40 text-sm leading-relaxed">
+                <p className="text-slate-300 text-sm leading-relaxed">
                   {item.desc}
                 </p>
               </div>

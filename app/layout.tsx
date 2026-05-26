@@ -1,15 +1,28 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
-import { ChatWidget } from "@/components/chat/ChatWidget";
 import { Toaster } from "@/components/ui/toaster";
+import { ChatWidgetLoader } from "@/components/chat/ChatWidgetLoader";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://dawatsheringshop.com"),
   title: "Dawa Tshering Tshongkhang | Hardware & Tools",
   description:
     "Your trusted supplier for power tools, agricultural machinery, hand tools, safety equipment, and irrigation systems in Paro, Bhutan.",
   keywords: "hardware, tools, Paro, Bhutan, agricultural machinery, power tools",
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
@@ -18,17 +31,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
+    <html lang="en" suppressHydrationWarning className={jakarta.variable}>
       <body>
         <AuthProvider>
           <CartProvider>
             {children}
-            <ChatWidget />
+            <ChatWidgetLoader />
             <Toaster />
+            <SpeedInsights />
+            <Analytics />
           </CartProvider>
         </AuthProvider>
       </body>

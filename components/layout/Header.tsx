@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ShoppingCart, Menu, X, Wrench, Phone, MapPin, Mail, LogIn, LogOut, UserCircle,
+  ShoppingCart, Menu, X, Wrench, Phone, MapPin, Mail, LogIn, LogOut, UserCircle, User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartDrawer } from "./CartDrawer";
@@ -23,6 +23,7 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { totalItems } = useCart();
   const { user, signOut } = useAuth();
 
@@ -43,7 +44,7 @@ export function Header() {
         )}
       >
         {/* Top bar */}
-        <div className="hidden md:block bg-brand-orange/10 border-b border-white/5">
+        <div className="hidden md:block bg-brand-blue/20 border-b border-brand-blue/30">
           <div className="container flex items-center justify-between py-1.5 text-xs text-white/60">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
@@ -98,16 +99,47 @@ export function Header() {
           {/* Actions */}
           <div className="flex items-center gap-2">
             {user ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={signOut}
-                className="hidden md:flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10"
-              >
-                <UserCircle className="h-4 w-4" />
-                <span className="text-xs max-w-[80px] truncate">{user.user_metadata?.name ?? user.email}</span>
-                <LogOut className="h-3.5 w-3.5" />
-              </Button>
+              <div className="relative hidden md:block">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  className="items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10"
+                >
+                  <UserCircle className="h-4 w-4" />
+                  <span className="text-xs max-w-[80px] truncate">{user.user_metadata?.name ?? user.email}</span>
+                </Button>
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-10 z-50 w-44 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden"
+                      >
+                        <Link
+                          href="/profile"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-orange transition-colors"
+                        >
+                          <User className="h-4 w-4" />
+                          My Profile
+                        </Link>
+                        <button
+                          onClick={() => { signOut(); setUserMenuOpen(false); }}
+                          className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-red-500 transition-colors border-t border-slate-50 cursor-pointer"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Sign Out
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
               <Link href="/login">
                 <Button variant="ghost" size="sm" className="hidden md:flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10">
@@ -181,6 +213,40 @@ export function Header() {
                 <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-3 px-4">
                   <Phone className="h-4 w-4 text-brand-orange" />
                   <span className="text-sm text-white/60 font-medium">17716895</span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-white/10 px-4">
+                  {user ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 px-1 pb-2">
+                        <UserCircle className="h-4 w-4 text-brand-orange shrink-0" />
+                        <span className="text-sm text-white/70 font-medium truncate max-w-[180px]">
+                          {user.user_metadata?.name ?? user.email}
+                        </span>
+                      </div>
+                      <Link
+                        href="/profile"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        <User className="h-4 w-4" />
+                        My Profile
+                      </Link>
+                      <button
+                        onClick={() => { signOut(); setMobileOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-white/60 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  ) : (
+                    <Link href="/login" onClick={() => setMobileOpen(false)}>
+                      <Button className="w-full gap-2 cursor-pointer" size="sm">
+                        <LogIn className="h-4 w-4" />
+                        Sign In
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </nav>
             </motion.div>

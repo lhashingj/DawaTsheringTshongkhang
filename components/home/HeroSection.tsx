@@ -13,12 +13,39 @@ const TRUST_ITEMS = [
   { icon: Wrench, label: "Expert Advice", sub: "Est. 2012, Paro" },
 ];
 
+const PARTICLES = [
+  { id: 0, x: 8,  y: 22, s: 3,  dur: 14, delay: 0   },
+  { id: 1, x: 22, y: 68, s: 2,  dur: 11, delay: 2   },
+  { id: 2, x: 43, y: 12, s: 4,  dur: 16, delay: 1   },
+  { id: 3, x: 68, y: 35, s: 2,  dur: 13, delay: 3   },
+  { id: 4, x: 83, y: 60, s: 3,  dur: 10, delay: 0.5 },
+  { id: 5, x: 94, y: 24, s: 2,  dur: 15, delay: 2.5 },
+  { id: 6, x: 55, y: 82, s: 3,  dur: 12, delay: 1.5 },
+  { id: 7, x: 6,  y: 55, s: 2,  dur: 14, delay: 4   },
+  { id: 8, x: 74, y: 90, s: 3,  dur: 11, delay: 3.5 },
+  { id: 9, x: 36, y: 46, s: 2,  dur: 13, delay: 0.8 },
+  { id: 10, x: 18, y: 88, s: 2, dur: 16, delay: 2.2 },
+  { id: 11, x: 90, y: 8,  s: 3, dur: 9,  delay: 1.8 },
+];
+
 export function HeroSection() {
   return (
     <section className="relative min-h-[100svh] flex flex-col justify-center industrial-grid-bg overflow-hidden">
-      {/* Radial glow */}
+      {/* Gradient fade to next section */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-brand-slate pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-orange/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Ambient glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-brand-orange/6 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Floating particles */}
+      {PARTICLES.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full bg-brand-orange/30 pointer-events-none"
+          style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.s, height: p.s }}
+          animate={{ y: [0, -22, 0], opacity: [0.2, 0.55, 0.2] }}
+          transition={{ duration: p.dur, repeat: Infinity, delay: p.delay, ease: "easeInOut" }}
+        />
+      ))}
 
       <div className="container relative z-10 pt-28 pb-16">
         <div className="max-w-4xl mx-auto text-center">
@@ -40,7 +67,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl sm:text-6xl md:text-7xl font-black text-white leading-[1.05] tracking-tight"
+            className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight"
           >
             Dawa Tshering{" "}
             <span className="relative inline-block">
@@ -58,7 +85,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-6 text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed"
+            className="mt-6 text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed"
           >
             Professional hardware, power tools, agricultural machinery, and safety
             equipment. Serving Bhutan&apos;s farmers, builders, and craftsmen since day one.
@@ -71,7 +98,7 @@ export function HeroSection() {
             transition={{ duration: 0.5, delay: 0.45 }}
             className="mt-10 flex flex-wrap justify-center gap-3"
           >
-            <Button asChild size="lg" className="gap-2 shadow-2xl shadow-orange-500/30">
+            <Button asChild size="lg" className="gap-2 shadow-2xl shadow-orange-500/30 cursor-pointer">
               <Link href="/products">
                 Browse All Products
                 <ArrowRight className="h-4 w-4" />
@@ -81,7 +108,7 @@ export function HeroSection() {
               asChild
               size="lg"
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 hover:text-white gap-2"
+              className="border-white/20 text-white hover:bg-white/10 hover:text-white gap-2 cursor-pointer"
             >
               <a href="tel:+97517716895">
                 <Phone className="h-4 w-4" />
@@ -95,7 +122,7 @@ export function HeroSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="mt-8 flex items-center justify-center gap-2 text-white/40 text-sm"
+            className="mt-8 flex items-center justify-center gap-2 text-white/50 text-sm"
           >
             <MapPin className="h-3.5 w-3.5 text-brand-orange" />
             <span>Nyamaizampa, Paro · Ph. 17716895</span>
@@ -112,14 +139,14 @@ export function HeroSection() {
           {TRUST_ITEMS.map((item) => (
             <div
               key={item.label}
-              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-4"
+              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/6 backdrop-blur-sm px-4 py-4 hover:bg-white/10 transition-colors duration-200"
             >
-              <div className="w-9 h-9 rounded-lg bg-brand-orange/20 flex items-center justify-center shrink-0">
-                <item.icon className="h-4.5 w-4.5 text-brand-orange" strokeWidth={2} />
+              <div className="w-10 h-10 rounded-lg bg-brand-orange/20 flex items-center justify-center shrink-0 ring-1 ring-brand-orange/10">
+                <item.icon className="h-5 w-5 text-brand-orange" strokeWidth={2} />
               </div>
               <div>
                 <p className="text-white text-sm font-bold leading-tight">{item.label}</p>
-                <p className="text-white/40 text-xs">{item.sub}</p>
+                <p className="text-white/55 text-xs mt-0.5">{item.sub}</p>
               </div>
             </div>
           ))}

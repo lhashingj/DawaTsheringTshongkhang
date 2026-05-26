@@ -69,9 +69,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     0
   );
 
+  function addItem(product: Parameters<CartContextType["addItem"]>[0]) {
+    dispatch({ type: "ADD_ITEM", payload: product });
+    fetch("/api/cart/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_name: product.name, product_price: product.price }),
+    }).catch(() => {});
+  }
+
   const value: CartContextType = {
     items,
-    addItem: (product) => dispatch({ type: "ADD_ITEM", payload: product }),
+    addItem,
     removeItem: (id) => dispatch({ type: "REMOVE_ITEM", payload: id }),
     updateQuantity: (id, quantity) =>
       dispatch({ type: "UPDATE_QTY", payload: { id, quantity } }),

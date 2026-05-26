@@ -25,6 +25,12 @@ const config: Config = {
           slate: "#1e293b",
           "slate-mid": "#334155",
           "slate-light": "#475569",
+          // From the physical signboard
+          blue: "#1755b8",
+          "blue-dark": "#124099",
+          "blue-light": "#2265cc",
+          gold: "#c9a227",
+          "gold-light": "#e2b92e",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -66,7 +72,7 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       keyframes: {

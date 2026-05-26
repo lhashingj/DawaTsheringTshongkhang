@@ -142,48 +142,50 @@ export default function ProductsPage() {
       <main className="bg-slate-50 min-h-screen">
         <div className="container py-8">
           {/* Search & filter bar */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-3 mb-6">
+            {/* Search — full width on all sizes */}
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by name or SKU…"
-                className="pl-9 bg-white"
+                className="pl-9 bg-white h-11"
               />
               {query && (
                 <button
                   onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
-
-            <Button
-              variant="outline"
-              className="gap-2 bg-white border-slate-200"
-              onClick={() => setShowFilters((v) => !v)}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-              {activeCategories.size > 0 && (
-                <Badge className="ml-1 h-5 w-5 p-0 text-[10px] rounded-full">
-                  {activeCategories.size}
-                </Badge>
-              )}
-            </Button>
-
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-orange"
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+            {/* Filters + Sort — side by side */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="gap-2 bg-white border-slate-200 h-11 flex-1 sm:flex-none"
+                onClick={() => setShowFilters((v) => !v)}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters
+                {activeCategories.size > 0 && (
+                  <Badge className="ml-1 h-5 w-5 p-0 text-[10px] rounded-full">
+                    {activeCategories.size}
+                  </Badge>
+                )}
+              </Button>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="flex-1 h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Filter panel */}
@@ -258,13 +260,13 @@ export default function ProductsPage() {
 
           {/* Products grid */}
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="h-64 rounded-2xl bg-slate-200 animate-pulse" />
               ))}
             </div>
           ) : filtered.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filtered.map((product, i) => (
                 <ProductCard key={product.id} product={product} index={i} />
               ))}

@@ -1,0 +1,188 @@
+{
+  "conversations": [
+    {
+      "id": "7ae116fb-8eb1-4b3b-8818-4d502313909e",
+      "user_id": "102df5de-910c-454d-a52c-f54273cbb402",
+      "user_name": "Jamyang",
+      "user_email": "jamyangh@gmail.com",
+      "status": "open",
+      "type": "general",
+      "created_at": "2026-05-11T09:52:15.669Z",
+      "updated_at": "2026-05-13T05:16:15.623Z"
+    },
+    {
+      "id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "user_id": "guest-s9jjxvuihbf-1778575568879",
+      "user_name": "Guest",
+      "user_email": "guest@dtt.local",
+      "status": "open",
+      "type": "general",
+      "created_at": "2026-05-12T08:46:43.266Z",
+      "updated_at": "2026-05-12T09:04:31.365Z"
+    },
+    {
+      "id": "b8256339-ff6a-4ffe-9f34-89ea9cfa6b0b",
+      "user_id": "14c52883-fc1b-430a-8342-257bc70b7424",
+      "user_name": "Admin",
+      "user_email": "tsheringdemajlw@gmail.com",
+      "status": "open",
+      "type": "general",
+      "created_at": "2026-05-13T05:06:36.298Z",
+      "updated_at": "2026-05-13T05:06:36.301Z"
+    },
+    {
+      "id": "516976a6-459b-45fc-97c2-4b14a2e150f5",
+      "user_id": "102df5de-910c-454d-a52c-f54273cbb402",
+      "user_name": "Jamyang",
+      "user_email": "jamyangh@gmail.com",
+      "status": "open",
+      "type": "order",
+      "created_at": "2026-05-13T05:07:35.124Z",
+      "updated_at": "2026-05-13T05:16:18.812Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "c2861b0c-ed75-470d-996a-d0ff3e6bc8ac",
+      "conversation_id": "7ae116fb-8eb1-4b3b-8818-4d502313909e",
+      "sender_type": "bot",
+      "content": "Hi! I'm Dawa, DTT Hardware's virtual assistant. 👋\n\nI can help you with:\n• Product prices and details\n• Stock availability\n• Our location and hours\n• Delivery options\n\nHow can I assist you today?",
+      "created_at": "2026-05-11T09:52:15.670Z"
+    },
+    {
+      "id": "a3e6bb17-cac2-4eba-9328-7eed240db570",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "bot",
+      "content": "Hi! I'm Dawa, DTT Hardware's virtual assistant. 👋\n\nI can help you with:\n• Product prices and details\n• Stock availability\n• Our location and hours\n• Delivery options\n\nHow can I assist you today?",
+      "created_at": "2026-05-12T09:03:45.376Z"
+    },
+    {
+      "id": "0ae45392-8cbc-40b0-a638-e3d6e85a724b",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "user",
+      "content": "hi",
+      "created_at": "2026-05-12T09:03:51.494Z"
+    },
+    {
+      "id": "7e65fa0a-fd41-4d20-9fca-e3b0f48fb8c8",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "bot",
+      "content": "Hi there! 👋 I'm Dawa, DTT Hardware's virtual assistant.\n\nI can help you with:\n• Product prices and details\n• Stock availability\n• Our location and hours\n• Delivery options\n\nWhat are you looking for today?",
+      "created_at": "2026-05-12T09:03:51.497Z"
+    },
+    {
+      "id": "5b85e785-d939-4076-9316-bf89730cadbc",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "user",
+      "content": "prioduvtd",
+      "created_at": "2026-05-12T09:04:05.480Z"
+    },
+    {
+      "id": "e047583d-5333-48d6-b5be-0c6e8066af72",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "bot",
+      "content": "I'm sorry, I couldn't find an answer to that. 😔\n\nHere's what I can help with:\n• Product prices — e.g. \"price of cement\"\n• Stock availability — e.g. \"is the drill in stock?\"\n• Product categories — e.g. \"what tools do you have?\"\n• Store location & hours\n\nOr I can connect you directly with our team.\n__ESCALATE__",
+      "created_at": "2026-05-12T09:04:05.485Z"
+    },
+    {
+      "id": "4129c29f-3ccc-4ade-ac70-0a9340af9db7",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "user",
+      "content": "syyokc",
+      "created_at": "2026-05-12T09:04:17.399Z"
+    },
+    {
+      "id": "7893510b-cf7d-453e-b82a-3a99dec72acb",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "bot",
+      "content": "I'm sorry, I couldn't find an answer to that. 😔\n\nHere's what I can help with:\n• Product prices — e.g. \"price of cement\"\n• Stock availability — e.g. \"is the drill in stock?\"\n• Product categories — e.g. \"what tools do you have?\"\n• Store location & hours\n\nOr I can connect you directly with our team.\n__ESCALATE__",
+      "created_at": "2026-05-12T09:04:17.402Z"
+    },
+    {
+      "id": "6a2a4610-ca37-4f3b-bb02-058b6703d3f5",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "user",
+      "content": "sickel",
+      "created_at": "2026-05-12T09:04:23.743Z"
+    },
+    {
+      "id": "c11bacc6-c4e0-499b-b790-e1e6ca2fbb49",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "bot",
+      "content": "I'm sorry, I couldn't find an answer to that. 😔\n\nHere's what I can help with:\n• Product prices — e.g. \"price of cement\"\n• Stock availability — e.g. \"is the drill in stock?\"\n• Product categories — e.g. \"what tools do you have?\"\n• Store location & hours\n\nOr I can connect you directly with our team.\n__ESCALATE__",
+      "created_at": "2026-05-12T09:04:23.746Z"
+    },
+    {
+      "id": "8882f5e7-b6df-494a-8ec8-495b47d96600",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "user",
+      "content": "drill",
+      "created_at": "2026-05-12T09:04:31.347Z"
+    },
+    {
+      "id": "411ed157-8f33-4dd0-b820-313b958c4967",
+      "conversation_id": "d640f049-0d7e-4e75-a06e-94c4b8946e0b",
+      "sender_type": "bot",
+      "content": "Here are the matching products:\n✅ CORDLESS DRILL 8212A SALI 20V — Nu. 4,500 / piece\n✅ DRILL BIT 5MM — Nu. 75 / piece\n✅ DRILL BIT 8.5MM — Nu. 95 / piece\n✅ DRILL BIT 12MM — Nu. 120 / piece\n✅ DRILL BIT SET 5-10MM — Nu. 550 / set\n\nAsk me about any specific one for full details, or call 17716895.",
+      "created_at": "2026-05-12T09:04:31.365Z"
+    },
+    {
+      "id": "dcbc410a-3069-4608-a820-7d237e155bc7",
+      "conversation_id": "b8256339-ff6a-4ffe-9f34-89ea9cfa6b0b",
+      "sender_type": "bot",
+      "content": "Hi! I'm Dawa, DTT Hardware's virtual assistant. 👋\n\nI can help you with:\n• Product prices and details\n• Stock availability\n• Our location and hours\n• Delivery options\n\nHow can I assist you today?",
+      "created_at": "2026-05-13T05:06:36.301Z"
+    },
+    {
+      "id": "11e8a3e0-e020-4d9b-907b-f6ddabf392ee",
+      "conversation_id": "7ae116fb-8eb1-4b3b-8818-4d502313909e",
+      "sender_type": "user",
+      "content": "🛒 Order enquiry: ANGLE GRINDER 750W / 110MM — Nu. 3,500",
+      "created_at": "2026-05-13T05:07:29.582Z"
+    },
+    {
+      "id": "ff29201b-50a7-459d-b24a-74f54301478d",
+      "conversation_id": "516976a6-459b-45fc-97c2-4b14a2e150f5",
+      "sender_type": "user",
+      "content": "🛒 Order Enquiry\n\n• ANGLE GRINDER 750W / 110MM ×1 — Nu. 3,500\n\n💰 Total: Nu. 3,500\n\nPlease confirm availability and arrange delivery.",
+      "created_at": "2026-05-13T05:07:35.139Z"
+    },
+    {
+      "id": "712eb158-bbb2-4559-9239-d5d767659e8b",
+      "conversation_id": "7ae116fb-8eb1-4b3b-8818-4d502313909e",
+      "sender_type": "user",
+      "content": "🛒 Order enquiry: SICKLE 20×30CM — Nu. 180",
+      "created_at": "2026-05-13T05:16:15.623Z"
+    },
+    {
+      "id": "5cdd502d-726e-48a5-891b-17616fa2f136",
+      "conversation_id": "516976a6-459b-45fc-97c2-4b14a2e150f5",
+      "sender_type": "user",
+      "content": "🛒 Order Enquiry\n\n• SICKLE 20×30CM ×1 — Nu. 180\n\nSubtotal: Nu. 180\nGST (5%): Nu. 9\n💰 Total (incl. GST): Nu. 189\n\nPlease confirm availability and arrange delivery.",
+      "created_at": "2026-05-13T05:16:18.812Z"
+    }
+  ],
+  "admin_online": false,
+  "notifications": [
+    {
+      "id": "4d66c928-80b7-4565-897f-ad50b51cc641",
+      "user_name": "Jamyang",
+      "user_email": "jamyangh@gmail.com",
+      "product_name": "ANGLE GRINDER 750W / 110MM",
+      "product_price": 3500,
+      "conversation_id": "7ae116fb-8eb1-4b3b-8818-4d502313909e",
+      "created_at": "2026-05-13T05:07:29.584Z",
+      "seen": true
+    },
+    {
+      "id": "8116a67d-f977-42d1-9c40-2f62de8ed0e5",
+      "user_name": "Jamyang",
+      "user_email": "jamyangh@gmail.com",
+      "product_name": "SICKLE 20×30CM",
+      "product_price": 180,
+      "conversation_id": "7ae116fb-8eb1-4b3b-8818-4d502313909e",
+      "created_at": "2026-05-13T05:16:15.624Z",
+      "seen": false
+    }
+  ]
+}
