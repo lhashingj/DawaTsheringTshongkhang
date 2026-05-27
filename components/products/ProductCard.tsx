@@ -30,15 +30,15 @@ const CATEGORY_ICONS: Record<ProductCategory, LucideIcon> = {
 };
 
 const CATEGORY_COLORS: Record<ProductCategory, string> = {
-  "Power Tools": "text-yellow-500 bg-yellow-50",
-  "Agricultural Machinery": "text-green-600 bg-green-50",
-  "Hand Tools": "text-orange-500 bg-orange-50",
-  "Safety Equipment": "text-blue-600 bg-blue-50",
-  "Irrigation & Water": "text-cyan-600 bg-cyan-50",
-  "Spare Parts": "text-slate-500 bg-slate-100",
-  "Garden & Landscaping": "text-emerald-600 bg-emerald-50",
-  "Welding Equipment": "text-red-500 bg-red-50",
-  "Measuring Tools": "text-purple-600 bg-purple-50",
+  "Power Tools": "text-yellow-400 bg-yellow-500/20",
+  "Agricultural Machinery": "text-green-400 bg-green-500/20",
+  "Hand Tools": "text-orange-400 bg-orange-500/20",
+  "Safety Equipment": "text-blue-400 bg-blue-500/20",
+  "Irrigation & Water": "text-cyan-400 bg-cyan-500/20",
+  "Spare Parts": "text-slate-300 bg-slate-500/20",
+  "Garden & Landscaping": "text-emerald-400 bg-emerald-500/20",
+  "Welding Equipment": "text-red-400 bg-red-500/20",
+  "Measuring Tools": "text-purple-400 bg-purple-500/20",
 };
 
 interface ProductCardProps {
@@ -51,7 +51,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const [open, setOpen] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const Icon = CATEGORY_ICONS[product.category] ?? Package;
-  const colorClass = CATEGORY_COLORS[product.category] ?? "text-slate-500 bg-slate-100";
+  const colorClass = CATEGORY_COLORS[product.category] ?? "text-slate-300 bg-slate-500/20";
   const inCart = items.some((i) => i.product.id === product.id);
   const isLowStock = product.stock > 0 && product.stock <= 5;
   const isOutOfStock = product.stock <= 0;
@@ -75,11 +75,11 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-40px" }}
         transition={{ duration: 0.4, delay: (index % 6) * 0.07 }}
-        className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white overflow-hidden cursor-pointer"
-        style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" }}
+        className="group relative flex flex-col rounded-2xl border border-slate-700 bg-slate-800 overflow-hidden cursor-pointer"
+        style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)" }}
         whileHover={{
           y: -5,
-          boxShadow: "0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)",
+          boxShadow: "0 12px 32px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3)",
           transition: { duration: 0.2 },
         }}
       >
@@ -106,7 +106,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         )}
 
         {/* Image area */}
-        <div className={cn("relative h-44 flex items-center justify-center overflow-hidden", product.image ? "bg-white" : bgColor)}>
+        <div className={cn("relative h-44 flex items-center justify-center overflow-hidden", product.image ? "bg-slate-700" : bgColor)}>
           {product.image ? (
             <Image
               src={product.image}
@@ -120,12 +120,12 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               whileHover={{ scale: 1.08, rotate: 4 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <Icon className={cn("h-16 w-16 opacity-40", iconColor)} strokeWidth={1.2} />
+              <Icon className={cn("h-16 w-16 opacity-50", iconColor)} strokeWidth={1.2} />
             </motion.div>
           )}
           {/* Category label */}
           <div className="absolute bottom-2 left-3 z-10">
-            <span className={cn("text-[10px] font-semibold uppercase tracking-wider", product.image ? "text-slate-400" : "text-slate-400")}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               {product.category}
             </span>
           </div>
@@ -133,18 +133,18 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
         {/* Content */}
         <div className="flex flex-col flex-1 p-4">
-          <h3 className="font-bold text-brand-slate text-sm leading-snug line-clamp-2 group-hover:text-brand-orange transition-colors duration-200">
+          <h3 className="font-bold text-slate-100 text-sm leading-snug line-clamp-2 group-hover:text-brand-orange transition-colors duration-200">
             {product.name}
           </h3>
-          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 flex-1 leading-relaxed">
+          <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 flex-1 leading-relaxed">
             {product.description}
           </p>
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700">
             <div>
               <p className="text-lg font-extrabold text-brand-orange leading-none">
                 {formatPrice(product.price)}
               </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">per {product.unit}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">per {product.unit}</p>
             </div>
             <Button
               size="sm"
@@ -156,7 +156,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               {inCart ? "In Cart" : "Add"}
             </Button>
           </div>
-          <p className="text-[10px] text-slate-300 mt-1.5 text-right">SKU: {product.sku}</p>
+          <p className="text-[10px] text-slate-600 mt-1.5 text-right">SKU: {product.sku}</p>
         </div>
       </motion.div>
 
@@ -205,11 +205,11 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
 
       {/* Product Detail Modal */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0">
+        <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0 bg-slate-800 border-slate-700">
           <div className="flex flex-col sm:flex-row max-h-[90vh] sm:max-h-[80vh]">
 
             {/* Image panel */}
-            <div className="sm:w-[44%] shrink-0 bg-slate-50 flex items-center justify-center p-8 min-h-[220px] sm:min-h-0">
+            <div className="sm:w-[44%] shrink-0 bg-slate-700/50 flex items-center justify-center p-8 min-h-[220px] sm:min-h-0">
               {product.image ? (
                 <button
                   onClick={() => setLightbox(true)}
@@ -240,29 +240,29 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
                 {product.category}
               </span>
 
-              <DialogTitle className="text-xl font-black text-brand-slate mt-2 leading-tight">
+              <DialogTitle className="text-xl font-black text-white mt-2 leading-tight">
                 {product.name}
               </DialogTitle>
 
-              <p className="text-xs text-slate-400 mt-1 mb-3">SKU: {product.sku}</p>
+              <p className="text-xs text-slate-500 mt-1 mb-3">SKU: {product.sku}</p>
 
-              <p className="text-sm text-slate-500 leading-relaxed flex-1">
+              <p className="text-sm text-slate-400 leading-relaxed flex-1">
                 {product.description}
               </p>
 
-              <div className="mt-5 pt-4 border-t border-slate-100">
+              <div className="mt-5 pt-4 border-t border-slate-700">
                 <div className="flex items-end justify-between mb-4">
                   <div>
                     <p className="text-3xl font-black text-brand-orange leading-none">
                       {formatPrice(product.price)}
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">per {product.unit}</p>
+                    <p className="text-xs text-slate-500 mt-1">per {product.unit}</p>
                   </div>
                   <div className="text-right space-y-1">
                     {isLowStock && <Badge variant="warning" className="text-[10px]">Low Stock</Badge>}
                     {isOutOfStock && <Badge variant="destructive" className="text-[10px]">Out of Stock</Badge>}
                     {!isLowStock && !isOutOfStock && (
-                      <span className="text-xs text-green-600 font-semibold">{product.stock} in stock</span>
+                      <span className="text-xs text-green-400 font-semibold">{product.stock} in stock</span>
                     )}
                   </div>
                 </div>

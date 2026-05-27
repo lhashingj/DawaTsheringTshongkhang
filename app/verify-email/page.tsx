@@ -21,9 +21,9 @@ export default function VerifyEmailPage() {
         </div>
       </Link>
       <Suspense fallback={
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <div className="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 text-center">
           <Loader2 className="h-12 w-12 animate-spin text-brand-orange mx-auto mb-4" />
-          <p className="font-bold text-brand-slate">Verifying your email…</p>
+          <p className="font-bold text-white">Verifying your email…</p>
         </div>
       }>
         <VerifyEmailInner />
@@ -76,20 +76,20 @@ function VerifyEmailInner() {
     <motion.div
       initial={{ opacity: 0, scale: 0.95, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 text-center"
+      className="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 text-center"
     >
       {status === "loading" && (
         <>
           <Loader2 className="h-12 w-12 animate-spin text-brand-orange mx-auto mb-4" />
-          <p className="font-bold text-brand-slate text-lg">Verifying your email…</p>
+          <p className="font-bold text-white text-lg">Verifying your email…</p>
           <p className="text-slate-400 text-sm mt-2">Please wait a moment.</p>
         </>
       )}
       {status === "success" && (
         <>
-          <CheckCircle className="h-14 w-14 text-green-500 mx-auto mb-4" />
-          <h2 className="font-black text-brand-slate text-xl mb-2">Email Verified!</h2>
-          <p className="text-slate-500 text-sm mb-6">
+          <CheckCircle className="h-14 w-14 text-green-400 mx-auto mb-4" />
+          <h2 className="font-black text-white text-xl mb-2">Email Verified!</h2>
+          <p className="text-slate-400 text-sm mb-6">
             Your account is now active. You can sign in and start ordering.
           </p>
           <Link href="/login">
@@ -100,8 +100,8 @@ function VerifyEmailInner() {
       {status === "error" && (
         <>
           <XCircle className="h-14 w-14 text-red-400 mx-auto mb-4" />
-          <h2 className="font-black text-brand-slate text-xl mb-2">Verification Failed</h2>
-          <p className="text-slate-500 text-sm mb-6">
+          <h2 className="font-black text-white text-xl mb-2">Verification Failed</h2>
+          <p className="text-slate-400 text-sm mb-6">
             This link is invalid or has already been used. Please try registering again.
           </p>
           <div className="flex flex-col gap-2">
@@ -109,7 +109,7 @@ function VerifyEmailInner() {
               <Button className="w-full">Register Again</Button>
             </Link>
             <Link href="/login">
-              <Button variant="outline" className="w-full">Sign In</Button>
+              <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700">Sign In</Button>
             </Link>
           </div>
         </>

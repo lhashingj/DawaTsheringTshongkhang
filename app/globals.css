@@ -119,4 +119,8 @@
       linear-gradient(135deg, #f97316, #ea580c) border-box;
     border: 2px solid transparent;
   }
+
+  /* Hide scrollbar for nav elements while keeping scroll functionality */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }

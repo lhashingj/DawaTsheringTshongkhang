@@ -8,7 +8,6 @@ import {
   Wrench, LogIn, Eye, EyeOff, ShieldCheck, Truck, Globe, ArrowLeft, Mail, CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 
 const FEATURES = [
@@ -25,6 +24,8 @@ const fieldVariants = {
     transition: { delay: i * 0.1 + 0.2, duration: 0.4, ease: "easeOut" },
   }),
 };
+
+const inputCls = "w-full h-11 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400 transition-colors";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -90,17 +91,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-900">
       {/* Minimal sticky nav */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-sm border-b border-slate-100 shrink-0 lg:hidden">
+      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-sm border-b border-slate-700 shrink-0 lg:hidden">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-brand-orange flex items-center justify-center shadow shadow-orange-500/20 group-hover:scale-105 transition-transform">
               <Wrench className="h-4 w-4 text-white" strokeWidth={2.5} />
             </div>
-            <span className="font-black text-brand-slate text-sm">DTT Hardware</span>
+            <span className="font-black text-white text-sm">DTT Hardware</span>
           </Link>
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-slate transition-colors font-medium">
+          <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors font-medium">
             <ArrowLeft className="h-4 w-4" />
             Back to Home
           </Link>
@@ -171,7 +172,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-slate-50">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-slate-900">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -188,8 +189,8 @@ export default function LoginPage() {
                 transition={{ duration: 0.3 }}
               >
                 <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-slate">Reset password</h1>
-                  <p className="text-slate-500 text-sm mt-1.5">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Reset password</h1>
+                  <p className="text-slate-400 text-sm mt-1.5">
                     Enter your email and we&apos;ll send you a reset link.
                   </p>
                 </motion.div>
@@ -200,15 +201,15 @@ export default function LoginPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="mt-8 text-center"
                   >
-                    <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="h-7 w-7 text-green-500" />
+                    <div className="w-14 h-14 rounded-full bg-green-900/40 border border-green-700 flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="h-7 w-7 text-green-400" />
                     </div>
-                    <p className="font-bold text-brand-slate text-lg">Check your email</p>
-                    <p className="text-slate-500 text-sm mt-2">
+                    <p className="font-bold text-white text-lg">Check your email</p>
+                    <p className="text-slate-400 text-sm mt-2">
                       A password reset link has been sent to{" "}
-                      <span className="font-semibold text-brand-slate">{email}</span>.
+                      <span className="font-semibold text-white">{email}</span>.
                     </p>
-                    <p className="text-slate-400 text-xs mt-2 mb-8">
+                    <p className="text-slate-500 text-xs mt-2 mb-8">
                       Click the link in the email to set a new password.
                     </p>
                     <button
@@ -221,15 +222,15 @@ export default function LoginPage() {
                 ) : (
                   <form onSubmit={handleForgotPassword} className="mt-8 space-y-5">
                     <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                      <label className="text-sm font-semibold text-slate-700">Email address</label>
-                      <Input
+                      <label className="text-sm font-semibold text-slate-300">Email address</label>
+                      <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="you@example.com"
                         required
                         autoFocus
-                        className="h-11 bg-white border-slate-200 focus:border-brand-orange transition-colors"
+                        className={inputCls}
                       />
                     </motion.div>
 
@@ -240,7 +241,7 @@ export default function LoginPage() {
                           initial={{ opacity: 0, y: -6 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
-                          className="text-xs text-red-500 font-medium bg-red-50 border border-red-100 rounded-lg px-3 py-2.5"
+                          className="text-xs text-red-400 font-medium bg-red-900/30 border border-red-700 rounded-lg px-3 py-2.5"
                         >
                           {error}
                         </motion.p>
@@ -267,7 +268,7 @@ export default function LoginPage() {
                       </Button>
                     </motion.div>
 
-                    <motion.p custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="text-sm text-slate-500 text-center">
+                    <motion.p custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="text-sm text-slate-400 text-center">
                       <button
                         type="button"
                         onClick={() => { setForgotMode(false); setError(""); }}
@@ -288,27 +289,27 @@ export default function LoginPage() {
                 transition={{ duration: 0.3 }}
               >
                 <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-slate">Welcome back</h1>
-                  <p className="text-slate-500 text-sm mt-1.5">Sign in to your account to continue</p>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Welcome back</h1>
+                  <p className="text-slate-400 text-sm mt-1.5">Sign in to your account to continue</p>
                 </motion.div>
 
                 <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                   <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                    <label className="text-sm font-semibold text-slate-700">Email address</label>
-                    <Input
+                    <label className="text-sm font-semibold text-slate-300">Email address</label>
+                    <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
                       required
                       autoFocus
-                      className="h-11 bg-white border-slate-200 focus:border-brand-orange transition-colors"
+                      className={inputCls}
                     />
                   </motion.div>
 
                   <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-semibold text-slate-700">Password</label>
+                      <label className="text-sm font-semibold text-slate-300">Password</label>
                       <button
                         type="button"
                         onClick={() => { setForgotMode(true); setError(""); }}
@@ -318,18 +319,18 @@ export default function LoginPage() {
                       </button>
                     </div>
                     <div className="relative">
-                      <Input
+                      <input
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="h-11 bg-white border-slate-200 focus:border-brand-orange pr-11 transition-colors"
+                        className={`${inputCls} pr-11`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                         tabIndex={-1}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -344,7 +345,7 @@ export default function LoginPage() {
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="text-xs text-red-500 font-medium bg-red-50 border border-red-100 rounded-lg px-3 py-2.5"
+                        className="text-xs text-red-400 font-medium bg-red-900/30 border border-red-700 rounded-lg px-3 py-2.5"
                       >
                         {error}
                       </motion.p>
@@ -377,7 +378,7 @@ export default function LoginPage() {
                   variants={fieldVariants}
                   initial="hidden"
                   animate="visible"
-                  className="text-sm text-slate-500 text-center mt-6"
+                  className="text-sm text-slate-400 text-center mt-6"
                 >
                   No account yet?{" "}
                   <Link href="/register" className="text-brand-orange font-semibold hover:underline">

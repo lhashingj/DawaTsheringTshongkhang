@@ -3,14 +3,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, SlidersHorizontal, X, Package, ChevronDown,
+  Search, SlidersHorizontal, X, Package,
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type { Product, ProductCategory } from "@/types";
 
 const CATEGORIES: ProductCategory[] = [
@@ -33,6 +30,8 @@ const SORT_OPTIONS = [
   { value: "stock-desc", label: "In Stock First" },
 ];
 
+const inputCls = "w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400 transition-colors";
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +42,6 @@ export default function ProductsPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    // Read URL search params
     const params = new URLSearchParams(window.location.search);
     const cat = params.get("category") as ProductCategory | null;
     if (cat && CATEGORIES.includes(cat)) {
@@ -117,7 +115,7 @@ export default function ProductsPage() {
   return (
     <>
       <Header />
-      <div className="bg-brand-slate min-h-[200px] flex items-end pb-8 pt-28">
+      <div className="bg-slate-950 min-h-[200px] flex items-end pb-8 pt-28">
         <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -139,47 +137,44 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <main className="bg-slate-50 min-h-screen">
+      <main className="bg-slate-900 min-h-screen">
         <div className="container py-8">
           {/* Search & filter bar */}
           <div className="flex flex-col gap-3 mb-6">
-            {/* Search — full width on all sizes */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
+              <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by name or SKU…"
-                className="pl-9 bg-white h-11"
+                className={`${inputCls} pl-9 h-11`}
               />
               {query && (
                 <button
                   onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
-            {/* Filters + Sort — side by side */}
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="gap-2 bg-white border-slate-200 h-11 flex-1 sm:flex-none"
+              <button
                 onClick={() => setShowFilters((v) => !v)}
+                className="flex items-center gap-2 bg-slate-800 border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white h-11 px-4 rounded-lg text-sm font-medium transition-colors flex-1 sm:flex-none"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
                 {activeCategories.size > 0 && (
-                  <Badge className="ml-1 h-5 w-5 p-0 text-[10px] rounded-full">
+                  <span className="ml-1 w-5 h-5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {activeCategories.size}
-                  </Badge>
+                  </span>
                 )}
-              </Button>
+              </button>
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
-                className="flex-1 h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                className="flex-1 h-11 rounded-lg border border-slate-600 bg-slate-700 px-3 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors"
               >
                 {SORT_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -197,11 +192,11 @@ export default function ProductsPage() {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden mb-6"
               >
-                <div className="bg-white rounded-xl border border-slate-100 p-4">
+                <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-sm text-brand-slate">Categories</h3>
+                    <h3 className="font-bold text-sm text-white">Categories</h3>
                     <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                      <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={inStockOnly}
@@ -213,7 +208,7 @@ export default function ProductsPage() {
                       {hasFilters && (
                         <button
                           onClick={clearFilters}
-                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                          className="text-xs text-red-400 hover:text-red-300 font-medium"
                         >
                           Clear all
                         </button>
@@ -228,7 +223,7 @@ export default function ProductsPage() {
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                           activeCategories.has(cat)
                             ? "bg-brand-orange text-white border-brand-orange"
-                            : "bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-orange hover:text-brand-orange"
+                            : "bg-slate-700 text-slate-300 border-slate-600 hover:border-orange-500 hover:text-orange-400"
                         }`}
                       >
                         {cat}
@@ -244,13 +239,13 @@ export default function ProductsPage() {
           {hasFilters && (
             <div className="flex flex-wrap gap-2 mb-6">
               {[...activeCategories].map((cat) => (
-                <span key={cat} className="inline-flex items-center gap-1 text-xs bg-orange-50 text-brand-orange border border-orange-200 rounded-full px-3 py-1 font-medium">
+                <span key={cat} className="inline-flex items-center gap-1 text-xs bg-orange-500/10 text-orange-400 border border-orange-500/30 rounded-full px-3 py-1 font-medium">
                   {cat}
                   <button onClick={() => toggleCategory(cat)}><X className="h-3 w-3" /></button>
                 </span>
               ))}
               {inStockOnly && (
-                <span className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 border border-green-200 rounded-full px-3 py-1 font-medium">
+                <span className="inline-flex items-center gap-1 text-xs bg-green-500/10 text-green-400 border border-green-500/30 rounded-full px-3 py-1 font-medium">
                   In Stock
                   <button onClick={() => setInStockOnly(false)}><X className="h-3 w-3" /></button>
                 </span>
@@ -262,7 +257,7 @@ export default function ProductsPage() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="h-64 rounded-2xl bg-slate-200 animate-pulse" />
+                <div key={i} className="h-64 rounded-2xl bg-slate-700 animate-pulse" />
               ))}
             </div>
           ) : filtered.length > 0 ? (
@@ -273,14 +268,17 @@ export default function ProductsPage() {
             </div>
           ) : (
             <div className="text-center py-24">
-              <Package className="h-16 w-16 mx-auto text-slate-200 mb-4" />
-              <p className="text-xl font-bold text-brand-slate">No products found</p>
+              <Package className="h-16 w-16 mx-auto text-slate-700 mb-4" />
+              <p className="text-xl font-bold text-white">No products found</p>
               <p className="text-slate-400 text-sm mt-2">
                 Try adjusting your search or filters.
               </p>
-              <Button className="mt-6" onClick={clearFilters}>
+              <button
+                onClick={clearFilters}
+                className="mt-6 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+              >
                 Clear Filters
-              </Button>
+              </button>
             </div>
           )}
         </div>

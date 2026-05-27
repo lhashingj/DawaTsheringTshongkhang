@@ -14,23 +14,23 @@ interface CategoryItem {
   count: string;
   color: string;
   bg: string;
-  hoverRing: string;
+  hoverBorder: string;
 }
 
 const CATEGORIES: CategoryItem[] = [
-  { name: "Power Tools", icon: Zap, count: "30+ items", color: "text-yellow-600", bg: "bg-yellow-50", hoverRing: "hover:ring-yellow-200" },
-  { name: "Agricultural Machinery", icon: Tractor, count: "20+ items", color: "text-green-600", bg: "bg-green-50", hoverRing: "hover:ring-green-200" },
-  { name: "Hand Tools", icon: Hammer, count: "40+ items", color: "text-brand-orange", bg: "bg-orange-50", hoverRing: "hover:ring-orange-200" },
-  { name: "Safety Equipment", icon: Shield, count: "15+ items", color: "text-blue-600", bg: "bg-blue-50", hoverRing: "hover:ring-blue-200" },
-  { name: "Irrigation & Water", icon: Droplets, count: "20+ items", color: "text-cyan-600", bg: "bg-cyan-50", hoverRing: "hover:ring-cyan-200" },
-  { name: "Spare Parts", icon: Settings, count: "50+ items", color: "text-slate-600", bg: "bg-slate-100", hoverRing: "hover:ring-slate-200" },
-  { name: "Garden & Landscaping", icon: Scissors, count: "15+ items", color: "text-emerald-600", bg: "bg-emerald-50", hoverRing: "hover:ring-emerald-200" },
-  { name: "Welding Equipment", icon: Wrench, count: "10+ items", color: "text-red-600", bg: "bg-red-50", hoverRing: "hover:ring-red-200" },
+  { name: "Power Tools", icon: Zap, count: "30+ items", color: "text-yellow-400", bg: "bg-yellow-500/20", hoverBorder: "hover:border-yellow-500/50" },
+  { name: "Agricultural Machinery", icon: Tractor, count: "20+ items", color: "text-green-400", bg: "bg-green-500/20", hoverBorder: "hover:border-green-500/50" },
+  { name: "Hand Tools", icon: Hammer, count: "40+ items", color: "text-orange-400", bg: "bg-orange-500/20", hoverBorder: "hover:border-orange-500/50" },
+  { name: "Safety Equipment", icon: Shield, count: "15+ items", color: "text-blue-400", bg: "bg-blue-500/20", hoverBorder: "hover:border-blue-500/50" },
+  { name: "Irrigation & Water", icon: Droplets, count: "20+ items", color: "text-cyan-400", bg: "bg-cyan-500/20", hoverBorder: "hover:border-cyan-500/50" },
+  { name: "Spare Parts", icon: Settings, count: "50+ items", color: "text-slate-300", bg: "bg-slate-500/20", hoverBorder: "hover:border-slate-500/50" },
+  { name: "Garden & Landscaping", icon: Scissors, count: "15+ items", color: "text-emerald-400", bg: "bg-emerald-500/20", hoverBorder: "hover:border-emerald-500/50" },
+  { name: "Welding Equipment", icon: Wrench, count: "10+ items", color: "text-red-400", bg: "bg-red-500/20", hoverBorder: "hover:border-red-500/50" },
 ];
 
 export function CategorySection() {
   return (
-    <section id="categories" className="py-20 md:py-28 bg-slate-50">
+    <section id="categories" className="py-20 md:py-28 bg-slate-900">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -38,8 +38,8 @@ export function CategorySection() {
           viewport={{ once: true, margin: "-50px" }}
           className="text-center mb-14"
         >
-          <h2 className="section-heading">Shop by Category</h2>
-          <p className="section-subheading mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Shop by Category</h2>
+          <p className="text-slate-400 text-base mt-3 max-w-2xl leading-relaxed mx-auto">
             From heavy agricultural machinery to precision hand tools — everything you need, under one roof.
           </p>
         </motion.div>
@@ -57,21 +57,19 @@ export function CategorySection() {
                 href={`/products?category=${encodeURIComponent(cat.name)}`}
                 className={`
                   flex flex-col items-center gap-3 p-5 rounded-2xl
-                  bg-white border border-slate-200
-                  ring-2 ring-transparent ${cat.hoverRing}
+                  bg-slate-800 border border-slate-700 ${cat.hoverBorder}
                   hover:shadow-lg hover:-translate-y-1
                   transition-all duration-200 cursor-pointer group
                 `}
-                style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}
               >
-                <div className={`w-14 h-14 rounded-2xl ${cat.bg} flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-200`}>
+                <div className={`w-14 h-14 rounded-2xl ${cat.bg} flex items-center justify-center transition-shadow duration-200`}>
                   <cat.icon className={`h-7 w-7 ${cat.color}`} />
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-brand-slate text-sm leading-tight">
+                  <p className="font-bold text-white text-sm leading-tight">
                     {cat.name}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1 font-medium">{cat.count}</p>
+                  <p className="text-xs text-slate-400 mt-1 font-medium">{cat.count}</p>
                 </div>
               </Link>
             </motion.div>

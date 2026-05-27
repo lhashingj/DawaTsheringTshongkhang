@@ -71,7 +71,7 @@ export default function AboutPage() {
         </section>
 
         {/* Our Story */}
-        <section className="py-16 md:py-20 bg-white">
+        <section className="py-16 md:py-20 bg-slate-900">
           <div className="container">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <motion.div
@@ -83,18 +83,18 @@ export default function AboutPage() {
                 <motion.p variants={fadeUp} className="text-brand-orange font-bold text-sm uppercase tracking-widest mb-2">
                   Our Story
                 </motion.p>
-                <motion.h2 variants={fadeUp} className="section-heading mb-4">
+                <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-4">
                   Over a decade of trust
                 </motion.h2>
-                <motion.p variants={fadeUp} className="text-slate-500 leading-relaxed mb-4">
-                  Dawa Tshering Tshongkhang was founded in 2012 as <strong className="text-brand-slate">JLW Enterprise</strong>,
+                <motion.p variants={fadeUp} className="text-slate-400 leading-relaxed mb-4">
+                  Dawa Tshering Tshongkhang was founded in 2012 as <strong className="text-white">JLW Enterprise</strong>,
                   a small hardware outlet serving the local community of Nyamaizampa, Paro.
                   Over the years the business grew in scope and reputation, and was rebranded
-                  to <strong className="text-brand-slate">Dawa Tshering Tshongkhang</strong> —
+                  to <strong className="text-white">Dawa Tshering Tshongkhang</strong> —
                   a name chosen to be more accessible and memorable for every customer,
                   regardless of background.
                 </motion.p>
-                <motion.p variants={fadeUp} className="text-slate-500 leading-relaxed">
+                <motion.p variants={fadeUp} className="text-slate-400 leading-relaxed">
                   Today we stock a wide range of power tools, agricultural machinery,
                   hand tools, safety equipment, irrigation systems, welding supplies,
                   and garden equipment — all at fair prices with knowledgeable service.
@@ -119,14 +119,14 @@ export default function AboutPage() {
                   <motion.div
                     key={item.year}
                     variants={fadeUp}
-                    className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100"
+                    className="flex items-start gap-4 p-4 rounded-xl bg-slate-800 border border-slate-700"
                   >
                     <div className="w-10 h-10 rounded-lg bg-brand-orange/10 flex items-center justify-center shrink-0">
                       <item.icon className="h-5 w-5 text-brand-orange" strokeWidth={1.5} />
                     </div>
                     <div>
                       <p className="text-xs font-black text-brand-orange uppercase tracking-wider">{item.year}</p>
-                      <p className="text-sm font-semibold text-brand-slate mt-0.5">{item.label}</p>
+                      <p className="text-sm font-semibold text-white mt-0.5">{item.label}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -221,7 +221,7 @@ export default function AboutPage() {
         </section>
 
         {/* Registration & Compliance */}
-        <section className="py-16 bg-slate-50 border-y border-slate-100">
+        <section className="py-16 bg-slate-900 border-y border-slate-700/60">
           <div className="container">
             <motion.div
               initial="hidden"
@@ -233,10 +233,10 @@ export default function AboutPage() {
               <motion.p variants={fadeUp} className="text-brand-orange font-bold text-sm uppercase tracking-widest mb-2">
                 Legal & Compliance
               </motion.p>
-              <motion.h2 variants={fadeUp} className="section-heading">
+              <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
                 Registered &amp; Certified
               </motion.h2>
-              <motion.p variants={fadeUp} className="section-subheading mx-auto">
+              <motion.p variants={fadeUp} className="text-slate-400 text-base mt-3 max-w-2xl leading-relaxed mx-auto">
                 Dawa Tshering Tshongkhang is a fully registered business operating
                 under all applicable Bhutanese trade and tax regulations.
               </motion.p>
@@ -272,14 +272,14 @@ export default function AboutPage() {
                 <motion.div
                   key={item.label}
                   variants={fadeUp}
-                  className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col items-center text-center"
+                  className="bg-slate-800 rounded-2xl border border-slate-700 p-6 flex flex-col items-center text-center"
                 >
                   <div className="w-12 h-12 rounded-xl bg-brand-orange/10 flex items-center justify-center mb-4">
                     <item.icon className="h-6 w-6 text-brand-orange" strokeWidth={1.5} />
                   </div>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{item.label}</p>
-                  <p className="text-lg font-black text-brand-slate">{item.value}</p>
-                  <p className="text-xs text-slate-400 mt-1">{item.desc}</p>
+                  <p className="text-lg font-black text-white">{item.value}</p>
+                  <p className="text-xs text-slate-500 mt-1">{item.desc}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -287,7 +287,7 @@ export default function AboutPage() {
         </section>
 
         {/* Contact & Map */}
-        <section className="py-16 md:py-20 bg-white">
+        <section className="py-16 md:py-20 bg-slate-900">
           <div className="container">
             <motion.div
               initial="hidden"
@@ -299,10 +299,10 @@ export default function AboutPage() {
               <motion.p variants={fadeUp} className="text-brand-orange font-bold text-sm uppercase tracking-widest mb-2">
                 Visit Us
               </motion.p>
-              <motion.h2 variants={fadeUp} className="section-heading">
+              <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
                 Find Our Shop
               </motion.h2>
-              <motion.p variants={fadeUp} className="section-subheading mx-auto">
+              <motion.p variants={fadeUp} className="text-slate-400 text-base mt-3 max-w-2xl leading-relaxed mx-auto">
                 We&apos;re located at Nyamaizampa, Paro, Bhutan. Come visit us or give us a call.
               </motion.p>
             </motion.div>
@@ -343,7 +343,7 @@ export default function AboutPage() {
                   <motion.div
                     key={item.label}
                     variants={fadeUp}
-                    className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100"
+                    className="flex items-start gap-4 p-4 rounded-xl bg-slate-800 border border-slate-700"
                   >
                     <div className="w-10 h-10 rounded-lg bg-brand-orange/10 flex items-center justify-center shrink-0 mt-0.5">
                       <item.icon className="h-5 w-5 text-brand-orange" strokeWidth={1.5} />
@@ -351,11 +351,11 @@ export default function AboutPage() {
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-0.5">{item.label}</p>
                       {item.href ? (
-                        <a href={item.href} className="text-sm font-semibold text-brand-slate hover:text-brand-orange transition-colors break-all">
+                        <a href={item.href} className="text-sm font-semibold text-white hover:text-brand-orange transition-colors break-all">
                           {item.content}
                         </a>
                       ) : (
-                        <p className="text-sm font-semibold text-brand-slate whitespace-pre-line">{item.content}</p>
+                        <p className="text-sm font-semibold text-white whitespace-pre-line">{item.content}</p>
                       )}
                     </div>
                   </motion.div>
@@ -371,7 +371,7 @@ export default function AboutPage() {
                   </a>
                   <a
                     href="tel:+97517711469"
-                    className="flex items-center justify-center gap-2 w-full bg-brand-slate hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-sm transition-colors"
+                    className="flex items-center justify-center gap-2 w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl text-sm transition-colors"
                   >
                     <Phone className="h-4 w-4" />
                     Call: 17711469
@@ -385,7 +385,7 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-80px" }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="md:col-span-3 rounded-2xl overflow-hidden border border-slate-200 shadow-sm"
+                className="md:col-span-3 rounded-2xl overflow-hidden border border-slate-700"
               >
                 <iframe
                   title="DTT Hardware Location"

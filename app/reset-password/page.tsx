@@ -6,7 +6,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Wrench, Eye, EyeOff, KeyRound, CheckCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 
 const fieldVariants = {
@@ -17,6 +16,8 @@ const fieldVariants = {
     transition: { delay: i * 0.09 + 0.2, duration: 0.4, ease: "easeOut" },
   }),
 };
+
+const inputCls = "w-full h-11 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 pr-11 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400 transition-colors";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -73,24 +74,24 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-900">
       {/* Minimal sticky nav */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-sm border-b border-slate-100 shrink-0 lg:hidden">
+      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-sm border-b border-slate-700 shrink-0 lg:hidden">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-brand-orange flex items-center justify-center shadow shadow-orange-500/20 group-hover:scale-105 transition-transform">
               <Wrench className="h-4 w-4 text-white" strokeWidth={2.5} />
             </div>
-            <span className="font-black text-brand-slate text-sm">DTT Hardware</span>
+            <span className="font-black text-white text-sm">DTT Hardware</span>
           </Link>
-          <Link href="/login" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-slate transition-colors font-medium">
+          <Link href="/login" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors font-medium">
             <ArrowLeft className="h-4 w-4" />
             Back to Sign In
           </Link>
         </div>
       </header>
 
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-slate-50">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -108,11 +109,11 @@ export default function ResetPasswordPage() {
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
               >
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-5" />
+                <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-5" />
               </motion.div>
-              <h2 className="font-black text-brand-slate text-2xl mb-2">Password Updated!</h2>
-              <p className="text-slate-500 text-sm mb-1">Your password has been changed successfully.</p>
-              <p className="text-slate-400 text-xs mb-8">Redirecting you to sign in…</p>
+              <h2 className="font-black text-white text-2xl mb-2">Password Updated!</h2>
+              <p className="text-slate-400 text-sm mb-1">Your password has been changed successfully.</p>
+              <p className="text-slate-500 text-xs mb-8">Redirecting you to sign in…</p>
               <Link href="/login">
                 <Button className="w-full h-11 gap-2 cursor-pointer">
                   Go to Sign In
@@ -122,27 +123,27 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-slate">Set new password</h1>
-                <p className="text-slate-500 text-sm mt-1.5">Choose a strong password for your account.</p>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Set new password</h1>
+                <p className="text-slate-400 text-sm mt-1.5">Choose a strong password for your account.</p>
               </motion.div>
 
               <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                 <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <label className="text-sm font-semibold text-slate-700">New Password</label>
+                  <label className="text-sm font-semibold text-slate-300">New Password</label>
                   <div className="relative">
-                    <Input
+                    <input
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Min. 6 characters"
                       required
                       autoFocus
-                      className="h-11 bg-white border-slate-200 focus:border-brand-orange pr-11 transition-colors"
+                      className={inputCls}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                       tabIndex={-1}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -151,20 +152,20 @@ export default function ResetPasswordPage() {
                 </motion.div>
 
                 <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <label className="text-sm font-semibold text-slate-700">Confirm Password</label>
+                  <label className="text-sm font-semibold text-slate-300">Confirm Password</label>
                   <div className="relative">
-                    <Input
+                    <input
                       type={showConfirm ? "text" : "password"}
                       value={confirm}
                       onChange={(e) => setConfirm(e.target.value)}
                       placeholder="Re-enter your password"
                       required
-                      className="h-11 bg-white border-slate-200 focus:border-brand-orange pr-11 transition-colors"
+                      className={inputCls}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirm((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                       tabIndex={-1}
                     >
                       {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -176,14 +177,14 @@ export default function ResetPasswordPage() {
                   <motion.p
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-xs text-red-500 font-medium bg-red-50 border border-red-100 rounded-lg px-3 py-2.5"
+                    className="text-xs text-red-400 font-medium bg-red-900/30 border border-red-700 rounded-lg px-3 py-2.5"
                   >
                     {error}
                   </motion.p>
                 )}
 
                 {!ready && !error && (
-                  <p className="text-xs text-slate-400 bg-slate-100 rounded-lg px-3 py-2.5">
+                  <p className="text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5">
                     Verifying your reset link…
                   </p>
                 )}

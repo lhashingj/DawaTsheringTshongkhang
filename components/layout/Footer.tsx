@@ -4,31 +4,6 @@ import { Wrench, Phone, MapPin, Mail, Clock } from "lucide-react";
 export function Footer() {
   return (
     <footer className="bg-brand-slate text-white">
-      {/* Signboard-inspired banner */}
-      <div className="bg-brand-blue border-b-2 border-brand-gold/50 relative overflow-hidden">
-        {/* Subtle grid overlay matching the physical signboard */}
-        <div className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }}
-        />
-        <div className="container py-5 text-center relative z-10">
-          {/* Gold corner accents */}
-          <div className="flex items-center justify-center gap-3 mb-1">
-            <span className="h-px flex-1 max-w-[60px] bg-gradient-to-r from-transparent to-brand-gold/60" />
-            <span className="text-brand-gold text-xs font-bold tracking-[0.3em] uppercase">Est. 2012</span>
-            <span className="h-px flex-1 max-w-[60px] bg-gradient-to-l from-transparent to-brand-gold/60" />
-          </div>
-          <p className="text-white font-black text-xl sm:text-2xl tracking-widest uppercase leading-tight">
-            Dawa Tshering Tshongkhang
-          </p>
-          <p className="text-brand-gold/90 text-xs font-semibold tracking-[0.25em] uppercase mt-1">
-            Nyamaizampa, Paro · Bhutan · Ph. 17716895
-          </p>
-        </div>
-      </div>
-
       <div className="container py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Brand */}
@@ -57,7 +32,7 @@ export function Footer() {
               {[
                 { href: "/", label: "Home" },
                 { href: "/products", label: "All Products" },
-                { href: "#categories", label: "Categories" },
+                { href: "/#categories", label: "Categories" },
                 { href: "/about", label: "About Us" },
               ].map((link) => (
                 <li key={link.href}>

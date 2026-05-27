@@ -7,8 +7,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -53,7 +51,7 @@ function timeAgo(iso: string) {
 export default function AdminChatPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-brand-slate">
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
       </div>
     }>
@@ -83,7 +81,6 @@ function AdminChatInner() {
     if (!loading && (!user || user.role !== "admin")) router.replace("/login");
   }, [user, loading, router]);
 
-  // Load admin online status
   useEffect(() => {
     if (!user || user.role !== "admin") return;
     supabase
@@ -124,7 +121,6 @@ function AdminChatInner() {
     setConversations(withPreview);
   }
 
-  // Real-time conversations listener
   useEffect(() => {
     if (!user || user.role !== "admin") return;
     loadConversations();
@@ -138,7 +134,6 @@ function AdminChatInner() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Apply URL ?conv= param only once on first load
   useEffect(() => {
     if (urlParamApplied.current) return;
     const convId = searchParams.get("conv");
@@ -148,7 +143,6 @@ function AdminChatInner() {
     }
   }, [searchParams, conversations]);
 
-  // Real-time messages for selected conversation
   useEffect(() => {
     unsubMessagesRef.current?.();
     if (!selected) { setMessages([]); return; }
@@ -237,22 +231,22 @@ function AdminChatInner() {
   const generalConvs = filtered.filter((c) => (c.type ?? "general") === "general");
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-900 overflow-hidden">
 
       {/* ── Sidebar ── */}
       <aside className={cn(
-        "flex flex-col bg-brand-slate border-r border-white/5",
+        "flex flex-col bg-slate-950 border-r border-slate-700/60",
         "w-full lg:w-80 shrink-0",
         selected ? "hidden lg:flex" : "flex",
       )}>
-        <div className="px-4 py-3.5 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
+        <div className="px-4 py-3.5 border-b border-slate-700/60 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2.5">
-            <Link href="/admin" className="text-white/40 hover:text-white/70 transition-colors">
+            <Link href="/admin" className="text-slate-500 hover:text-slate-300 transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <div>
               <p className="font-black text-white text-sm leading-none">Chat Dashboard</p>
-              <p className="text-white/40 text-[10px] mt-0.5 uppercase tracking-wider">
+              <p className="text-slate-500 text-[10px] mt-0.5 uppercase tracking-wider">
                 {conversations.length} conversation{conversations.length !== 1 ? "s" : ""}
               </p>
             </div>
@@ -261,7 +255,7 @@ function AdminChatInner() {
             onClick={toggleOnline}
             className={cn(
               "flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all cursor-pointer shrink-0",
-              isOnline ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/30" : "bg-white/5 text-white/40 hover:bg-white/10"
+              isOnline ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/30" : "bg-slate-700 text-slate-400 hover:bg-slate-600"
             )}
           >
             {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
@@ -269,19 +263,19 @@ function AdminChatInner() {
           </button>
         </div>
 
-        <div className="px-3 py-2.5 border-b border-white/5 shrink-0">
+        <div className="px-3 py-2.5 border-b border-slate-700/40 shrink-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search conversations…"
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs text-white/70 placeholder-white/30 focus:outline-none focus:border-brand-orange/50 transition-colors" />
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-orange-500/50 transition-colors" />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <MessageCircle className="h-10 w-10 text-white/10 mb-3" />
-              <p className="text-white/30 text-sm font-medium">No conversations yet</p>
+              <MessageCircle className="h-10 w-10 text-slate-700 mb-3" />
+              <p className="text-slate-500 text-sm font-medium">No conversations yet</p>
             </div>
           ) : (
             <>
@@ -301,8 +295,8 @@ function AdminChatInner() {
               {generalConvs.length > 0 && (
                 <>
                   <div className="px-4 py-2 flex items-center gap-2 mt-1">
-                    <Bot className="h-3 w-3 text-slate-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/30">
+                    <Bot className="h-3 w-3 text-slate-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       General ({generalConvs.length})
                     </span>
                   </div>
@@ -319,64 +313,64 @@ function AdminChatInner() {
       {/* ── Chat area ── */}
       <div className={cn("flex-1 flex flex-col min-w-0", !selected ? "hidden lg:flex" : "flex")}>
         {!selected ? (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center bg-slate-900">
             <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                <MessageCircle className="h-8 w-8 text-slate-300" />
+              <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="h-8 w-8 text-slate-600" />
               </div>
               <p className="font-bold text-slate-400">Select a conversation</p>
-              <p className="text-sm text-slate-300 mt-1">Pick a customer from the left panel</p>
+              <p className="text-sm text-slate-600 mt-1">Pick a customer from the left panel</p>
             </div>
           </div>
         ) : (
           <>
-            <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 shrink-0 shadow-sm">
+            <div className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center gap-3 shrink-0">
               <button onClick={() => { setSelected(null); setMessages([]); }}
-                className="lg:hidden text-slate-400 hover:text-brand-slate transition-colors p-1 -ml-1 cursor-pointer">
+                className="lg:hidden text-slate-400 hover:text-slate-200 transition-colors p-1 -ml-1 cursor-pointer">
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <div className="w-9 h-9 rounded-full bg-brand-slate flex items-center justify-center shrink-0 text-white font-black text-sm">
+              <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center shrink-0 text-white font-black text-sm">
                 {selectedConv?.userName?.charAt(0).toUpperCase() ?? "?"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-brand-slate text-sm leading-none truncate">{selectedConv?.userName}</p>
+                <p className="font-bold text-white text-sm leading-none truncate">{selectedConv?.userName}</p>
                 <p className="text-xs text-slate-400 truncate mt-0.5">{selectedConv?.userEmail}</p>
               </div>
               {selectedConv?.type === "order" && (
-                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-orange bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full shrink-0">
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-brand-orange bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full shrink-0">
                   <Package className="h-3 w-3" /> Order
                 </span>
               )}
               <button onClick={() => setDeleteConfirm(selected)}
-                className="text-slate-300 hover:text-red-500 transition-colors p-1.5 rounded-md hover:bg-red-50 cursor-pointer" title="Delete conversation">
+                className="text-slate-500 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-red-500/10 cursor-pointer" title="Delete conversation">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-900">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-12">
-                  <MessageCircle className="h-10 w-10 text-slate-200" />
-                  <p className="text-slate-400 text-sm font-medium">No messages yet</p>
+                  <MessageCircle className="h-10 w-10 text-slate-700" />
+                  <p className="text-slate-500 text-sm font-medium">No messages yet</p>
                 </div>
               )}
               {messages.map((msg) => (
                 <div key={msg.id} className={cn("flex gap-2 items-end", msg.senderType === "admin" ? "flex-row-reverse" : "flex-row")}>
                   <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] font-black",
-                    msg.senderType === "admin" ? "bg-brand-orange" : msg.senderType === "bot" ? "bg-slate-300" : "bg-brand-slate")}>
+                    msg.senderType === "admin" ? "bg-brand-orange" : msg.senderType === "bot" ? "bg-slate-600" : "bg-slate-700")}>
                     {msg.senderType === "admin" ? "A" : msg.senderType === "bot" ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
                   </div>
                   <div className={cn("max-w-[72%] sm:max-w-[65%] rounded-2xl px-3.5 py-2.5 text-sm",
                     msg.senderType === "admin" ? "bg-brand-orange text-white rounded-br-sm"
-                      : msg.senderType === "bot" ? "bg-white text-slate-500 shadow-sm rounded-bl-sm border border-slate-100"
-                      : "bg-white text-brand-slate shadow-sm rounded-bl-sm border border-slate-100")}>
+                      : msg.senderType === "bot" ? "bg-slate-800 text-slate-300 rounded-bl-sm border border-slate-700"
+                      : "bg-slate-800 text-slate-200 rounded-bl-sm border border-slate-700")}>
                     {msg.senderType !== "admin" && (
-                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-40">
+                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-50">
                         {msg.senderType === "bot" ? "AI Bot" : selectedConv?.userName ?? "Customer"}
                       </p>
                     )}
                     <span className="whitespace-pre-line leading-relaxed">{msg.content}</span>
-                    <p className={cn("text-[10px] mt-1.5 flex items-center gap-1", msg.senderType === "admin" ? "text-white/50 justify-end" : "text-slate-300")}>
+                    <p className={cn("text-[10px] mt-1.5 flex items-center gap-1", msg.senderType === "admin" ? "text-white/50 justify-end" : "text-slate-500")}>
                       <Clock className="h-2.5 w-2.5" />{timeAgo(msg.createdAt)}
                     </p>
                   </div>
@@ -385,12 +379,22 @@ function AdminChatInner() {
               <div ref={bottomRef} />
             </div>
 
-            <form onSubmit={sendReply} className="p-3 sm:p-4 bg-white border-t border-slate-100 flex gap-2 shrink-0">
-              <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type your reply…" className="flex-1 h-10 sm:h-11 text-sm" disabled={sending} />
-              <Button type="submit" disabled={!input.trim() || sending} className="h-10 sm:h-11 px-4 gap-2 cursor-pointer">
+            <form onSubmit={sendReply} className="p-3 sm:p-4 bg-slate-800 border-t border-slate-700 flex gap-2 shrink-0">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your reply…"
+                disabled={sending}
+                className="flex-1 h-10 sm:h-11 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400 transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || sending}
+                className="h-10 sm:h-11 px-4 flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              >
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 <span className="hidden sm:block">Send</span>
-              </Button>
+              </button>
             </form>
           </>
         )}
@@ -399,15 +403,25 @@ function AdminChatInner() {
       {/* Delete confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="h-6 w-6 text-red-500" />
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+            <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-700/50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="h-6 w-6 text-red-400" />
             </div>
-            <h3 className="text-center font-black text-brand-slate text-lg mb-2">Delete Conversation?</h3>
-            <p className="text-center text-slate-500 text-sm mb-6">All messages will be permanently deleted.</p>
+            <h3 className="text-center font-black text-white text-lg mb-2">Delete Conversation?</h3>
+            <p className="text-center text-slate-400 text-sm mb-6">All messages will be permanently deleted.</p>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-              <Button variant="destructive" className="flex-1" onClick={() => deleteConversation(deleteConfirm)}>Delete</Button>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 border border-slate-600 text-slate-300 hover:bg-slate-700 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteConversation(deleteConfirm)}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
@@ -425,11 +439,11 @@ function ConvItem({ conv, selected, onSelect, onDeleteRequest }: {
   const isOrder = conv.type === "order";
   const isSelected = selected === conv.id;
   return (
-    <div className={cn("relative group border-b border-white/5 transition-colors", isSelected ? "bg-white/15" : "hover:bg-white/5")}>
+    <div className={cn("relative group border-b border-slate-800 transition-colors", isSelected ? "bg-slate-700/50" : "hover:bg-slate-800/50")}>
       <button onClick={() => onSelect(conv.id)} className="w-full text-left px-4 py-3.5 pr-12 cursor-pointer">
         <div className="flex items-start gap-3">
           <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-white font-black text-sm mt-0.5",
-            isOrder ? "bg-brand-orange/80" : "bg-white/10")}>
+            isOrder ? "bg-brand-orange/80" : "bg-slate-700")}>
             {conv.userName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -439,14 +453,14 @@ function ConvItem({ conv, selected, onSelect, onDeleteRequest }: {
                 <span className="text-[9px] font-bold uppercase tracking-wider text-brand-orange bg-brand-orange/10 px-1.5 py-0.5 rounded-full shrink-0">Order</span>
               )}
             </div>
-            <p className="text-white/40 text-xs line-clamp-1 mt-0.5">{conv.lastMessage}</p>
-            <p className="text-white/20 text-[10px] mt-1">{timeAgo(conv.updatedAt)}</p>
+            <p className="text-slate-500 text-xs line-clamp-1 mt-0.5">{conv.lastMessage}</p>
+            <p className="text-slate-600 text-[10px] mt-1">{timeAgo(conv.updatedAt)}</p>
           </div>
         </div>
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); onDeleteRequest(conv.id); }}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-red-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-red-400 transition-colors sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>

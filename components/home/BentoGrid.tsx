@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, ShoppingCart, Star } from "lucide-react";
+import { ArrowRight, ShoppingCart } from "lucide-react";
 import { ProductCard } from "@/components/products/ProductCard";
-import { Button } from "@/components/ui/button";
 import type { Product } from "@/types";
 
 interface BentoGridProps {
@@ -15,7 +14,7 @@ export function BentoGrid({ products }: BentoGridProps) {
   const featured = products.filter((p) => p.featured).slice(0, 8);
 
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-slate-900">
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -30,17 +29,18 @@ export function BentoGrid({ products }: BentoGridProps) {
                 Top Picks
               </span>
             </div>
-            <h2 className="section-heading">Featured Products</h2>
-            <p className="text-slate-500 mt-2 max-w-xl">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Featured Products</h2>
+            <p className="text-slate-400 mt-2 max-w-xl">
               Our best-selling tools and machinery trusted by Bhutan&apos;s farmers, builders, and craftsmen.
             </p>
           </div>
-          <Button asChild variant="outline" className="shrink-0 border-brand-slate text-brand-slate gap-2">
-            <Link href="/products">
-              View All
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <Link
+            href="/products"
+            className="shrink-0 inline-flex items-center gap-2 border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            View All
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </motion.div>
 
         {/* Bento grid */}
@@ -51,7 +51,7 @@ export function BentoGrid({ products }: BentoGridProps) {
         </div>
 
         {featured.length === 0 && (
-          <div className="text-center py-20 text-slate-400">
+          <div className="text-center py-20 text-slate-500">
             <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-30" />
             <p className="font-medium">No featured products yet.</p>
           </div>
