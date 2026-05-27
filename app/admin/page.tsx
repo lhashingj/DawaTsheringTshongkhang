@@ -228,8 +228,8 @@ export default function AdminPage() {
       <header className="bg-slate-950 border-b border-slate-700/60 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center">
-              <Wrench className="h-4 w-4 text-white" />
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-white shrink-0">
+              <img src="/logo.png" alt="DTT Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-black text-white text-sm">DTT Admin</span>
             <span className="hidden sm:block text-slate-600 text-xs">|</span>

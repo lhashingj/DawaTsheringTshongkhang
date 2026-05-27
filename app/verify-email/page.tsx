@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, Loader2, Wrench } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 
@@ -12,8 +12,8 @@ export default function VerifyEmailPage() {
   return (
     <div className="min-h-screen industrial-grid-bg flex flex-col items-center justify-center p-4 gap-8">
       <Link href="/" className="inline-flex items-center gap-3 group">
-        <div className="w-10 h-10 rounded-xl bg-brand-orange flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
-          <Wrench className="h-5 w-5 text-white" strokeWidth={2.5} />
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow-lg group-hover:scale-105 transition-transform shrink-0">
+          <img src="/logo.png" alt="DTT Logo" className="w-full h-full object-cover" />
         </div>
         <div>
           <p className="text-white font-black text-base leading-none">DTT Hardware</p>

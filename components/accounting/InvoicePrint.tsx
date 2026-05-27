@@ -120,6 +120,12 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
       >
         {/* ── Header ── */}
         <div className="relative text-center pb-3 mb-2" style={{ borderBottom: '2.5px solid #000' }}>
+          {/* Logo top-left */}
+          <div className="absolute top-0 left-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="DTT Logo" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
+          </div>
+
           {/* INVOICE badge + date top-right */}
           <div className="absolute top-0 right-0" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
             <div

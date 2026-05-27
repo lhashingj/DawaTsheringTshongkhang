@@ -73,6 +73,8 @@ RULES:
 - Do NOT add __ESCALATE__ unless recommending admin contact
 - When asked about location, address, map, directions, or how to find the store, end your reply with: __MAP__
 - Do NOT add __MAP__ unless the user is asking about location/directions
+- When user asks about WhatsApp, messaging, or how to contact directly, end reply with: __WHATSAPP__
+- Do NOT add __WHATSAPP__ unless the user is asking about WhatsApp or direct contact
 - Keep under 160 words`;
 
   const recent = history.slice(-12);
@@ -83,7 +85,7 @@ RULES:
     } else {
       claudeMessages.push({
         role: "assistant",
-        content: msg.content.replace(/\n?__ESCALATE__\s*$/, "").replace(/\n?__MAP__\s*$/, "").trimEnd(),
+        content: msg.content.replace(/\n?__ESCALATE__\s*$/, "").replace(/\n?__MAP__\s*$/, "").replace(/\n?__WHATSAPP__\s*$/, "").trimEnd(),
       });
     }
   }
@@ -108,8 +110,11 @@ function getRegexReply(message: string): string {
     return "Hi there! 👋 I'm Dawa, DTT Hardware's virtual assistant.\n\nI can help you with:\n• Product prices and details\n• Stock availability\n• Our location and hours\n• Delivery options\n\nWhat are you looking for today?";
   }
   if (/\bthank(s| you)\b/.test(m)) return "You're welcome! 😊";
-  if (/\b(phone|contact|number|call|whatsapp)\b/.test(m)) {
-    return "📞 17716895 / 17711469\n📍 Nyamaizampa, Paro, Bhutan\n⏰ Mon–Sat, 9am–6pm";
+  if (/\b(whatsapp|message|chat|wa)\b/.test(m)) {
+    return "You can reach us directly on WhatsApp! Tap the button below to start a chat. 💬\n__WHATSAPP__";
+  }
+  if (/\b(phone|contact|number|call)\b/.test(m)) {
+    return "📞 17716895 / 17711469\n📍 Nyamaizampa, Paro, Bhutan\n⏰ Mon–Sat, 9am–6pm\n\nPrefer WhatsApp? Tap below! 💬\n__WHATSAPP__";
   }
   if (/\b(location|address|where|hours|open|map|direction|navigate|find us|find the)\b/.test(m)) {
     return "🏪 Nyamaizampa, Paro, Bhutan\n⏰ Mon–Sat: 9am–6pm\nCall 17716895 for directions.\n__MAP__";

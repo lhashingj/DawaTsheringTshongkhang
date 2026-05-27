@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Wrench, LogIn, Eye, EyeOff, ShieldCheck, Truck, Globe, ArrowLeft, Mail, CheckCircle,
+  LogIn, Eye, EyeOff, ShieldCheck, Truck, Globe, ArrowLeft, Mail, CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -96,8 +96,8 @@ export default function LoginPage() {
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-sm border-b border-slate-700 shrink-0 lg:hidden">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-brand-orange flex items-center justify-center shadow shadow-orange-500/20 group-hover:scale-105 transition-transform">
-              <Wrench className="h-4 w-4 text-white" strokeWidth={2.5} />
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-white shadow group-hover:scale-105 transition-transform shrink-0">
+              <img src="/logo.png" alt="DTT Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-black text-white text-sm">DTT Hardware</span>
           </Link>
@@ -119,8 +119,8 @@ export default function LoginPage() {
           className="relative z-10"
         >
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-xl bg-brand-orange flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
-              <Wrench className="h-6 w-6 text-white" strokeWidth={2.5} />
+            <div className="w-11 h-11 rounded-full overflow-hidden bg-white shadow-lg group-hover:scale-105 transition-transform shrink-0">
+              <img src="/logo.png" alt="DTT Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <p className="text-white font-black text-lg leading-none">DTT Hardware</p>

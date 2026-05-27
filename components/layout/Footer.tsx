@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Wrench, Phone, MapPin, Mail, Clock } from "lucide-react";
+import Image from "next/image";
+import { Phone, MapPin, Mail, Clock } from "lucide-react";
 
 export function Footer() {
   return (
@@ -9,8 +10,8 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-lg bg-brand-blue flex items-center justify-center ring-1 ring-brand-gold/30">
-                <Wrench className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-brand-gold/30 bg-white shrink-0">
+                <Image src="/logo.png" width={40} height={40} alt="DTT Logo" className="w-full h-full object-cover" />
               </div>
               <div>
                 <p className="font-black text-base leading-none">DTT Hardware</p>

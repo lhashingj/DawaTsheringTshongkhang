@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ShoppingCart, Menu, X, Wrench, Phone, MapPin, Mail, LogIn, LogOut, UserCircle, User,
+  ShoppingCart, Menu, X, Phone, MapPin, Mail, LogIn, LogOut, UserCircle, User,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { CartDrawer } from "./CartDrawer";
 import { useCart } from "@/context/CartContext";
@@ -70,8 +71,8 @@ export function Header() {
         <div className="container flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-lg bg-brand-orange flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-              <Wrench className="h-5 w-5 text-white" strokeWidth={2.5} />
+            <div className="w-9 h-9 rounded-full overflow-hidden shadow-lg group-hover:scale-105 transition-transform shrink-0 bg-white">
+              <Image src="/logo.png" width={36} height={36} alt="DTT Logo" className="w-full h-full object-cover" />
             </div>
             <div className="hidden sm:block">
               <p className="text-white font-black text-sm leading-none tracking-tight">

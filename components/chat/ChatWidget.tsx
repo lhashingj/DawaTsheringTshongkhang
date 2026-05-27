@@ -367,9 +367,11 @@ export function ChatWidget() {
                     {activeMessages.map((msg) => {
                       const hasEscalate = msg.senderType === "bot" && msg.content.includes("__ESCALATE__");
                       const hasMap = msg.senderType === "bot" && msg.content.includes("__MAP__");
+                      const hasWhatsApp = msg.senderType === "bot" && msg.content.includes("__WHATSAPP__");
                       const display = msg.content
                         .replace(/\n?__ESCALATE__\s*$/, "")
                         .replace(/\n?__MAP__\s*$/, "")
+                        .replace(/\n?__WHATSAPP__\s*$/, "")
                         .trimEnd();
                       return (
                         <div key={msg.id} className="flex flex-col gap-1">
@@ -418,6 +420,22 @@ export function ChatWidget() {
                                   </button>
                                 </Link>
                               )}
+                            </div>
+                          )}
+                          {hasWhatsApp && (
+                            <div className="ml-8">
+                              <a
+                                href={`https://wa.me/97517711469?text=${encodeURIComponent('Hello! I have an enquiry about your products.')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-xs font-semibold text-white rounded-full px-3 py-1.5 transition-opacity hover:opacity-90"
+                                style={{ backgroundColor: '#25D366' }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="white" className="w-3.5 h-3.5">
+                                  <path d="M16.003 2.667C8.637 2.667 2.667 8.637 2.667 16c0 2.352.625 4.617 1.813 6.605L2.667 29.333l6.93-1.796A13.28 13.28 0 0 0 16.003 29.333c7.363 0 13.33-5.97 13.33-13.333 0-7.363-5.967-13.333-13.33-13.333zm0 24.267a11.02 11.02 0 0 1-5.604-1.534l-.402-.24-4.113 1.065 1.092-3.98-.262-.41A10.985 10.985 0 0 1 5.0 16c0-6.068 4.935-11.003 11.003-11.003S27.006 9.932 27.006 16c0 6.067-4.935 11-11.003 11zm6.032-8.23c-.33-.165-1.954-.963-2.257-1.073-.302-.11-.522-.165-.742.165-.22.33-.85 1.073-1.042 1.293-.192.22-.385.248-.715.083-.33-.165-1.393-.513-2.654-1.638-.98-.875-1.642-1.956-1.835-2.287-.192-.33-.02-.508.145-.672.148-.148.33-.385.495-.578.165-.192.22-.33.33-.55.11-.22.055-.413-.028-.578-.083-.165-.742-1.788-1.017-2.45-.268-.642-.54-.554-.742-.565l-.632-.011c-.22 0-.578.083-.88.413-.302.33-1.155 1.128-1.155 2.75s1.183 3.19 1.348 3.412c.165.22 2.327 3.554 5.642 4.985.789.34 1.404.543 1.883.695.79.252 1.509.216 2.078.131.634-.095 1.954-.8 2.23-1.572.275-.77.275-1.43.192-1.567-.083-.138-.302-.22-.632-.385z" />
+                                </svg>
+                                Chat on WhatsApp
+                              </a>
                             </div>
                           )}
                         </div>
