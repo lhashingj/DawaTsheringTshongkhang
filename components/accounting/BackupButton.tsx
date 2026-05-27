@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CloudUpload, CloudOff, Loader2, Check, CloudDownload, AlertCircle } from 'lucide-react';
 import { backupToSupabase, restoreFromSupabase, getCloudRecordCounts, LAST_BACKUP_KEY } from '@/lib/accounting-sync';
 
@@ -10,6 +10,8 @@ export function BackupButton() {
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -26,6 +28,15 @@ export function BackupButton() {
       window.removeEventListener('offline', onOffline);
     };
   }, []);
+
+  const openMenu = () => {
+    if (!isOnline || status !== 'idle') return;
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    }
+    setShowMenu(v => !v);
+  };
 
   const fmtTime = (iso: string) => {
     const d = new Date(iso);
@@ -71,15 +82,15 @@ export function BackupButton() {
   };
 
   return (
-    <div className="relative flex items-center gap-2 ml-2">
+    <div className="flex items-center gap-2 ml-2">
       <div
         className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-slate-500'}`}
         title={isOnline ? 'Online' : 'Offline'}
       />
 
-      {/* Main backup button */}
       <button
-        onClick={() => isOnline && status === 'idle' && setShowMenu(v => !v)}
+        ref={btnRef}
+        onClick={openMenu}
         disabled={!isOnline || status === 'busy'}
         title={
           !isOnline ? 'Offline' :
@@ -104,11 +115,14 @@ export function BackupButton() {
          'Cloud'}
       </button>
 
-      {/* Dropdown menu */}
-      {showMenu && (
+      {/* Dropdown — rendered fixed to escape nav overflow clipping */}
+      {showMenu && menuPos && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-          <div className="absolute right-0 top-full mt-1 z-50 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl overflow-hidden w-52">
+          <div className="fixed inset-0 z-[9998]" onClick={() => setShowMenu(false)} />
+          <div
+            style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+            className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl overflow-hidden w-52"
+          >
             <button
               onClick={() => run('backup')}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 transition-colors text-left"
@@ -136,9 +150,12 @@ export function BackupButton() {
         </>
       )}
 
-      {/* Error tooltip */}
+      {/* Error tooltip — also fixed */}
       {status === 'error' && errorMsg && (
-        <div className="absolute right-0 top-full mt-1 z-50 bg-red-900/90 border border-red-700 rounded-lg px-3 py-2 text-xs text-red-300 whitespace-nowrap max-w-xs">
+        <div
+          style={{ position: 'fixed', top: (menuPos?.top ?? 60), right: (menuPos?.right ?? 8), zIndex: 9999 }}
+          className="bg-red-900/90 border border-red-700 rounded-lg px-3 py-2 text-xs text-red-300 max-w-xs"
+        >
           {errorMsg}
         </div>
       )}

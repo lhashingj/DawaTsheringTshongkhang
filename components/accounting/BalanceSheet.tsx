@@ -143,7 +143,7 @@ export function BalanceSheet() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-y-3">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isBalanced ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
             {isBalanced
@@ -156,25 +156,25 @@ export function BalanceSheet() {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={exportExcel} className="flex items-center gap-1.5 border border-slate-600 hover:border-green-500 text-slate-300 hover:text-green-400 px-4 py-2 rounded-lg text-sm transition-colors">
-            <Download className="w-4 h-4" /> Excel
+          <button onClick={exportExcel} className="flex items-center gap-1.5 border border-slate-600 hover:border-green-500 text-slate-300 hover:text-green-400 px-3 py-2 rounded-lg text-sm transition-colors">
+            <Download className="w-4 h-4" /> <span className="hidden sm:inline">Excel</span>
           </button>
-          <button onClick={() => window.print()} className="flex items-center gap-1.5 border border-slate-600 hover:border-blue-500 text-slate-300 hover:text-blue-400 px-4 py-2 rounded-lg text-sm transition-colors">
-            <FileText className="w-4 h-4" /> PDF
+          <button onClick={() => window.print()} className="flex items-center gap-1.5 border border-slate-600 hover:border-blue-500 text-slate-300 hover:text-blue-400 px-3 py-2 rounded-lg text-sm transition-colors">
+            <FileText className="w-4 h-4" /> <span className="hidden sm:inline">PDF</span>
           </button>
         </div>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: 'Total Assets',      value: totalCurrentAssets, color: 'text-blue-400',  bg: 'bg-blue-500/10' },
           { label: 'Total Liabilities', value: totalLiabilities,   color: 'text-red-400',   bg: 'bg-red-500/10' },
           { label: "Owner's Equity",    value: ownersEquity,       color: 'text-green-400', bg: 'bg-green-500/10' },
         ].map(c => (
-          <div key={c.label} className={`${c.bg} border border-slate-700 rounded-xl p-4 text-center`}>
-            <p className="text-slate-400 text-xs mb-1">{c.label}</p>
-            <p className={`font-mono font-bold text-lg ${c.color}`}>Nu. {fmt(c.value)}</p>
+          <div key={c.label} className={`${c.bg} border border-slate-700 rounded-xl px-4 py-3 flex sm:flex-col sm:text-center items-center sm:items-start justify-between sm:justify-start gap-2`}>
+            <p className="text-slate-400 text-xs sm:mb-1">{c.label}</p>
+            <p className={`font-mono font-bold text-base sm:text-lg ${c.color}`}>Nu. {fmt(c.value)}</p>
           </div>
         ))}
       </div>
@@ -243,7 +243,7 @@ export function BalanceSheet() {
       </div>
 
       {/* Accounting equation check */}
-      <div className={`rounded-xl border p-4 flex items-center justify-between ${isBalanced ? 'bg-green-500/5 border-green-700/50' : 'bg-red-500/5 border-red-700/50'}`}>
+      <div className={`rounded-xl border p-4 flex flex-wrap items-center justify-between gap-3 ${isBalanced ? 'bg-green-500/5 border-green-700/50' : 'bg-red-500/5 border-red-700/50'}`}>
         <div className="flex items-center gap-3">
           {isBalanced
             ? <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
@@ -255,7 +255,7 @@ export function BalanceSheet() {
             <p className="text-slate-500 text-xs mt-0.5">Assets = Liabilities + Equity</p>
           </div>
         </div>
-        <div className="text-right font-mono text-sm">
+        <div className="font-mono text-xs sm:text-sm sm:text-right">
           <div className="text-blue-400">Assets: Nu. {fmt(totalCurrentAssets)}</div>
           <div className="text-slate-400">Liab + Eq: Nu. {fmt(totalLiabEquity)}</div>
         </div>
