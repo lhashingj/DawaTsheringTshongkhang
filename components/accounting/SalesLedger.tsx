@@ -5,12 +5,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, salesCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
 import { InvoicePrint } from './InvoicePrint';
 import { Eye, Trash2, Edit2, X, Plus, ChevronDown, Search } from 'lucide-react';
+import type { PartyRecord } from '@/lib/accounting-db';
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS'];
 
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
 
@@ -28,8 +30,13 @@ export function SalesLedger() {
   const [newItem, setNewItem] = useState({ description: '', qty: '1', unit: 'EACH' as UnitType, rate: '' });
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
   const sales = useLiveQuery(() => db.sales.orderBy('timestamp').reverse().toArray(), []);
+  const customerParties = useLiveQuery(
+    () => db.parties.orderBy('name').filter((p: PartyRecord) => p.partyType === 'customer' || p.partyType === 'both').toArray(),
+    [],
+  );
 
   const filtered = (sales || []).filter(s => {
     const matchSearch =
@@ -49,6 +56,18 @@ export function SalesLedger() {
     setModalMode('view');
   }
 
+  function selectCustomer(partyId: number) {
+    const party = (customerParties || []).find(p => p.id === partyId);
+    if (!party) return;
+    setSelectedCustomerId(partyId);
+    setEditCustomer({
+      name: party.name,
+      phone: party.phone || '',
+      address: party.address || '',
+      tpn: party.tpn || '',
+    });
+  }
+
   function openEdit(sale: SaleRecord) {
     setSelected(sale);
     setEditItems(sale.items.map(i => ({ ...i })));
@@ -59,6 +78,9 @@ export function SalesLedger() {
       tpn: sale.customerTPN || '',
     });
     setEditNotes(sale.notes || '');
+    // Try to match existing party by name
+    const match = (customerParties || []).find(p => p.name.toLowerCase() === (sale.customerName || '').toLowerCase());
+    setSelectedCustomerId(match?.id ?? null);
     setModalMode('edit');
   }
 
@@ -126,8 +148,8 @@ export function SalesLedger() {
       {filtered.length > 0 && (
         <div className="flex gap-6 bg-slate-700/50 rounded-lg px-4 py-2 text-sm">
           <span className="text-slate-400">{filtered.length} records</span>
-          <span className="text-slate-300">Net: <span className="text-orange-400 font-mono font-semibold">Nu. {totalNet.toFixed(2)}</span></span>
-          <span className="text-slate-300">GST: <span className="text-yellow-400 font-mono">Nu. {totalGst.toFixed(2)}</span></span>
+          <span className="text-slate-300">Net: <span className="text-orange-400 font-mono font-semibold">Nu. {fmtNum(totalNet)}</span></span>
+          <span className="text-slate-300">GST: <span className="text-yellow-400 font-mono">Nu. {fmtNum(totalGst)}</span></span>
         </div>
       )}
 
@@ -162,9 +184,9 @@ export function SalesLedger() {
                   <td className="px-4 py-3 text-center">
                     <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full">{sale.items.length}</span>
                   </td>
-                  <td className="px-4 py-3 text-right text-slate-300 font-mono">{sale.grossAmount.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-yellow-400 font-mono">{sale.gstAmount.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-orange-400 font-mono font-semibold">{sale.netAmount.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-slate-300 font-mono">{fmtNum(sale.grossAmount)}</td>
+                  <td className="px-4 py-3 text-right text-yellow-400 font-mono">{fmtNum(sale.gstAmount)}</td>
+                  <td className="px-4 py-3 text-right text-orange-400 font-mono font-semibold">{fmtNum(sale.netAmount)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button onClick={() => openView(sale)} title="View Invoice" className="text-slate-400 hover:text-blue-400 transition-colors"><Eye className="w-4 h-4" /></button>
@@ -197,8 +219,31 @@ export function SalesLedger() {
               <button onClick={() => setModalMode(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
+              {/* Party selector */}
+              <div>
+                <label className="block text-slate-400 text-xs mb-1">Select Customer from Party Directory</label>
+                <div className="relative">
+                  <select
+                    className={inputCls + ' appearance-none pr-8'}
+                    value={selectedCustomerId ?? ''}
+                    onChange={e => {
+                      const id = parseInt(e.target.value);
+                      if (!isNaN(id)) selectCustomer(id);
+                      else setSelectedCustomerId(null);
+                    }}
+                  >
+                    <option value="">— Select a registered customer —</option>
+                    {(customerParties || []).map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}{p.phone ? ` · ${p.phone}` : ''}{p.tpn ? ` · TPN: ${p.tpn}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-slate-400 text-xs mb-1">Customer Name</label><input className={inputCls} value={editCustomer.name} onChange={e => setEditCustomer(p => ({ ...p, name: e.target.value }))} /></div>
+                <div><label className="block text-slate-400 text-xs mb-1">Customer Name</label><input className={inputCls} placeholder="Auto-filled from selection above" value={editCustomer.name} onChange={e => setEditCustomer(p => ({ ...p, name: e.target.value }))} /></div>
                 <div><label className="block text-slate-400 text-xs mb-1">Phone</label><input className={inputCls} value={editCustomer.phone} onChange={e => setEditCustomer(p => ({ ...p, phone: e.target.value }))} /></div>
                 <div><label className="block text-slate-400 text-xs mb-1">Address</label><input className={inputCls} value={editCustomer.address} onChange={e => setEditCustomer(p => ({ ...p, address: e.target.value }))} /></div>
                 <div><label className="block text-slate-400 text-xs mb-1">TPN</label><input className={inputCls} value={editCustomer.tpn} onChange={e => setEditCustomer(p => ({ ...p, tpn: e.target.value }))} /></div>
@@ -220,8 +265,8 @@ export function SalesLedger() {
                         <td className="px-3 py-2 text-white">{item.description}</td>
                         <td className="px-3 py-2 text-right text-slate-300">{item.qty}</td>
                         <td className="px-3 py-2 text-slate-400">{item.unit}</td>
-                        <td className="px-3 py-2 text-right text-slate-300">{item.rate.toFixed(2)}</td>
-                        <td className="px-3 py-2 text-right text-orange-400">{item.amount.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right text-slate-300">{fmtNum(item.rate)}</td>
+                        <td className="px-3 py-2 text-right text-orange-400">{fmtNum(item.amount)}</td>
                         <td className="px-2 py-2"><button onClick={() => setEditItems(p => p.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button></td>
                       </tr>
                     ))}
@@ -236,7 +281,7 @@ export function SalesLedger() {
                         </div>
                       </td>
                       <td className="px-2 py-1"><input type="number" className="w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500" placeholder="Rate" value={newItem.rate} onChange={e => setNewItem(p => ({ ...p, rate: e.target.value }))} /></td>
-                      <td className="px-2 py-1 text-right text-slate-400 text-xs">{newItem.qty && newItem.rate ? (parseFloat(newItem.qty) * parseFloat(newItem.rate)).toFixed(2) : '—'}</td>
+                      <td className="px-2 py-1 text-right text-slate-400 text-xs">{newItem.qty && newItem.rate ? fmtNum(parseFloat(newItem.qty) * parseFloat(newItem.rate)) : '—'}</td>
                       <td className="px-2 py-1"><button onClick={addEditItem} className="text-orange-400 hover:text-orange-300"><Plus className="w-4 h-4" /></button></td>
                     </tr>
                   </tbody>

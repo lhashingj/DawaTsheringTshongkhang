@@ -8,6 +8,7 @@ import { Download, FileText, Calendar } from 'lucide-react';
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 function startOfMonth(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
@@ -157,15 +158,15 @@ export function TaxReport() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400 text-sm">Gross (excl. GST)</span>
-              <span className="text-white font-mono">Nu. {salesGross.toFixed(2)}</span>
+              <span className="text-white font-mono">Nu. {fmtNum(salesGross)}</span>
             </div>
             <div className="flex justify-between border-t border-slate-700 pt-2">
               <span className="text-yellow-400 text-sm font-medium">GST Collected @ 5%</span>
-              <span className="text-yellow-400 font-mono font-bold">Nu. {salesGST.toFixed(2)}</span>
+              <span className="text-yellow-400 font-mono font-bold">Nu. {fmtNum(salesGST)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-300 text-sm font-medium">Total Invoiced</span>
-              <span className="text-orange-400 font-mono font-bold">Nu. {salesNet.toFixed(2)}</span>
+              <span className="text-orange-400 font-mono font-bold">Nu. {fmtNum(salesNet)}</span>
             </div>
           </div>
         </div>
@@ -180,15 +181,15 @@ export function TaxReport() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400 text-sm">Gross (excl. GST)</span>
-              <span className="text-white font-mono">Nu. {purchaseGross.toFixed(2)}</span>
+              <span className="text-white font-mono">Nu. {fmtNum(purchaseGross)}</span>
             </div>
             <div className="flex justify-between border-t border-slate-700 pt-2">
               <span className="text-blue-400 text-sm font-medium">GST Input Credit @ 5%</span>
-              <span className="text-blue-400 font-mono font-bold">Nu. {purchaseGST.toFixed(2)}</span>
+              <span className="text-blue-400 font-mono font-bold">Nu. {fmtNum(purchaseGST)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-300 text-sm font-medium">Total Paid</span>
-              <span className="text-orange-400 font-mono font-bold">Nu. {purchaseNet.toFixed(2)}</span>
+              <span className="text-orange-400 font-mono font-bold">Nu. {fmtNum(purchaseNet)}</span>
             </div>
           </div>
         </div>
@@ -199,16 +200,16 @@ export function TaxReport() {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-slate-400 text-sm">Output Tax (Collected)</span>
-              <span className="text-yellow-400 font-mono">Nu. {salesGST.toFixed(2)}</span>
+              <span className="text-yellow-400 font-mono">Nu. {fmtNum(salesGST)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400 text-sm">Input Credit (Paid)</span>
-              <span className="text-blue-400 font-mono">Nu. {purchaseGST.toFixed(2)}</span>
+              <span className="text-blue-400 font-mono">Nu. {fmtNum(purchaseGST)}</span>
             </div>
             <div className="flex justify-between border-t border-slate-600 pt-2">
               <span className="text-white font-bold">Net GST Payable</span>
               <span className={`font-mono font-bold text-xl ${netGSTLiability >= 0 ? 'text-red-400' : 'text-green-400'}`}>
-                Nu. {netGSTLiability.toFixed(2)}
+                Nu. {fmtNum(netGSTLiability)}
               </span>
             </div>
             <p className="text-xs text-slate-500">
@@ -248,9 +249,9 @@ export function TaxReport() {
                       <td className="px-4 py-2 text-orange-400 font-mono">{s.invoiceNo}</td>
                       <td className="px-4 py-2 text-slate-300">{fmtDate(s.timestamp)}</td>
                       <td className="px-4 py-2 text-white">{s.customerName || <span className="text-slate-500 italic">Cash</span>}</td>
-                      <td className="px-4 py-2 text-right text-slate-300 font-mono">{s.grossAmount.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-right text-yellow-400 font-mono">{s.gstAmount.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-right text-orange-400 font-mono font-semibold">{s.netAmount.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-right text-slate-300 font-mono">{fmtNum(s.grossAmount)}</td>
+                      <td className="px-4 py-2 text-right text-yellow-400 font-mono">{fmtNum(s.gstAmount)}</td>
+                      <td className="px-4 py-2 text-right text-orange-400 font-mono font-semibold">{fmtNum(s.netAmount)}</td>
                     </tr>
                   ))}
               </tbody>
@@ -258,9 +259,9 @@ export function TaxReport() {
                 <tfoot className="border-t-2 border-slate-600 bg-slate-700/30">
                   <tr>
                     <td colSpan={3} className="px-4 py-2 text-white font-bold text-sm">Total</td>
-                    <td className="px-4 py-2 text-right text-slate-300 font-mono font-bold">{salesGross.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-right text-yellow-400 font-mono font-bold">{salesGST.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-right text-orange-400 font-mono font-bold">{salesNet.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-right text-slate-300 font-mono font-bold">{fmtNum(salesGross)}</td>
+                    <td className="px-4 py-2 text-right text-yellow-400 font-mono font-bold">{fmtNum(salesGST)}</td>
+                    <td className="px-4 py-2 text-right text-orange-400 font-mono font-bold">{fmtNum(salesNet)}</td>
                   </tr>
                 </tfoot>
               )}
@@ -299,9 +300,9 @@ export function TaxReport() {
                       <td className="px-4 py-2 text-blue-400 font-mono">{p.purchaseOrderNo}</td>
                       <td className="px-4 py-2 text-slate-300">{fmtDate(p.timestamp)}</td>
                       <td className="px-4 py-2 text-white">{p.supplierName}</td>
-                      <td className="px-4 py-2 text-right text-slate-300 font-mono">{p.grossAmount.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-right text-blue-400 font-mono">{p.gstAmount.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-right text-orange-400 font-mono font-semibold">{p.netAmount.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-right text-slate-300 font-mono">{fmtNum(p.grossAmount)}</td>
+                      <td className="px-4 py-2 text-right text-blue-400 font-mono">{fmtNum(p.gstAmount)}</td>
+                      <td className="px-4 py-2 text-right text-orange-400 font-mono font-semibold">{fmtNum(p.netAmount)}</td>
                     </tr>
                   ))}
               </tbody>
@@ -309,9 +310,9 @@ export function TaxReport() {
                 <tfoot className="border-t-2 border-slate-600 bg-slate-700/30">
                   <tr>
                     <td colSpan={3} className="px-4 py-2 text-white font-bold text-sm">Total</td>
-                    <td className="px-4 py-2 text-right text-slate-300 font-mono font-bold">{purchaseGross.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-right text-blue-400 font-mono font-bold">{purchaseGST.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-right text-orange-400 font-mono font-bold">{purchaseNet.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-right text-slate-300 font-mono font-bold">{fmtNum(purchaseGross)}</td>
+                    <td className="px-4 py-2 text-right text-blue-400 font-mono font-bold">{fmtNum(purchaseGST)}</td>
+                    <td className="px-4 py-2 text-right text-orange-400 font-mono font-bold">{fmtNum(purchaseNet)}</td>
                   </tr>
                 </tfoot>
               )}

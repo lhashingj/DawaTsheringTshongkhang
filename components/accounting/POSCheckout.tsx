@@ -5,9 +5,11 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import {
   db,
   salesCRUD,
+  partyCRUD,
   SaleRecord,
   SaleItem,
   InventoryItem,
+  PartyRecord,
   UnitType,
   LOW_STOCK_THRESHOLD,
   autoDecrementStock,
@@ -24,10 +26,13 @@ import {
   ChevronDown,
   Receipt,
   X,
+  User,
+  Building2,
 } from 'lucide-react';
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS'];
 const GST_RATE = 5;
+function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 interface CustomerForm {
   name: string;
@@ -46,7 +51,11 @@ interface ItemForm {
 const defaultCustomer: CustomerForm = { name: '', phone: '', address: '', tpn: '' };
 const defaultItem: ItemForm = { description: '', qty: '1', unit: 'EACH', rate: '' };
 
+type CustomerMode = 'cash' | 'party';
+
 export function POSCheckout() {
+  const [customerMode, setCustomerMode] = useState<CustomerMode>('cash');
+  const [selectedPartyId, setSelectedPartyId] = useState<number | null>(null);
   const [customer, setCustomer] = useState<CustomerForm>(defaultCustomer);
   const [items, setItems] = useState<SaleItem[]>([]);
   const [itemForm, setItemForm] = useState<ItemForm>(defaultItem);
@@ -58,6 +67,28 @@ export function POSCheckout() {
   const [error, setError] = useState('');
 
   const inventory = useLiveQuery(() => db.inventory.toArray(), []);
+  const customerParties = useLiveQuery(
+    () => db.parties.orderBy('name').filter((p: PartyRecord) => p.partyType === 'customer' || p.partyType === 'both').toArray(),
+    [],
+  );
+
+  function switchMode(mode: CustomerMode) {
+    setCustomerMode(mode);
+    setSelectedPartyId(null);
+    setCustomer(defaultCustomer);
+  }
+
+  function selectParty(partyId: number) {
+    const party = (customerParties || []).find(p => p.id === partyId);
+    if (!party) return;
+    setSelectedPartyId(partyId);
+    setCustomer({
+      name: party.name,
+      phone: party.phone || '',
+      address: party.address || '',
+      tpn: party.tpn || '',
+    });
+  }
 
   useEffect(() => {
     salesCRUD.getNextInvoiceNo().then(setInvoiceNo);
@@ -106,14 +137,16 @@ export function POSCheckout() {
 
   async function saveInvoice() {
     if (items.length === 0) return setError('Add at least one item');
+    if (customerMode === 'party' && !selectedPartyId) return setError('Select a registered party or switch to Cash Customer');
     if (!invoiceNo) return;
     setIsSaving(true);
     setError('');
     try {
+      const resolvedName = customer.name.trim() || (customerMode === 'cash' ? 'Cash Customer' : '');
       const record: Omit<SaleRecord, 'id'> = {
         invoiceNo,
         timestamp: new Date(),
-        customerName: customer.name,
+        customerName: resolvedName,
         customerPhone: customer.phone || undefined,
         customerAddress: customer.address || undefined,
         customerTPN: customer.tpn || undefined,
@@ -128,9 +161,11 @@ export function POSCheckout() {
       const saved = { ...record, id };
       setSavedInvoice(saved);
       setShowModal(true);
-      // Auto-decrement inventory and post double-entry GL
       await autoDecrementStock(items);
       await postSaleToGL(saved);
+      if (customerMode === 'party' && selectedPartyId) {
+        await partyCRUD.updateBalance(selectedPartyId, netAmount);
+      }
       const next = await salesCRUD.getNextInvoiceNo();
       setInvoiceNo(next);
     } finally {
@@ -139,6 +174,8 @@ export function POSCheckout() {
   }
 
   function clearForm() {
+    setCustomerMode('cash');
+    setSelectedPartyId(null);
     setCustomer(defaultCustomer);
     setItems([]);
     setItemForm(defaultItem);
@@ -166,15 +203,77 @@ export function POSCheckout() {
           </div>
         </div>
 
+        {/* Customer type toggle */}
+        <div className="flex gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => switchMode('cash')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              customerMode === 'cash'
+                ? 'bg-orange-500 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Cash Customer
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode('party')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              customerMode === 'party'
+                ? 'bg-orange-500 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            Registered Party
+          </button>
+        </div>
+
+        {/* Party dropdown (registered mode only) */}
+        {customerMode === 'party' && (
+          <div className="mb-3">
+            <label className="block text-slate-400 text-xs mb-1">Select Party from Directory</label>
+            <div className="relative">
+              <select
+                className={inputCls + ' appearance-none pr-8'}
+                value={selectedPartyId ?? ''}
+                onChange={e => {
+                  const id = parseInt(e.target.value);
+                  if (!isNaN(id)) selectParty(id);
+                  else { setSelectedPartyId(null); setCustomer(defaultCustomer); }
+                }}
+              >
+                <option value="">— Select a registered customer / company —</option>
+                {(customerParties || []).map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{p.phone ? ` · ${p.phone}` : ''}{p.tpn ? ` · TPN: ${p.tpn}` : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+            {selectedPartyId && (
+              <p className="text-green-400 text-xs mt-1">
+                Invoice will be registered in this party&apos;s ledger and their balance updated.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Customer fields */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="col-span-2">
-            <label className="block text-slate-400 text-xs mb-1">Customer Name</label>
+            <label className="block text-slate-400 text-xs mb-1">
+              {customerMode === 'cash' ? 'Customer Name (optional)' : 'Party Name'}
+            </label>
             <input
               className={inputCls}
-              placeholder="Customer / Party Name"
+              placeholder={customerMode === 'cash' ? 'Leave blank for "Cash Customer"' : 'Auto-filled from party'}
               value={customer.name}
-              onChange={e => setCustomer(p => ({ ...p, name: e.target.value }))}
+              readOnly={customerMode === 'party' && !!selectedPartyId}
+              onChange={e => customerMode === 'cash' && setCustomer(p => ({ ...p, name: e.target.value }))}
             />
           </div>
           <div>
@@ -183,7 +282,8 @@ export function POSCheckout() {
               className={inputCls}
               placeholder="Phone number"
               value={customer.phone}
-              onChange={e => setCustomer(p => ({ ...p, phone: e.target.value }))}
+              readOnly={customerMode === 'party' && !!selectedPartyId}
+              onChange={e => customerMode === 'cash' && setCustomer(p => ({ ...p, phone: e.target.value }))}
             />
           </div>
           <div>
@@ -192,7 +292,8 @@ export function POSCheckout() {
               className={inputCls}
               placeholder="TPN number"
               value={customer.tpn}
-              onChange={e => setCustomer(p => ({ ...p, tpn: e.target.value }))}
+              readOnly={customerMode === 'party' && !!selectedPartyId}
+              onChange={e => customerMode === 'cash' && setCustomer(p => ({ ...p, tpn: e.target.value }))}
             />
           </div>
           <div className="col-span-2 sm:col-span-4">
@@ -201,7 +302,8 @@ export function POSCheckout() {
               className={inputCls}
               placeholder="Customer address"
               value={customer.address}
-              onChange={e => setCustomer(p => ({ ...p, address: e.target.value }))}
+              readOnly={customerMode === 'party' && !!selectedPartyId}
+              onChange={e => customerMode === 'cash' && setCustomer(p => ({ ...p, address: e.target.value }))}
             />
           </div>
         </div>
@@ -235,7 +337,7 @@ export function POSCheckout() {
                   >
                     <span className="text-white">{inv.description}</span>
                     <span className="text-slate-400 ml-2 text-xs">
-                      Nu.{inv.baseRate.toFixed(2)}/{inv.unit} · Stock:{inv.stockQty}
+                      Nu.{fmtNum(inv.baseRate)}/{inv.unit} · Stock:{inv.stockQty}
                     </span>
                     {inv.stockQty <= LOW_STOCK_THRESHOLD && inv.stockQty > 0 && (
                       <span className="ml-2 text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">LOW</span>
@@ -328,9 +430,9 @@ export function POSCheckout() {
                     <td className="px-3 py-2 text-white">{item.description}</td>
                     <td className="px-3 py-2 text-right text-white">{item.qty.toFixed(2)}</td>
                     <td className="px-3 py-2 text-slate-400">{item.unit}</td>
-                    <td className="px-3 py-2 text-right text-white">{item.rate.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right text-white">{fmtNum(item.rate)}</td>
                     <td className="px-3 py-2 text-right text-orange-400 font-medium">
-                      {item.amount.toFixed(2)}
+                      {fmtNum(item.amount)}
                     </td>
                     <td className="px-2 py-2">
                       <button
@@ -352,15 +454,15 @@ export function POSCheckout() {
           <div className="mt-4 ml-auto w-full sm:w-80 space-y-1.5">
             <div className="flex justify-between text-slate-300 text-sm">
               <span>Gross Amount</span>
-              <span className="font-mono">Nu. {grossAmount.toFixed(2)}</span>
+              <span className="font-mono">Nu. {fmtNum(grossAmount)}</span>
             </div>
             <div className="flex justify-between text-slate-300 text-sm">
               <span>GST @ {GST_RATE}.00%</span>
-              <span className="font-mono">Nu. {gstAmount.toFixed(2)}</span>
+              <span className="font-mono">Nu. {fmtNum(gstAmount)}</span>
             </div>
             <div className="flex justify-between text-white text-base font-bold border-t border-slate-600 pt-2 mt-2">
               <span>Net Amount</span>
-              <span className="font-mono text-orange-400">Nu. {netAmount.toFixed(2)}</span>
+              <span className="font-mono text-orange-400">Nu. {fmtNum(netAmount)}</span>
             </div>
             <p className="text-slate-400 text-xs italic">{numberToWords(netAmount)}</p>
           </div>

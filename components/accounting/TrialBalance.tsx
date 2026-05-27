@@ -13,7 +13,7 @@ interface TrialRow {
 }
 
 function today() { return new Date().toISOString().split('T')[0]; }
-function fmt(n: number) { return n.toFixed(2); }
+function fmt(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 const CATEGORY_COLORS: Record<string, string> = {
   Revenue:   'text-green-400',

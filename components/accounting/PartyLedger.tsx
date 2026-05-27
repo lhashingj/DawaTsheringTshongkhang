@@ -7,6 +7,7 @@ import { Plus, Trash2, Edit2, X, Search, ChevronDown, ExternalLink } from 'lucid
 import Link from 'next/link';
 
 const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
+function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 const emptyForm = (): Omit<PartyRecord, 'id'> => ({
   partyType: 'customer',
@@ -132,8 +133,8 @@ export function PartyLedger() {
       {filtered.length > 0 && (
         <div className="flex gap-6 bg-slate-700/50 rounded-lg px-4 py-2 text-sm flex-wrap">
           <span className="text-slate-400">{filtered.length} parties</span>
-          <span className="text-slate-300">Receivable: <span className="text-green-400 font-mono font-semibold">Nu. {totalReceivable.toFixed(2)}</span></span>
-          <span className="text-slate-300">Payable: <span className="text-red-400 font-mono font-semibold">Nu. {totalPayable.toFixed(2)}</span></span>
+          <span className="text-slate-300">Receivable: <span className="text-green-400 font-mono font-semibold">Nu. {fmtNum(totalReceivable)}</span></span>
+          <span className="text-slate-300">Payable: <span className="text-red-400 font-mono font-semibold">Nu. {fmtNum(totalPayable)}</span></span>
         </div>
       )}
 
@@ -172,7 +173,7 @@ export function PartyLedger() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className={`font-mono font-semibold ${p.outstandingBalance > 0 ? 'text-green-400' : p.outstandingBalance < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                    {p.outstandingBalance > 0 ? '+' : ''}{p.outstandingBalance.toFixed(2)}
+                    {p.outstandingBalance > 0 ? '+' : ''}{fmtNum(p.outstandingBalance)}
                   </div>
                   <div className="text-xs text-slate-500">{p.outstandingBalance > 0 ? 'Receivable' : p.outstandingBalance < 0 ? 'Payable' : 'Settled'}</div>
                 </td>

@@ -24,6 +24,10 @@ function fmtDate(d: Date | string) {
   });
 }
 
+function fmtNum(n: number) {
+  return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 interface Props {
   invoice: SaleRecord;
   onClose?: () => void;
@@ -43,7 +47,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
             position: fixed !important;
             inset: 0 !important;
             width: 100% !important;
-            padding: 28px 32px !important;
+            padding: 28px 36px !important;
             background: white !important;
             font-family: 'Courier New', Courier, monospace !important;
           }
@@ -82,48 +86,39 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
         style={{ fontFamily: "'Courier New', Courier, monospace" }}
       >
         {/* ── Header ── */}
-        <div className="text-center border-b-2 border-black pb-3 mb-3">
-          <div className="flex justify-between items-start">
-            <div className="text-left">
-              <p className="text-[10px]">1.0 / GROSS v2.0</p>
-            </div>
-            <div className="text-right text-[10px]">Page 1 of 1</div>
+        <div className="relative text-center border-b-2 border-black pb-2 mb-1">
+          {/* INVOICE box pinned top-right */}
+          <div
+            className="absolute top-0 right-0 font-bold text-[13px]"
+            style={{ border: '2px solid black', padding: '3px 10px' }}
+          >
+            INVOICE
           </div>
-          <h1 className="text-[15px] font-bold mt-1">
+
+          <h1 className="text-[15px] font-bold leading-tight">
             {BIZ.name} , {BIZ.location}.{BIZ.year},
           </h1>
-          <div className="flex justify-between items-center mt-0.5">
-            <div className="text-left">
-              <p className="font-bold">{BIZ.country}</p>
-              <p>
-                GST certified agent NO. {BIZ.gstNo}, TPN: {BIZ.tpn}/LIC No.{' '}
-                {BIZ.licNo}
-              </p>
-              <p>{BIZ.phone}/</p>
-            </div>
-            <div className="text-right font-bold text-[14px] border border-black px-2 py-1">
-              INVOICE
-            </div>
-          </div>
+          <p className="font-bold">{BIZ.country}</p>
+          <p>
+            GST certified agent NO. {BIZ.gstNo}, TPN: {BIZ.tpn}/LIC No. {BIZ.licNo}
+          </p>
+          <p>{BIZ.phone}/</p>
         </div>
 
         {/* ── Date & Invoice No ── */}
-        <div className="flex justify-between mb-3">
-          <div />
-          <div className="text-right space-y-0.5">
-            <div>
-              <span className="font-bold">Date.</span> {fmtDate(invoice.timestamp)}
-            </div>
-            <div>
-              <span className="font-bold">Invoice No.</span> {invoice.invoiceNo}
-            </div>
+        <div className="text-right mb-2 space-y-0.5">
+          <div>
+            <span className="font-bold">Date.</span> {fmtDate(invoice.timestamp)}
+          </div>
+          <div>
+            <span className="font-bold">Invoice No.</span> {invoice.invoiceNo}
           </div>
         </div>
 
         {/* ── To ── */}
         <div className="mb-3">
           <span className="font-bold">To</span>
-          {invoice.customerName && (
+          {invoice.customerName && invoice.customerName !== 'Cash Customer' && (
             <div className="ml-4 mt-0.5">
               <p>{invoice.customerName}</p>
               {invoice.customerAddress && <p>{invoice.customerAddress}</p>}
@@ -134,13 +129,13 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
         </div>
 
         {/* ── Items Table ── */}
-        <table className="w-full border-collapse text-[11px] mb-2">
+        <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr>
               <th className="border border-black px-1.5 py-1 text-left w-8">SL</th>
               <th className="border border-black px-1.5 py-1 text-left">Description</th>
               <th className="border border-black px-1.5 py-1 text-right w-24">Qty Unit</th>
-              <th className="border border-black px-1.5 py-1 text-right w-20">Rate</th>
+              <th className="border border-black px-1.5 py-1 text-right w-24">Rate</th>
               <th className="border border-black px-1.5 py-1 text-right w-24">Amount</th>
             </tr>
           </thead>
@@ -153,31 +148,20 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
                   {item.qty.toFixed(2)} {item.unit}
                 </td>
                 <td className="border border-black px-1.5 py-1 text-right">
-                  {item.rate.toFixed(2)}
+                  {fmtNum(item.rate)}
                 </td>
                 <td className="border border-black px-1.5 py-1 text-right">
-                  {item.amount.toFixed(2)}
+                  {fmtNum(item.amount)}
                 </td>
               </tr>
             ))}
-            {/* Spacer rows for short invoices */}
-            {invoice.items.length < 4 &&
-              Array.from({ length: 4 - invoice.items.length }).map((_, i) => (
-                <tr key={`empty-${i}`}>
-                  <td className="border border-black px-1.5 py-1">&nbsp;</td>
-                  <td className="border border-black px-1.5 py-1">&nbsp;</td>
-                  <td className="border border-black px-1.5 py-1">&nbsp;</td>
-                  <td className="border border-black px-1.5 py-1">&nbsp;</td>
-                  <td className="border border-black px-1.5 py-1">&nbsp;</td>
-                </tr>
-              ))}
           </tbody>
           <tfoot>
             <tr>
               <td colSpan={3} className="border border-black px-1.5 py-1" />
               <td className="border border-black px-1.5 py-1 italic">Gross Amount</td>
               <td className="border border-black px-1.5 py-1 text-right">
-                {invoice.grossAmount.toFixed(2)}
+                {fmtNum(invoice.grossAmount)}
               </td>
             </tr>
             <tr>
@@ -186,46 +170,53 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
                 GST {invoice.gstRate.toFixed(2)}%
               </td>
               <td className="border border-black px-1.5 py-1 text-right">
-                {invoice.gstAmount.toFixed(2)}
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={3} className="border border-black px-1.5 py-1 italic text-[10px]">
-                {numberToWords(invoice.netAmount)}
-              </td>
-              <td className="border border-black px-1.5 py-1 font-bold">Net Amount</td>
-              <td className="border border-black px-1.5 py-1 text-right font-bold">
-                {invoice.netAmount.toFixed(2)}
+                {fmtNum(invoice.gstAmount)}
               </td>
             </tr>
           </tfoot>
         </table>
 
-        {/* ── Terms ── */}
-        <div className="mt-4 border-t border-black pt-2">
-          <div className="flex justify-between">
-            <span className="font-bold">Terms &amp; Conditions:</span>
-            <span className="italic">E. &amp; O. E.</span>
+        {/* ── Net Amount row (below table, matching image layout) ── */}
+        <div className="flex justify-between items-center border-b border-black py-1 mb-3">
+          <span className="italic text-[10px]">{numberToWords(invoice.netAmount)}</span>
+          <div className="flex items-center gap-6 font-bold text-[11px]">
+            <span>Net Amount</span>
+            <span>{fmtNum(invoice.netAmount)}</span>
+          </div>
+        </div>
+
+        {/* ── Terms & Conditions ── */}
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <span
+              className="font-bold text-[11px]"
+              style={{ border: '1px dashed black', padding: '2px 8px' }}
+            >
+              Terms &amp; Conditions:
+            </span>
+            <span className="italic text-[11px]">E. &amp; O. E.</span>
+          </div>
+          <p className="text-[9px] mb-2">.</p>
+
+          {/* Declaration + Authorized Signatory side by side */}
+          <div className="flex justify-between items-start gap-4">
+            <div className="text-[10px] space-y-1 flex-1">
+              <p>
+                we declare that this invoice shows the actual price of the goods described and that all
+                particulars are true and correct. Goods once sold will not be taken back.
+              </p>
+              <p>
+                payment penalety of @ 20% will be charges if the payment is not made within one month
+                stipulated time.Subject to Paro court of justic.
+              </p>
+              <p className="mt-2">
+                Bank details: Please while making payment kindly reflect invoice number in description .
+              </p>
+            </div>
+            <div className="font-bold text-[11px] whitespace-nowrap">Authorized Signatory</div>
           </div>
 
-          <div className="flex justify-end mt-10 mb-2">
-            <span className="font-bold border-t border-black pt-1 pr-8">Authorized Signatory</span>
-          </div>
-
-          <div className="text-[10px] mt-3 space-y-1">
-            <p>
-              we declare that this invoice shows the actual price of the goods described and that
-              all particulars are true and correct. Goods once sold will not be taken back.
-            </p>
-            <p>
-              payment penalty of @ 20% will be charges if the payment is not made within one month
-              stipulated time. Subject to Paro court of justice.
-            </p>
-            <p className="mt-2">
-              Bank details: Please while making payment kindly reflect invoice number in description.
-            </p>
-            <p className="mt-1">{BIZ.bank}</p>
-          </div>
+          <p className="text-[10px] mt-3">{BIZ.bank}</p>
         </div>
       </div>
 

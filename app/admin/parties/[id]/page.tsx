@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function fmt(n: number) { return n.toFixed(2); }
+function fmt(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }

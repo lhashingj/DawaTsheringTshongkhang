@@ -30,6 +30,7 @@ const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded
 function fmt(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 const emptyForm = (): Omit<ExpenseRecord, 'id'> => ({
   date: new Date(),
@@ -132,10 +133,10 @@ export function ExpenseManager() {
       {filtered.length > 0 && (
         <div className="flex flex-wrap gap-4 bg-slate-700/50 rounded-lg px-4 py-2.5 text-sm">
           <span className="text-slate-400">{filtered.length} records</span>
-          <span className="text-slate-300">Total: <span className="text-orange-400 font-mono font-semibold">Nu. {totalFiltered.toFixed(2)}</span></span>
+          <span className="text-slate-300">Total: <span className="text-orange-400 font-mono font-semibold">Nu. {fmtNum(totalFiltered)}</span></span>
           {Object.entries(byCategory).sort(([, a], [, b]) => b - a).slice(0, 3).map(([cat, amt]) => (
             <span key={cat} className={`text-xs px-2 py-0.5 rounded font-medium ${CATEGORY_COLORS[cat as ExpenseCategory] || 'bg-slate-600 text-slate-300'}`}>
-              {cat}: Nu. {amt.toFixed(0)}
+              {cat}: Nu. {Math.round(amt).toLocaleString('en-IN')}
             </span>
           ))}
         </div>
@@ -165,7 +166,7 @@ export function ExpenseManager() {
                 </td>
                 <td className="px-4 py-3 text-white">{e.description}</td>
                 <td className="px-4 py-3 text-slate-500 text-xs">{e.reference || '—'}</td>
-                <td className="px-4 py-3 text-right text-orange-400 font-mono font-semibold">{e.amount.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right text-orange-400 font-mono font-semibold">{fmtNum(e.amount)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={() => openEdit(e)} className="text-slate-400 hover:text-orange-400 transition-colors"><Edit2 className="w-4 h-4" /></button>

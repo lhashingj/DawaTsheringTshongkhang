@@ -8,6 +8,7 @@ import { seedInventoryFromProducts } from '@/lib/seed-inventory';
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS'];
 const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
+function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 const emptyForm = (): Omit<InventoryItem, 'id'> => ({
   itemCode: '',
@@ -158,7 +159,7 @@ export function InventoryManager() {
       {filtered.length > 0 && (
         <div className="flex gap-6 bg-slate-700/50 rounded-lg px-4 py-2 text-sm flex-wrap">
           <span className="text-slate-400">{filtered.length} items</span>
-          <span className="text-slate-300">Stock Value: <span className="text-orange-400 font-mono font-semibold">Nu. {totalValue.toFixed(2)}</span></span>
+          <span className="text-slate-300">Stock Value: <span className="text-orange-400 font-mono font-semibold">Nu. {fmtNum(totalValue)}</span></span>
           {lowStockCount > 0 && <span className="text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />{lowStockCount} low stock</span>}
         </div>
       )}
@@ -190,7 +191,7 @@ export function InventoryManager() {
                   <td className="px-4 py-3 text-slate-400 font-mono text-xs">{item.itemCode || <span className="text-slate-600">—</span>}</td>
                   <td className="px-4 py-3 text-white">{item.description}</td>
                   <td className="px-4 py-3 text-slate-400">{item.unit}</td>
-                  <td className="px-4 py-3 text-right text-slate-300 font-mono">{item.baseRate.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-slate-300 font-mono">{fmtNum(item.baseRate)}</td>
                   <td className="px-4 py-3 text-right font-mono font-semibold">
                     <span className={item.stockQty === 0 ? 'text-red-400' : item.stockQty <= item.reorderLevel ? 'text-yellow-400' : 'text-white'}>{item.stockQty}</span>
                   </td>
