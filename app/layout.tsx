@@ -5,6 +5,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ChatWidgetLoader } from "@/components/chat/ChatWidgetLoader";
+import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
           <CartProvider>
             {children}
             <ChatWidgetLoader />
+            <WhatsAppButton />
             <Toaster />
             <SpeedInsights />
             <Analytics />
