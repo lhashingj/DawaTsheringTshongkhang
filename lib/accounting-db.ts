@@ -7,7 +7,9 @@ export type ExpenseCategory =
   | 'Rent' | 'Utilities' | 'Salaries' | 'Transport' | 'Fuel'
   | 'Maintenance' | 'Stationery' | 'Communication' | 'Other';
 export type GLAccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
-export type GLTransactionType = 'sale' | 'purchase' | 'expense' | 'adjustment';
+export type GLTransactionType = 'sale' | 'purchase' | 'expense' | 'adjustment' | 'payment';
+export type PaymentMode = 'Cash' | 'Bank Transfer' | 'Cheque' | 'Online';
+export type PaymentDirection = 'in' | 'out';
 
 export interface SaleItem {
   description: string;
@@ -69,6 +71,8 @@ export interface PartyRecord {
   tpn?: string;
   licenseNo?: string;
   gstNo?: string;
+  procurementOfficer?: string;
+  openingBalance?: number;
   outstandingBalance: number;
   notes?: string;
   createdAt: Date;
@@ -97,6 +101,17 @@ export interface ExpenseRecord {
   notes?: string;
 }
 
+export interface PaymentRecord {
+  id?: number;
+  partyId: number;
+  timestamp: Date;
+  amount: number;
+  direction: PaymentDirection;
+  mode: PaymentMode;
+  reference?: string;
+  notes?: string;
+}
+
 export interface GLEntry {
   id?: number;
   timestamp: Date;
@@ -118,6 +133,7 @@ class AccountingDatabase extends Dexie {
   inventory!: Table<InventoryItem, number>;
   expenses!: Table<ExpenseRecord, number>;
   generalLedger!: Table<GLEntry, number>;
+  payments!: Table<PaymentRecord, number>;
 
   constructor() {
     super('DTTAccountingDB');
@@ -130,6 +146,9 @@ class AccountingDatabase extends Dexie {
     this.version(2).stores({
       expenses: '++id, date, category',
       generalLedger: '++id, timestamp, transactionRef, transactionType, account',
+    });
+    this.version(3).stores({
+      payments: '++id, partyId, timestamp, direction',
     });
   }
 }
@@ -213,6 +232,17 @@ export const expenseCRUD = {
   delete: (id: number) => db.expenses.delete(id),
   getByDateRange: (from: Date, to: Date) =>
     db.expenses.where('date').between(from, to, true, true).toArray(),
+};
+
+// ── Payments ──────────────────────────────────────────────────────────────────
+export const paymentCRUD = {
+  create: (data: Omit<PaymentRecord, 'id'>) => db.payments.add(data),
+  getAll: () => db.payments.orderBy('timestamp').reverse().toArray(),
+  getById: (id: number) => db.payments.get(id),
+  update: (id: number, data: Partial<PaymentRecord>) => db.payments.update(id, data),
+  delete: (id: number) => db.payments.delete(id),
+  getByParty: (partyId: number) =>
+    db.payments.where('partyId').equals(partyId).reverse().sortBy('timestamp'),
 };
 
 // ── Inventory automation ──────────────────────────────────────────────────────
@@ -314,4 +344,45 @@ export async function postExpenseToGL(expense: ExpenseRecord & { id: number }): 
       description: `Expense paid — ${expense.description}`,
     },
   ] as Omit<GLEntry, 'id'>[]);
+}
+
+export async function postPaymentToGL(
+  payment: PaymentRecord & { id: number },
+  partyName: string,
+): Promise<void> {
+  const ts = new Date(payment.timestamp);
+  const ref = `PAY-${payment.id}`;
+  if (payment.direction === 'in') {
+    // Customer pays us: DR Cash, CR Accounts Receivable
+    await db.generalLedger.bulkAdd([
+      {
+        timestamp: ts, transactionRef: ref, transactionType: 'payment',
+        account: 'Cash / Bank', accountType: 'asset',
+        debit: payment.amount, credit: 0,
+        description: `Payment received from ${partyName} (${payment.mode})`,
+      },
+      {
+        timestamp: ts, transactionRef: ref, transactionType: 'payment',
+        account: 'Accounts Receivable', accountType: 'asset',
+        debit: 0, credit: payment.amount,
+        description: `Payment received from ${partyName} (${payment.mode})`,
+      },
+    ] as Omit<GLEntry, 'id'>[]);
+  } else {
+    // We pay supplier: DR Accounts Payable, CR Cash
+    await db.generalLedger.bulkAdd([
+      {
+        timestamp: ts, transactionRef: ref, transactionType: 'payment',
+        account: 'Accounts Payable', accountType: 'liability',
+        debit: payment.amount, credit: 0,
+        description: `Payment made to ${partyName} (${payment.mode})`,
+      },
+      {
+        timestamp: ts, transactionRef: ref, transactionType: 'payment',
+        account: 'Cash / Bank', accountType: 'asset',
+        debit: 0, credit: payment.amount,
+        description: `Payment made to ${partyName} (${payment.mode})`,
+      },
+    ] as Omit<GLEntry, 'id'>[]);
+  }
 }

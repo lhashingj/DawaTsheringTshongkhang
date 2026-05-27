@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, partyCRUD, PartyRecord, PartyType } from '@/lib/accounting-db';
-import { Plus, Trash2, Edit2, X, Search, Users, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Search, ChevronDown, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
 
@@ -16,6 +17,7 @@ const emptyForm = (): Omit<PartyRecord, 'id'> => ({
   tpn: '',
   licenseNo: '',
   gstNo: '',
+  procurementOfficer: '',
   outstandingBalance: 0,
   notes: '',
   createdAt: new Date(),
@@ -66,7 +68,12 @@ export function PartyLedger() {
   async function saveForm() {
     setIsSaving(true);
     if (modalMode === 'add') {
-      await partyCRUD.create({ ...form, createdAt: new Date(), updatedAt: new Date() });
+      await partyCRUD.create({
+        ...form,
+        openingBalance: form.outstandingBalance,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
     } else if (selected?.id) {
       await partyCRUD.update(selected.id, { ...form, updatedAt: new Date() });
     }
@@ -171,6 +178,7 @@ export function PartyLedger() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">
+                    <Link href={`/admin/parties/${p.id}`} title="View Profile" className="text-slate-400 hover:text-blue-400 transition-colors"><ExternalLink className="w-4 h-4" /></Link>
                     <button onClick={() => setBalanceAdj({ id: p.id!, amount: '' })} title="Adjust Balance" className="text-slate-400 hover:text-green-400 transition-colors text-xs font-medium">±Bal</button>
                     <button onClick={() => openEdit(p)} title="Edit" className="text-slate-400 hover:text-orange-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
                     <button onClick={() => setDeleteId(p.id!)} title="Delete" className="text-slate-400 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
@@ -213,8 +221,9 @@ export function PartyLedger() {
                 <div><label className="block text-slate-400 text-xs mb-1">License No.</label><input className={inputCls} value={form.licenseNo || ''} onChange={e => setForm(p => ({ ...p, licenseNo: e.target.value }))} /></div>
                 <div><label className="block text-slate-400 text-xs mb-1">GST No.</label><input className={inputCls} value={form.gstNo || ''} onChange={e => setForm(p => ({ ...p, gstNo: e.target.value }))} /></div>
               </div>
+              <div><label className="block text-slate-400 text-xs mb-1">Procurement Officer</label><input className={inputCls} placeholder="Contact person for orders" value={form.procurementOfficer || ''} onChange={e => setForm(p => ({ ...p, procurementOfficer: e.target.value }))} /></div>
               <div>
-                <label className="block text-slate-400 text-xs mb-1">Opening Balance (+ = they owe us)</label>
+                <label className="block text-slate-400 text-xs mb-1">Opening Balance (+ = they owe us / Dr)</label>
                 <input type="number" step="0.01" className={inputCls} value={form.outstandingBalance} onChange={e => setForm(p => ({ ...p, outstandingBalance: parseFloat(e.target.value) || 0 }))} />
               </div>
               <div><label className="block text-slate-400 text-xs mb-1">Notes</label><textarea className={inputCls} rows={2} value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
