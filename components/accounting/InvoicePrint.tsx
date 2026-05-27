@@ -7,12 +7,12 @@ import { Printer, X } from 'lucide-react';
 const BIZ = {
   name: 'DAWA TSHERING SHOP',
   location: 'Paro',
-  country: 'PARO BHUTAN',
+  country: 'PARO, BHUTAN',
   year: new Date().getFullYear(),
   gstNo: 'P10037232',
   tpn: 'JAB09739',
   licNo: 'R1005542',
-  phone: '17716895/17711469',
+  phone: '17716895 / 17711469',
   bank: 'BOB: 225667231',
 };
 
@@ -42,17 +42,44 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
       <style>{`
         @media print {
           body > * { visibility: hidden !important; }
-          #dtt-invoice-print, #dtt-invoice-print * { visibility: visible !important; }
+          #dtt-invoice-print, #dtt-invoice-print * {
+            visibility: visible !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           #dtt-invoice-print {
             position: fixed !important;
             inset: 0 !important;
             width: 100% !important;
-            padding: 28px 36px !important;
+            padding: 24px 32px !important;
             background: white !important;
-            font-family: 'Courier New', Courier, monospace !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            font-weight: 500 !important;
+            color: #000 !important;
+          }
+          #dtt-invoice-print table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+          }
+          #dtt-invoice-print th,
+          #dtt-invoice-print td {
+            border: 1.5px solid #000 !important;
+            padding: 5px 8px !important;
+          }
+          #dtt-invoice-print th {
+            background: #e8e8e8 !important;
+            font-weight: 800 !important;
+            font-size: 12px !important;
+          }
+          #dtt-invoice-print .inv-label {
+            font-weight: 700 !important;
+          }
+          #dtt-invoice-print .inv-total-row td {
+            font-weight: 700 !important;
+            font-size: 13px !important;
           }
           .no-print { display: none !important; }
-          @page { margin: 0.5cm; size: A4; }
+          @page { margin: 0.6cm; size: A4; }
         }
       `}</style>
 
@@ -82,75 +109,95 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
 
       <div
         id="dtt-invoice-print"
-        className="bg-white text-black p-6 font-mono text-[11px] leading-snug max-w-[720px] mx-auto"
-        style={{ fontFamily: "'Courier New', Courier, monospace" }}
+        className="bg-white text-black p-6 max-w-[720px] mx-auto"
+        style={{
+          fontFamily: 'Arial, Helvetica, sans-serif',
+          fontSize: '13px',
+          fontWeight: 500,
+          lineHeight: 1.5,
+          color: '#000',
+        }}
       >
         {/* ── Header ── */}
-        <div className="relative text-center border-b-2 border-black pb-2 mb-1">
-          {/* INVOICE box pinned top-right */}
-          <div
-            className="absolute top-0 right-0 font-bold text-[13px]"
-            style={{ border: '2px solid black', padding: '3px 10px' }}
-          >
-            INVOICE
+        <div className="relative text-center pb-3 mb-2" style={{ borderBottom: '2.5px solid #000' }}>
+          {/* INVOICE badge + date top-right */}
+          <div className="absolute top-0 right-0" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+            <div
+              style={{
+                border: '2px solid #000',
+                padding: '4px 14px',
+                fontWeight: 900,
+                fontSize: '14px',
+                letterSpacing: '0.05em',
+              }}
+            >
+              INVOICE
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, textAlign: 'right', lineHeight: 1.7 }}>
+              <div><span style={{ fontWeight: 700 }}>Date:&nbsp;</span>{fmtDate(invoice.timestamp)}</div>
+              <div><span style={{ fontWeight: 700 }}>Invoice No.:&nbsp;</span>{invoice.invoiceNo}</div>
+            </div>
           </div>
 
-          <h1 className="text-[15px] font-bold leading-tight">
-            {BIZ.name} , {BIZ.location}.{BIZ.year},
-          </h1>
-          <p className="font-bold">{BIZ.country}</p>
-          <p>
-            GST certified agent NO. {BIZ.gstNo}, TPN: {BIZ.tpn}/LIC No. {BIZ.licNo}
-          </p>
-          <p>{BIZ.phone}/</p>
-        </div>
-
-        {/* ── Date & Invoice No ── */}
-        <div className="text-right mb-2 space-y-0.5">
-          <div>
-            <span className="font-bold">Date.</span> {fmtDate(invoice.timestamp)}
+          <div style={{ fontSize: '38px', fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1.2 }}>
+            ཟླ་བ་ཚེ་རིང་ཚོང་ཁང་།
           </div>
-          <div>
-            <span className="font-bold">Invoice No.</span> {invoice.invoiceNo}
+          <div style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '0.04em', lineHeight: 1.2, marginTop: '2px' }}>
+            {BIZ.name}
+          </div>
+          <div style={{ fontSize: '14px', fontWeight: 700, marginTop: '2px' }}>
+            {BIZ.country}
+          </div>
+          <div style={{ fontSize: '12px', fontWeight: 600, marginTop: '3px' }}>
+            GST Certified Agent No.&nbsp;{BIZ.gstNo} &nbsp;|&nbsp; TPN:&nbsp;{BIZ.tpn} &nbsp;|&nbsp; LIC No.&nbsp;{BIZ.licNo}
+          </div>
+          <div style={{ fontSize: '12px', fontWeight: 600, marginTop: '1px' }}>
+            Ph:&nbsp;{BIZ.phone}
           </div>
         </div>
 
         {/* ── To ── */}
-        <div className="mb-3">
-          <span className="font-bold">To</span>
-          {invoice.customerName && invoice.customerName !== 'Cash Customer' && (
-            <div className="ml-4 mt-0.5">
-              <p>{invoice.customerName}</p>
-              {invoice.customerAddress && <p>{invoice.customerAddress}</p>}
-              {invoice.customerPhone && <p>Ph: {invoice.customerPhone}</p>}
-              {invoice.customerTPN && <p>TPN: {invoice.customerTPN}</p>}
-            </div>
+        <div style={{ marginBottom: '12px', fontSize: '13px' }}>
+          <span className="inv-label" style={{ fontWeight: 700 }}>To:&nbsp;</span>
+          {invoice.customerName && invoice.customerName !== 'Cash Customer' ? (
+            <span style={{ fontWeight: 600 }}>{invoice.customerName}</span>
+          ) : (
+            <span style={{ fontWeight: 600 }}>Cash Customer</span>
+          )}
+          {invoice.customerAddress && (
+            <div style={{ marginLeft: '28px', marginTop: '2px' }}>{invoice.customerAddress}</div>
+          )}
+          {invoice.customerPhone && (
+            <div style={{ marginLeft: '28px' }}>Ph: {invoice.customerPhone}</div>
+          )}
+          {invoice.customerTPN && (
+            <div style={{ marginLeft: '28px' }}>TPN: {invoice.customerTPN}</div>
           )}
         </div>
 
         {/* ── Items Table ── */}
-        <table className="w-full border-collapse text-[11px]">
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr>
-              <th className="border border-black px-1.5 py-1 text-left w-8">SL</th>
-              <th className="border border-black px-1.5 py-1 text-left">Description</th>
-              <th className="border border-black px-1.5 py-1 text-right w-24">Qty Unit</th>
-              <th className="border border-black px-1.5 py-1 text-right w-24">Rate</th>
-              <th className="border border-black px-1.5 py-1 text-right w-24">Amount</th>
+              <th style={{ border: '1.5px solid #000', padding: '6px 8px', textAlign: 'center', background: '#e8e8e8', fontWeight: 800, width: '36px' }}>SL</th>
+              <th style={{ border: '1.5px solid #000', padding: '6px 8px', textAlign: 'left', background: '#e8e8e8', fontWeight: 800 }}>Description of Goods</th>
+              <th style={{ border: '1.5px solid #000', padding: '6px 8px', textAlign: 'right', background: '#e8e8e8', fontWeight: 800, width: '90px' }}>Qty / Unit</th>
+              <th style={{ border: '1.5px solid #000', padding: '6px 8px', textAlign: 'right', background: '#e8e8e8', fontWeight: 800, width: '90px' }}>Rate (Nu.)</th>
+              <th style={{ border: '1.5px solid #000', padding: '6px 8px', textAlign: 'right', background: '#e8e8e8', fontWeight: 800, width: '100px' }}>Amount (Nu.)</th>
             </tr>
           </thead>
           <tbody>
             {invoice.items.map((item, i) => (
               <tr key={i}>
-                <td className="border border-black px-1.5 py-1 text-center">{i + 1}</td>
-                <td className="border border-black px-1.5 py-1">{item.description}</td>
-                <td className="border border-black px-1.5 py-1 text-right">
-                  {item.qty.toFixed(2)} {item.unit}
+                <td style={{ border: '1.5px solid #000', padding: '5px 8px', textAlign: 'center', fontWeight: 600 }}>{i + 1}</td>
+                <td style={{ border: '1.5px solid #000', padding: '5px 8px', fontWeight: 600 }}>{item.description}</td>
+                <td style={{ border: '1.5px solid #000', padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>
+                  {item.qty.toFixed(2)}&nbsp;{item.unit}
                 </td>
-                <td className="border border-black px-1.5 py-1 text-right">
+                <td style={{ border: '1.5px solid #000', padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>
                   {fmtNum(item.rate)}
                 </td>
-                <td className="border border-black px-1.5 py-1 text-right">
+                <td style={{ border: '1.5px solid #000', padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>
                   {fmtNum(item.amount)}
                 </td>
               </tr>
@@ -158,65 +205,81 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} className="border border-black px-1.5 py-1" />
-              <td className="border border-black px-1.5 py-1 italic">Gross Amount</td>
-              <td className="border border-black px-1.5 py-1 text-right">
+              <td colSpan={3} style={{ border: '1.5px solid #000', padding: '5px 8px' }} />
+              <td style={{ border: '1.5px solid #000', padding: '5px 8px', fontWeight: 700 }}>Gross Amount</td>
+              <td style={{ border: '1.5px solid #000', padding: '5px 8px', textAlign: 'right', fontWeight: 700 }}>
                 {fmtNum(invoice.grossAmount)}
               </td>
             </tr>
             <tr>
-              <td colSpan={3} className="border border-black px-1.5 py-1" />
-              <td className="border border-black px-1.5 py-1">
+              <td colSpan={3} style={{ border: '1.5px solid #000', padding: '5px 8px' }} />
+              <td style={{ border: '1.5px solid #000', padding: '5px 8px', fontWeight: 700 }}>
                 GST {invoice.gstRate.toFixed(2)}%
               </td>
-              <td className="border border-black px-1.5 py-1 text-right">
+              <td style={{ border: '1.5px solid #000', padding: '5px 8px', textAlign: 'right', fontWeight: 700 }}>
                 {fmtNum(invoice.gstAmount)}
               </td>
             </tr>
           </tfoot>
         </table>
 
-        {/* ── Net Amount row (below table, matching image layout) ── */}
-        <div className="flex justify-between items-center border-b border-black py-1 mb-3">
-          <span className="italic text-[10px]">{numberToWords(invoice.netAmount)}</span>
-          <div className="flex items-center gap-6 font-bold text-[11px]">
+        {/* ── Net Amount ── */}
+        <div
+          className="inv-total-row"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '2.5px solid #000',
+            borderTop: '2.5px solid #000',
+            padding: '7px 0',
+            marginTop: '-1px',
+            marginBottom: '14px',
+          }}
+        >
+          <span style={{ fontStyle: 'italic', fontSize: '11px', fontWeight: 600, flex: 1, paddingRight: '16px' }}>
+            {numberToWords(invoice.netAmount)}
+          </span>
+          <div style={{ display: 'flex', gap: '32px', fontWeight: 900, fontSize: '14px', whiteSpace: 'nowrap' }}>
             <span>Net Amount</span>
-            <span>{fmtNum(invoice.netAmount)}</span>
+            <span>Nu.&nbsp;{fmtNum(invoice.netAmount)}</span>
           </div>
         </div>
 
-        {/* ── Terms & Conditions ── */}
+        {/* ── Terms & Footer ── */}
         <div>
-          <div className="flex justify-between items-center mb-2">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span
-              className="font-bold text-[11px]"
-              style={{ border: '1px dashed black', padding: '2px 8px' }}
+              style={{
+                border: '1px dashed #000',
+                padding: '3px 10px',
+                fontWeight: 800,
+                fontSize: '12px',
+              }}
             >
               Terms &amp; Conditions:
             </span>
-            <span className="italic text-[11px]">E. &amp; O. E.</span>
+            <span style={{ fontStyle: 'italic', fontSize: '12px', fontWeight: 600 }}>E. &amp; O. E.</span>
           </div>
-          <p className="text-[9px] mb-2">.</p>
 
-          {/* Declaration + Authorized Signatory side by side */}
-          <div className="flex justify-between items-start gap-4">
-            <div className="text-[10px] space-y-1 flex-1">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 500, lineHeight: 1.6, flex: 1 }}>
               <p>
-                we declare that this invoice shows the actual price of the goods described and that all
+                We declare that this invoice shows the actual price of the goods described and that all
                 particulars are true and correct. Goods once sold will not be taken back.
               </p>
-              <p>
-                payment penalety of @ 20% will be charges if the payment is not made within one month
-                stipulated time.Subject to Paro court of justic.
+              <p style={{ marginTop: '4px' }}>
+                Payment penalty of 20% will be charged if payment is not made within one month.
+                Subject to Paro Court of Justice.
               </p>
-              <p className="mt-2">
-                Bank details: Please while making payment kindly reflect invoice number in description .
+              <p style={{ marginTop: '8px', fontWeight: 700 }}>
+                Bank Details:&nbsp;{BIZ.bank}&nbsp;— Please include invoice number in payment reference.
               </p>
             </div>
-            <div className="font-bold text-[11px] whitespace-nowrap">Authorized Signatory</div>
+            <div style={{ fontWeight: 800, fontSize: '13px', whiteSpace: 'nowrap', paddingTop: '8px' }}>
+              Authorized Signatory
+            </div>
           </div>
-
-          <p className="text-[10px] mt-3">{BIZ.bank}</p>
         </div>
       </div>
 

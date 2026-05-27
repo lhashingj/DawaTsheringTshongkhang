@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   db, purchaseCRUD, partyCRUD,
-  PurchaseRecord, PurchaseItem, UnitType,
+  PurchaseRecord, PurchaseItem, InventoryItem, UnitType,
   autoIncrementStock, postPurchaseToGL,
 } from '@/lib/accounting-db';
 import { Eye, Trash2, Edit2, X, Plus, Search, ChevronDown } from 'lucide-react';
@@ -47,11 +47,42 @@ export function PurchaseLedger() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedPartyId, setSelectedPartyId] = useState<number | null>(null);
 
+  // Inventory autocomplete
+  const [invSuggestions, setInvSuggestions] = useState<InventoryItem[]>([]);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const descRef = useRef<HTMLInputElement>(null);
+
   const purchases = useLiveQuery(() => db.purchases.orderBy('timestamp').reverse().toArray(), []);
   const supplierParties = useLiveQuery(
     () => db.parties.orderBy('name').filter(p => p.partyType === 'supplier' || p.partyType === 'both').toArray(),
     [],
   );
+  const inventory = useLiveQuery(() => db.inventory.orderBy('description').toArray(), []);
+
+  // Compute suggestions when description changes
+  useEffect(() => {
+    const q = newItem.description.trim().toLowerCase();
+    if (q.length < 2 || !inventory) {
+      setInvSuggestions([]);
+      return;
+    }
+    setInvSuggestions(inventory.filter(i => i.description.toLowerCase().includes(q)).slice(0, 7));
+  }, [newItem.description, inventory]);
+
+  // Update dropdown position whenever suggestions change
+  useEffect(() => {
+    if (invSuggestions.length > 0 && descRef.current) {
+      const r = descRef.current.getBoundingClientRect();
+      setDropdownPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    } else {
+      setDropdownPos(null);
+    }
+  }, [invSuggestions]);
+
+  function selectInvSuggestion(inv: InventoryItem) {
+    setNewItem(p => ({ ...p, description: inv.description, unit: inv.unit }));
+    setInvSuggestions([]);
+  }
 
   const filtered = (purchases || []).filter(p => {
     const matchSearch = !search || p.purchaseOrderNo.includes(search) || p.supplierName?.toLowerCase().includes(search.toLowerCase());
@@ -79,9 +110,10 @@ export function PurchaseLedger() {
   function addFormItem() {
     const qty = parseFloat(newItem.qty);
     const rate = parseFloat(newItem.rate);
-    if (!newItem.description.trim() || isNaN(qty) || isNaN(rate)) return;
-    setFormItems(prev => [...prev, { description: newItem.description, qty, unit: newItem.unit, rate, amount: qty * rate }]);
+    if (!newItem.description.trim() || isNaN(qty) || qty <= 0 || isNaN(rate) || rate <= 0) return;
+    setFormItems(prev => [...prev, { description: newItem.description.trim(), qty, unit: newItem.unit, rate, amount: qty * rate }]);
     setNewItem({ description: '', qty: '1', unit: 'EACH', rate: '' });
+    setInvSuggestions([]);
   }
 
   function computeTotals(items: PurchaseItem[], gstRate: number) {
@@ -95,6 +127,7 @@ export function PurchaseLedger() {
     setForm({ ...emptyForm(), purchaseOrderNo: poNo });
     setFormItems([]);
     setSelectedPartyId(null);
+    setNewItem({ description: '', qty: '1', unit: 'EACH', rate: '' });
     setModalMode('add');
   }
 
@@ -102,9 +135,9 @@ export function PurchaseLedger() {
     setSelected(p);
     setForm({ ...p });
     setFormItems(p.items.map(i => ({ ...i })));
-    // Try to match party by name
     const match = (supplierParties || []).find(sp => sp.name.toLowerCase() === p.supplierName?.toLowerCase());
     setSelectedPartyId(match?.id ?? null);
+    setNewItem({ description: '', qty: '1', unit: 'EACH', rate: '' });
     setModalMode('edit');
   }
 
@@ -116,7 +149,6 @@ export function PurchaseLedger() {
       const id = await purchaseCRUD.create(record) as number;
       await autoIncrementStock(formItems);
       await postPurchaseToGL({ ...record, id });
-      // Update supplier outstanding balance (we owe them → negative delta)
       if (selectedPartyId) {
         await partyCRUD.updateBalance(selectedPartyId, -totals.netAmount);
       }
@@ -254,12 +286,16 @@ export function PurchaseLedger() {
       {/* Add / Edit Modal */}
       {(modalMode === 'add' || modalMode === 'edit') && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setModalMode(null)}>
-          <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-5">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
               <h3 className="text-white font-semibold">{modalMode === 'add' ? 'New Purchase Order' : `Edit ${form.purchaseOrderNo}`}</h3>
               <button onClick={() => setModalMode(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
-            <div className="space-y-4">
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
 
               {/* Party selector */}
               <div>
@@ -271,7 +307,7 @@ export function PurchaseLedger() {
                     onChange={e => {
                       const id = parseInt(e.target.value);
                       if (!isNaN(id)) selectSupplier(id);
-                      else { setSelectedPartyId(null); }
+                      else setSelectedPartyId(null);
                     }}
                   >
                     <option value="">— Select a registered supplier —</option>
@@ -319,117 +355,195 @@ export function PurchaseLedger() {
                 </div>
               </div>
 
-              {/* Items table */}
-              <div className="border border-slate-700 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-700">
-                    <tr>
-                      <th className="text-left px-3 py-2 text-slate-400">Description</th>
-                      <th className="text-right px-3 py-2 text-slate-400 w-16">Qty</th>
-                      <th className="text-left px-3 py-2 text-slate-400 w-16">Unit</th>
-                      <th className="text-right px-3 py-2 text-slate-400 w-20">Rate</th>
-                      <th className="text-right px-3 py-2 text-slate-400 w-20">Amt</th>
-                      <th className="w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formItems.map((item, i) => (
-                      <tr key={i} className="border-t border-slate-700">
-                        <td className="px-3 py-2 text-white">{item.description}</td>
-                        <td className="px-3 py-2 text-right text-slate-300">{item.qty}</td>
-                        <td className="px-3 py-2 text-slate-400">{item.unit}</td>
-                        <td className="px-3 py-2 text-right text-slate-300">{fmtNum(item.rate)}</td>
-                        <td className="px-3 py-2 text-right text-orange-400">{fmtNum(item.amount)}</td>
-                        <td className="px-2 py-2">
-                          <button onClick={() => setFormItems(p => p.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-400">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
+              {/* ── Item Entry ── */}
+              <div>
+                <label className="block text-slate-400 text-xs mb-2 font-medium">Add Items</label>
+                <div className="grid grid-cols-12 gap-2 items-end">
+
+                  {/* Description with inventory autocomplete */}
+                  <div className="col-span-12 sm:col-span-5">
+                    <label className="block text-slate-400 text-xs mb-1 flex items-center gap-1">
+                      <Search className="w-3 h-3" /> Description
+                    </label>
+                    <input
+                      ref={descRef}
+                      className={inputCls}
+                      placeholder="Type to search inventory…"
+                      value={newItem.description}
+                      onChange={e => setNewItem(p => ({ ...p, description: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && addFormItem()}
+                      onBlur={() => setTimeout(() => setInvSuggestions([]), 180)}
+                    />
+                  </div>
+
+                  <div className="col-span-4 sm:col-span-2">
+                    <label className="block text-slate-400 text-xs mb-1">Qty</label>
+                    <input
+                      type="number" min="1" step="1"
+                      className={inputCls}
+                      placeholder="1"
+                      value={newItem.qty}
+                      onChange={e => setNewItem(p => ({ ...p, qty: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && addFormItem()}
+                    />
+                  </div>
+
+                  <div className="col-span-4 sm:col-span-2">
+                    <label className="block text-slate-400 text-xs mb-1">Unit</label>
+                    <div className="relative">
+                      <select
+                        className={inputCls + ' appearance-none pr-8'}
+                        value={newItem.unit}
+                        onChange={e => setNewItem(p => ({ ...p, unit: e.target.value as UnitType }))}
+                      >
+                        {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div className="col-span-4 sm:col-span-2">
+                    <label className="block text-slate-400 text-xs mb-1">Rate (Nu.)</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      className={inputCls}
+                      placeholder="0.00"
+                      value={newItem.rate}
+                      onChange={e => setNewItem(p => ({ ...p, rate: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && addFormItem()}
+                    />
+                  </div>
+
+                  <div className="col-span-12 sm:col-span-1 flex flex-col justify-end">
+                    <button
+                      onClick={addFormItem}
+                      className="w-full flex items-center justify-center gap-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="sm:hidden">Add Item</span>
+                    </button>
+                  </div>
+                </div>
+
+                {!isNaN(newItemAmount) && newItemAmount > 0 && (
+                  <p className="text-slate-400 text-xs mt-1.5 text-right">
+                    Line total: <span className="text-orange-400 font-mono font-medium">Nu. {fmtNum(newItemAmount)}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Items list */}
+              {formItems.length > 0 ? (
+                <div className="border border-slate-700 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-700/80">
+                      <tr>
+                        <th className="text-left px-3 py-2 text-slate-400 font-medium">Description</th>
+                        <th className="text-right px-3 py-2 text-slate-400 font-medium w-16">Qty</th>
+                        <th className="text-left px-3 py-2 text-slate-400 font-medium w-16">Unit</th>
+                        <th className="text-right px-3 py-2 text-slate-400 font-medium w-24">Rate</th>
+                        <th className="text-right px-3 py-2 text-slate-400 font-medium w-24">Amount</th>
+                        <th className="w-8" />
                       </tr>
-                    ))}
-
-                    {/* Add item row */}
-                    <tr className="border-t border-slate-600 bg-slate-700/30">
-                      <td className="px-2 py-1">
-                        <input
-                          className="w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500"
-                          placeholder="Description"
-                          value={newItem.description}
-                          onChange={e => setNewItem(p => ({ ...p, description: e.target.value }))}
-                          onKeyDown={e => e.key === 'Enter' && addFormItem()}
-                        />
-                      </td>
-                      <td className="px-2 py-1">
-                        <input
-                          type="number"
-                          className="w-16 bg-slate-700 border border-slate-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500"
-                          value={newItem.qty}
-                          onChange={e => setNewItem(p => ({ ...p, qty: e.target.value }))}
-                          onKeyDown={e => e.key === 'Enter' && addFormItem()}
-                        />
-                      </td>
-                      <td className="px-2 py-1">
-                        <select
-                          className="w-full bg-slate-700 border border-slate-600 text-white rounded px-1 py-1 text-xs focus:outline-none"
-                          value={newItem.unit}
-                          onChange={e => setNewItem(p => ({ ...p, unit: e.target.value as UnitType }))}
-                        >
-                          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-2 py-1">
-                        <input
-                          type="number"
-                          className="w-20 bg-slate-700 border border-slate-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500"
-                          placeholder="Rate"
-                          value={newItem.rate}
-                          onChange={e => setNewItem(p => ({ ...p, rate: e.target.value }))}
-                          onKeyDown={e => e.key === 'Enter' && addFormItem()}
-                        />
-                      </td>
-                      <td className="px-2 py-1 text-right text-slate-400 text-xs">
-                        {!isNaN(newItemAmount) ? fmtNum(newItemAmount) : '—'}
-                      </td>
-                      <td className="px-2 py-1">
-                        <button onClick={addFormItem} className="text-orange-400 hover:text-orange-300" title="Add item (or press Enter)">
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-
-                  {formItems.length > 0 && (
-                    <tfoot className="border-t-2 border-slate-600">
+                    </thead>
+                    <tbody>
+                      {formItems.map((item, i) => (
+                        <tr key={i} className="border-t border-slate-700 hover:bg-slate-700/30">
+                          <td className="px-3 py-2 text-white">{item.description}</td>
+                          <td className="px-3 py-2 text-right text-slate-300">{item.qty}</td>
+                          <td className="px-3 py-2 text-slate-400">{item.unit}</td>
+                          <td className="px-3 py-2 text-right text-slate-300 font-mono">{fmtNum(item.rate)}</td>
+                          <td className="px-3 py-2 text-right text-orange-400 font-mono">{fmtNum(item.amount)}</td>
+                          <td className="px-2 py-2">
+                            <button onClick={() => setFormItems(p => p.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-400 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t-2 border-slate-600 bg-slate-700/30">
                       {(() => {
                         const t = computeTotals(formItems, form.gstRate);
                         return (
                           <>
-                            <tr><td colSpan={5} className="px-3 py-1 text-right text-slate-400 text-xs">Gross: Nu. {fmtNum(t.grossAmount)}</td><td /></tr>
-                            <tr><td colSpan={5} className="px-3 py-1 text-right text-slate-400 text-xs">GST {form.gstRate}%: Nu. {fmtNum(t.gstAmount)}</td><td /></tr>
-                            <tr><td colSpan={5} className="px-3 py-2 text-right text-orange-400 font-semibold text-sm">Net: Nu. {fmtNum(t.netAmount)}</td><td /></tr>
+                            <tr>
+                              <td colSpan={4} className="px-3 py-1.5 text-right text-slate-400 text-xs">Gross Amount</td>
+                              <td className="px-3 py-1.5 text-right text-slate-300 font-mono text-xs">Nu. {fmtNum(t.grossAmount)}</td>
+                              <td />
+                            </tr>
+                            <tr>
+                              <td colSpan={4} className="px-3 py-1.5 text-right text-slate-400 text-xs">GST {form.gstRate}%</td>
+                              <td className="px-3 py-1.5 text-right text-yellow-400 font-mono text-xs">Nu. {fmtNum(t.gstAmount)}</td>
+                              <td />
+                            </tr>
+                            <tr>
+                              <td colSpan={4} className="px-3 py-2 text-right text-white font-semibold text-sm">Net Total</td>
+                              <td className="px-3 py-2 text-right text-orange-400 font-mono font-bold">Nu. {fmtNum(t.netAmount)}</td>
+                              <td />
+                            </tr>
                           </>
                         );
                       })()}
                     </tfoot>
-                  )}
-                </table>
-              </div>
-
-              {formItems.length === 0 && (
-                <p className="text-slate-500 text-xs text-center">Fill in a row above and click <span className="text-orange-400">+</span> or press <kbd className="bg-slate-700 px-1 rounded">Enter</kbd> to add items.</p>
+                  </table>
+                </div>
+              ) : (
+                <div className="border border-dashed border-slate-600 rounded-lg py-6 text-center">
+                  <p className="text-slate-500 text-sm">No items added yet.</p>
+                  <p className="text-slate-600 text-xs mt-0.5">Search inventory above, or type a description and click Add.</p>
+                </div>
               )}
             </div>
 
-            <div className="flex gap-3 mt-5">
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-700 shrink-0 flex gap-3">
               <button
                 onClick={saveForm}
                 disabled={isSaving || !form.supplierName || formItems.length === 0}
                 className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
               >
-                {isSaving ? 'Saving…' : 'Save'}
+                {isSaving ? 'Saving…' : modalMode === 'add' ? 'Save Purchase Order' : 'Save Changes'}
               </button>
               <button onClick={() => setModalMode(null)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inventory suggestions dropdown — fixed position to escape modal overflow */}
+      {invSuggestions.length > 0 && dropdownPos && (
+        <div
+          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+          className="bg-slate-800 border border-slate-500 rounded-xl shadow-2xl overflow-hidden"
+        >
+          <div className="px-3 py-1.5 border-b border-slate-700 flex items-center gap-1.5">
+            <Search className="w-3 h-3 text-slate-500" />
+            <span className="text-slate-500 text-xs">Inventory matches — click to select</span>
+          </div>
+          <div className="max-h-52 overflow-y-auto">
+            {invSuggestions.map(inv => (
+              <button
+                key={inv.id}
+                type="button"
+                onMouseDown={() => selectInvSuggestion(inv)}
+                className="w-full text-left px-3 py-2.5 hover:bg-slate-700 transition-colors border-b border-slate-700/60 last:border-0 flex items-center justify-between gap-3"
+              >
+                <span className="text-white text-sm font-medium truncate">{inv.description}</span>
+                <div className="flex items-center gap-2 shrink-0 text-xs">
+                  <span className="text-slate-400">{inv.unit}</span>
+                  <span className={`font-semibold px-1.5 py-0.5 rounded ${
+                    inv.stockQty === 0
+                      ? 'bg-red-500/20 text-red-400'
+                      : inv.stockQty <= inv.reorderLevel
+                      ? 'bg-yellow-500/20 text-yellow-400'
+                      : 'bg-green-500/20 text-green-400'
+                  }`}>
+                    {inv.stockQty === 0 ? 'OUT' : `${inv.stockQty} in stock`}
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}

@@ -29,6 +29,9 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+function fmtInt(n: number) {
+  return Math.round(n).toLocaleString('en-IN');
+}
 
 // ── Full Export tab ───────────────────────────────────────────────────────────
 function FullExport() {
@@ -234,10 +237,10 @@ function FullExport() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Sales Records',     value: sales.length,     sub: `Nu. ${totalSalesNet.toFixed(0)} total`,     color: 'text-orange-400' },
-          { label: 'Purchase Records',  value: purchases.length, sub: `Nu. ${totalPurchaseNet.toFixed(0)} total`,  color: 'text-blue-400'   },
-          { label: 'Expense Records',   value: expenses.length,  sub: `Nu. ${totalExpenses.toFixed(0)} total`,     color: 'text-red-400'    },
-          { label: 'Inventory Value',   value: inventory.length, sub: `Nu. ${invVal.toFixed(0)} stock value`,      color: 'text-green-400'  },
+          { label: 'Sales Records',     value: sales.length,     sub: `Nu. ${fmtInt(totalSalesNet)} total`,     color: 'text-orange-400' },
+          { label: 'Purchase Records',  value: purchases.length, sub: `Nu. ${fmtInt(totalPurchaseNet)} total`,  color: 'text-blue-400'   },
+          { label: 'Expense Records',   value: expenses.length,  sub: `Nu. ${fmtInt(totalExpenses)} total`,     color: 'text-red-400'    },
+          { label: 'Inventory Value',   value: inventory.length, sub: `Nu. ${fmtInt(invVal)} stock value`,      color: 'text-green-400'  },
         ].map(c => (
           <div key={c.label} className="bg-slate-700/50 border border-slate-700 rounded-xl p-4">
             <p className="text-slate-400 text-xs mb-1">{c.label}</p>

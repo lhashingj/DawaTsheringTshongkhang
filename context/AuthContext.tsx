@@ -101,9 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // onAuthStateChange fires INITIAL_SESSION on subscription — getSession() is redundant
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        setLoading(true); // block auth guards while profile is fetched
         const u = await buildAuthUser(session.user);
         setUser(u);
       } else {

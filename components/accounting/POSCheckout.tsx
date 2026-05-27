@@ -355,8 +355,8 @@ export function POSCheckout() {
             <label className="block text-slate-400 text-xs mb-1">Qty</label>
             <input
               type="number"
-              min="0.01"
-              step="0.01"
+              min="1"
+              step="1"
               className={inputCls}
               placeholder="1"
               value={itemForm.qty}

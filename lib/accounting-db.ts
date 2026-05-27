@@ -158,10 +158,13 @@ export const db = new AccountingDatabase();
 // ── Sales ────────────────────────────────────────────────────────────────────
 export const salesCRUD = {
   async getNextInvoiceNo(): Promise<string> {
-    const all = await db.sales.orderBy('invoiceNo').toArray();
-    if (all.length === 0) return '000568';
-    const maxNo = Math.max(...all.map(s => parseInt(s.invoiceNo, 10) || 567));
-    return String(maxNo + 1).padStart(6, '0');
+    const year = String(new Date().getFullYear()).slice(-2);
+    const prefix = `${year}-`;
+    const all = await db.sales.toArray();
+    const yearSales = all.filter(s => s.invoiceNo.startsWith(prefix));
+    if (yearSales.length === 0) return `${prefix}0001`;
+    const maxNo = Math.max(...yearSales.map(s => parseInt(s.invoiceNo.split('-')[1], 10) || 0));
+    return `${prefix}${String(maxNo + 1).padStart(4, '0')}`;
   },
   create: (data: Omit<SaleRecord, 'id'>) => db.sales.add(data),
   getAll: () => db.sales.orderBy('timestamp').reverse().toArray(),

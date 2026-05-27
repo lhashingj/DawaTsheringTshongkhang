@@ -19,6 +19,12 @@ import {
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+function fmtInt(n: number) {
+  return Math.round(n).toLocaleString('en-IN');
+}
+function fmtNum(n: number) {
+  return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 function StatCard({ label, value, sub, color, icon: Icon }: {
   label: string; value: string; sub?: string; color: string; icon: React.ElementType;
@@ -89,22 +95,22 @@ export default function AccountingDashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <StatCard
                 label="Today's Revenue"
-                value={`Nu. ${todayRevenue.toFixed(0)}`}
+                value={`Nu. ${fmtInt(todayRevenue)}`}
                 sub={`${todaySales.length} invoice${todaySales.length !== 1 ? 's' : ''} today`}
                 color="bg-orange-500/20 text-orange-400"
                 icon={TrendingUp}
               />
               <StatCard
                 label="Month Revenue"
-                value={`Nu. ${monthRevenue.toFixed(0)}`}
+                value={`Nu. ${fmtInt(monthRevenue)}`}
                 sub={`${monthSales.length} invoices this month`}
                 color="bg-green-500/20 text-green-400"
                 icon={Receipt}
               />
               <StatCard
                 label="GST Collected (All)"
-                value={`Nu. ${totalGSTCollected.toFixed(0)}`}
-                sub={`Today: Nu. ${todayGST.toFixed(2)}`}
+                value={`Nu. ${fmtInt(totalGSTCollected)}`}
+                sub={`Today: Nu. ${fmtNum(todayGST)}`}
                 color="bg-yellow-500/20 text-yellow-400"
                 icon={BarChart3}
               />
@@ -121,14 +127,14 @@ export default function AccountingDashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <StatCard
                 label="Month Purchases"
-                value={`Nu. ${monthPurchaseNet.toFixed(0)}`}
+                value={`Nu. ${fmtInt(monthPurchaseNet)}`}
                 sub={`${monthPurchases.length} purchase orders`}
                 color="bg-blue-500/20 text-blue-400"
                 icon={Package}
               />
               <StatCard
                 label="Accounts Receivable"
-                value={`Nu. ${totalReceivable.toFixed(0)}`}
+                value={`Nu. ${fmtInt(totalReceivable)}`}
                 sub={`${(parties || []).filter(p => p.outstandingBalance > 0).length} parties owe you`}
                 color="bg-purple-500/20 text-purple-400"
                 icon={BookOpen}
@@ -211,7 +217,7 @@ export default function AccountingDashboard() {
                           <span className="text-white text-sm ml-3">{sale.customerName || <span className="text-slate-500 italic">Cash Sale</span>}</span>
                         </div>
                         <div className="text-right">
-                          <div className="text-white font-mono text-sm font-semibold">Nu. {sale.netAmount.toFixed(2)}</div>
+                          <div className="text-white font-mono text-sm font-semibold">Nu. {fmtNum(sale.netAmount)}</div>
                           <div className="text-slate-500 text-xs">{fmtDate(sale.timestamp)}</div>
                         </div>
                       </div>
