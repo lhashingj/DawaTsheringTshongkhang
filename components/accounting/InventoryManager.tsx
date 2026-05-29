@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, inventoryCRUD, InventoryItem, UnitType } from '@/lib/accounting-db';
 import { Plus, Trash2, Edit2, X, Search, Package, AlertTriangle, ChevronDown, Minus, Download } from 'lucide-react';
-import { seedInventoryFromProducts } from '@/lib/seed-inventory';
+import { seedInventoryFromProducts, seedInventoryFromBulkData } from '@/lib/seed-inventory';
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS'];
 const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
@@ -100,6 +100,23 @@ export function InventoryManager() {
     }
   }
 
+  async function handleImportBulk() {
+    setIsSeeding(true);
+    setSeedMsg('');
+    try {
+      const { added, skipped } = await seedInventoryFromBulkData();
+      setSeedMsg(
+        added > 0
+          ? `Imported ${added} items from PDF inventory (${skipped} already existed).`
+          : `All PDF inventory items already exist (${skipped} skipped).`
+      );
+    } catch {
+      setSeedMsg('Import failed. Please try again.');
+    } finally {
+      setIsSeeding(false);
+    }
+  }
+
   async function confirmDelete() {
     if (deleteId) {
       await inventoryCRUD.delete(deleteId);
@@ -141,6 +158,15 @@ export function InventoryManager() {
           >
             <Download className="w-4 h-4" />
             {isSeeding ? 'Importing…' : 'Import Store Products'}
+          </button>
+          <button
+            onClick={handleImportBulk}
+            disabled={isSeeding}
+            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            title="Import all 900+ items from the physical inventory PDF"
+          >
+            <Download className="w-4 h-4" />
+            {isSeeding ? 'Importing…' : 'Import PDF Inventory'}
           </button>
           <button onClick={openAdd} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" /> Add Item
