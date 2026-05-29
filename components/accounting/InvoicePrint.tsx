@@ -14,6 +14,7 @@ const BIZ = {
   licNo: 'R1005542',
   phone: '17716895 / 17711469',
   bank: 'BOB: 225667231',
+  website: 'www.dawatsheringshop.com',
 };
 
 function fmtDate(d: Date | string) {
@@ -158,7 +159,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
             GST Certified Agent No.&nbsp;{BIZ.gstNo} &nbsp;|&nbsp; TPN:&nbsp;{BIZ.tpn} &nbsp;|&nbsp; LIC No.&nbsp;{BIZ.licNo}
           </div>
           <div style={{ fontSize: '10px', fontWeight: 600, marginTop: '1px' }}>
-            Ph:&nbsp;{BIZ.phone}
+            Ph:&nbsp;{BIZ.phone} &nbsp;|&nbsp; {BIZ.website}
           </div>
         </div>
 
