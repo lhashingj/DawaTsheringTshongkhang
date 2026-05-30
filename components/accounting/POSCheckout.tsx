@@ -63,6 +63,7 @@ export function POSCheckout() {
   const [savedInvoice, setSavedInvoice] = useState<SaleRecord | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [suggestions, setSuggestions] = useState<InventoryItem[]>([]);
+  const [applyGST, setApplyGST] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -104,7 +105,7 @@ export function POSCheckout() {
   }, [itemForm.description, inventory]);
 
   const grossAmount = items.reduce((s, i) => s + i.amount, 0);
-  const gstAmount = Math.round(grossAmount * GST_RATE) / 100;
+  const gstAmount = applyGST ? Math.round(grossAmount * GST_RATE) / 100 : 0;
   const netAmount = grossAmount + gstAmount;
 
   function addItem() {
@@ -152,7 +153,7 @@ export function POSCheckout() {
         customerTPN: customer.tpn || undefined,
         items,
         grossAmount,
-        gstRate: GST_RATE,
+        gstRate: applyGST ? GST_RATE : 0,
         gstAmount,
         netAmount,
         syncStatus: 'pending',
@@ -456,9 +457,19 @@ export function POSCheckout() {
               <span>Gross Amount</span>
               <span className="font-mono">Nu. {fmtNum(grossAmount)}</span>
             </div>
-            <div className="flex justify-between text-slate-300 text-sm">
-              <span>GST @ {GST_RATE}.00%</span>
-              <span className="font-mono">Nu. {fmtNum(gstAmount)}</span>
+            <div className="flex justify-between items-center text-slate-300 text-sm">
+              <span className="flex items-center gap-2">
+                GST @ {GST_RATE}.00%
+                <button
+                  type="button"
+                  onClick={() => setApplyGST(v => !v)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${applyGST ? 'bg-orange-500' : 'bg-slate-600'}`}
+                  title={applyGST ? 'GST applied — click to remove' : 'GST off — click to apply'}
+                >
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${applyGST ? 'translate-x-4' : 'translate-x-1'}`} />
+                </button>
+              </span>
+              <span className={`font-mono ${applyGST ? '' : 'line-through text-slate-500'}`}>Nu. {fmtNum(applyGST ? gstAmount : Math.round(grossAmount * GST_RATE) / 100)}</span>
             </div>
             <div className="flex justify-between text-white text-base font-bold border-t border-slate-600 pt-2 mt-2">
               <span>Net Amount</span>

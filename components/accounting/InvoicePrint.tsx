@@ -218,15 +218,17 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
                 {fmtNum(invoice.grossAmount)}
               </td>
             </tr>
-            <tr>
-              <td colSpan={3} style={{ border: '1.5px solid #000', padding: '3px 6px' }} />
-              <td style={{ border: '1.5px solid #000', padding: '3px 6px', fontWeight: 700 }}>
-                GST {invoice.gstRate.toFixed(2)}%
-              </td>
-              <td style={{ border: '1.5px solid #000', padding: '3px 6px', textAlign: 'right', fontWeight: 700 }}>
-                {fmtNum(invoice.gstAmount)}
-              </td>
-            </tr>
+            {invoice.gstRate > 0 && (
+              <tr>
+                <td colSpan={3} style={{ border: '1.5px solid #000', padding: '3px 6px' }} />
+                <td style={{ border: '1.5px solid #000', padding: '3px 6px', fontWeight: 700 }}>
+                  GST {invoice.gstRate.toFixed(2)}%
+                </td>
+                <td style={{ border: '1.5px solid #000', padding: '3px 6px', textAlign: 'right', fontWeight: 700 }}>
+                  {fmtNum(invoice.gstAmount)}
+                </td>
+              </tr>
+            )}
           </tfoot>
         </table>
 
