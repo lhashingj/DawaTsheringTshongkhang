@@ -7,6 +7,7 @@ import {
   DebitNote,
   ReturnItem,
   UnitType,
+  InventoryItem,
   debitNoteCRUD,
   inventoryCRUD,
   partyCRUD,
@@ -19,7 +20,7 @@ import {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const UNIT_TYPES: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS'];
+const UNIT_TYPES: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS', 'PAIR'];
 const GST_RATE = 5;
 const PAGE_SIZE = 25;
 
@@ -103,9 +104,31 @@ export function SupplierReturns() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const pageRows   = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  // ── Inventory suggestion state ─────────────────────────────────────────────
+  const [suggestions, setSuggestions] = useState<{ idx: number; list: InventoryItem[] } | null>(null);
+
   // ── Item row helpers ───────────────────────────────────────────────────────
   function updateItem(idx: number, field: keyof ItemRow, value: string) {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+  }
+
+  function onDescriptionChange(idx: number, value: string) {
+    updateItem(idx, 'description', value);
+    if (value.trim().length >= 2 && inventory) {
+      const q = value.toLowerCase();
+      const matches = inventory.filter(i => i.description.toLowerCase().includes(q)).slice(0, 6);
+      setSuggestions(matches.length > 0 ? { idx, list: matches } : null);
+    } else {
+      setSuggestions(null);
+    }
+  }
+
+  function selectInventoryItem(idx: number, inv: InventoryItem) {
+    setItems(prev => prev.map((it, i) => i === idx
+      ? { ...it, description: inv.description, unit: inv.unit, rate: inv.baseRate.toString() }
+      : it
+    ));
+    setSuggestions(null);
   }
 
   function removeItem(idx: number) {
@@ -399,14 +422,29 @@ export function SupplierReturns() {
                   const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
                   return (
                     <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-4">
+                      <div className="col-span-4 relative">
                         <input
-                          list="inv-list-dn"
                           className={inputCls + ' text-xs py-1.5'}
-                          placeholder="Item description"
+                          placeholder="Search inventory…"
                           value={item.description}
-                          onChange={e => updateItem(idx, 'description', e.target.value)}
+                          onChange={e => onDescriptionChange(idx, e.target.value)}
+                          onBlur={() => setTimeout(() => setSuggestions(null), 150)}
                         />
+                        {suggestions?.idx === idx && suggestions.list.length > 0 && (
+                          <div className="absolute z-20 left-0 right-0 top-full mt-0.5 bg-slate-700 border border-slate-600 rounded-lg overflow-hidden shadow-xl">
+                            {suggestions.list.map(inv => (
+                              <button
+                                key={inv.id}
+                                type="button"
+                                onMouseDown={() => selectInventoryItem(idx, inv)}
+                                className="w-full text-left px-3 py-2 hover:bg-slate-600 transition-colors text-xs border-b border-slate-600 last:border-0"
+                              >
+                                <span className="text-white">{inv.description}</span>
+                                <span className="text-slate-400 ml-2">Nu.{inv.baseRate}/{inv.unit} · Stock:{inv.stockQty}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="col-span-2">
                         <input
@@ -449,9 +487,6 @@ export function SupplierReturns() {
                 })}
               </div>
 
-              <datalist id="inv-list-dn">
-                {(inventory || []).map(i => <option key={i.id} value={i.description} />)}
-              </datalist>
             </div>
 
             {/* Totals */}

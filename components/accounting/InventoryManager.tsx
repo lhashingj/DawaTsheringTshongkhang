@@ -6,7 +6,7 @@ import { db, inventoryCRUD, InventoryItem, UnitType } from '@/lib/accounting-db'
 import { Plus, Trash2, Edit2, X, Search, Package, AlertTriangle, ChevronDown, Minus, Download } from 'lucide-react';
 import { seedInventoryFromProducts, seedInventoryFromBulkData } from '@/lib/seed-inventory';
 
-const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS'];
+const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS', 'PAIR'];
 const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
 function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 

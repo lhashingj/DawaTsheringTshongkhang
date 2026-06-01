@@ -1,6 +1,6 @@
 import Dexie, { Table } from 'dexie';
 
-export type UnitType = 'EACH' | 'PCS' | 'KG' | 'MTR' | 'SET' | 'BOX' | 'LTR' | 'NOS';
+export type UnitType = 'EACH' | 'PCS' | 'KG' | 'MTR' | 'SET' | 'BOX' | 'LTR' | 'NOS' | 'PAIR';
 export type PartyType = 'customer' | 'supplier' | 'both';
 export type SyncStatus = 'pending' | 'synced' | 'error';
 export type ExpenseCategory =
