@@ -12,7 +12,7 @@ import {
   PartyRecord,
   UnitType,
   LOW_STOCK_THRESHOLD,
-  autoDecrementStock,
+  decrementStockAndPostCOGS,
   postSaleToGL,
 } from '@/lib/accounting-db';
 import { numberToWords } from '@/lib/number-to-words';
@@ -162,7 +162,7 @@ export function POSCheckout() {
       const saved = { ...record, id };
       setSavedInvoice(saved);
       setShowModal(true);
-      await autoDecrementStock(items);
+      await decrementStockAndPostCOGS(items, saved.invoiceNo, new Date(saved.timestamp));
       await postSaleToGL(saved);
       if (customerMode === 'party' && selectedPartyId) {
         await partyCRUD.updateBalance(selectedPartyId, netAmount);

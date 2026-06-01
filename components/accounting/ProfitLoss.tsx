@@ -39,8 +39,9 @@ export function ProfitLoss() {
   const sales = useLiveQuery(() => db.sales.toArray(), []);
   const purchases = useLiveQuery(() => db.purchases.toArray(), []);
   const expenses = useLiveQuery(() => db.expenses.toArray(), []);
+  const glEntries = useLiveQuery(() => db.generalLedger.toArray(), []);
 
-  const { filteredSales, filteredPurchases, filteredExpenses } = useMemo(() => {
+  const { filteredSales, filteredPurchases, filteredExpenses, filteredGLCOGS } = useMemo(() => {
     const fromDate = from ? new Date(from) : new Date(0);
     const toDate = to ? new Date(to + 'T23:59:59') : new Date('2099-12-31');
     return {
@@ -56,20 +57,29 @@ export function ProfitLoss() {
         const d = new Date(e.date);
         return d >= fromDate && d <= toDate;
       }),
+      filteredGLCOGS: (glEntries || []).filter(e => {
+        const d = new Date(e.timestamp);
+        return e.account === 'Cost of Goods Sold' && d >= fromDate && d <= toDate;
+      }),
     };
-  }, [sales, purchases, expenses, from, to]);
+  }, [sales, purchases, expenses, glEntries, from, to]);
 
   const grossRevenue = filteredSales.reduce((s, r) => s + r.grossAmount, 0);
   const gstCollected = filteredSales.reduce((s, r) => s + r.gstAmount, 0);
-  const cogs = filteredPurchases.reduce((s, r) => s + r.grossAmount, 0);
+  // Perpetual COGS: sum GL "Cost of Goods Sold" debits posted at time of each sale
+  const cogs = filteredGLCOGS.reduce((s, e) => s + e.debit, 0);
   const grossProfit = grossRevenue - cogs;
+  // Use NET expense (strip claimable input tax — that goes to GST Input Credit asset)
   const expensesByCategory = EXPENSE_CATEGORIES.reduce<Record<string, number>>((acc, cat) => {
-    acc[cat] = filteredExpenses.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0);
+    acc[cat] = filteredExpenses
+      .filter(e => e.category === cat)
+      .reduce((s, e) => s + e.amount - (e.inputTaxAmount ?? 0), 0);
     return acc;
   }, {});
-  const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0);
+  const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount - (e.inputTaxAmount ?? 0), 0);
   const netProfit = grossProfit - totalExpenses;
-  const gstInputCredit = filteredPurchases.reduce((s, r) => s + r.gstAmount, 0);
+  const gstInputCredit = filteredPurchases.reduce((s, r) => s + r.gstAmount, 0)
+    + filteredExpenses.reduce((s, e) => s + (e.inputTaxAmount ?? 0), 0);
   const netGSTPayable = gstCollected - gstInputCredit;
 
   const rows: PnLRow[] = [
@@ -102,7 +112,7 @@ export function ProfitLoss() {
       ['Total Invoiced (incl. GST)', grossRevenue + gstCollected],
       [],
       ['COST OF GOODS SOLD', ''],
-      ['Purchases (excl. GST)', cogs],
+      ['Cost of Goods Sold (at purchase cost)', cogs],
       [],
       ['GROSS PROFIT', grossProfit],
       [],
@@ -130,7 +140,7 @@ export function ProfitLoss() {
 
   function printPDF() { window.print(); }
 
-  if (!sales || !purchases || !expenses) {
+  if (!sales || !purchases || !expenses || !glEntries) {
     return <div className="text-slate-400 text-sm p-8 text-center">Computing P&L…</div>;
   }
 

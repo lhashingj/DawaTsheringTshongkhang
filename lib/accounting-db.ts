@@ -10,6 +10,10 @@ export type GLAccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expe
 export type GLTransactionType = 'sale' | 'purchase' | 'expense' | 'adjustment' | 'payment';
 export type PaymentMode = 'Cash' | 'Bank Transfer' | 'Cheque' | 'Online';
 export type PaymentDirection = 'in' | 'out';
+export type CashBookType = 'received' | 'payment';
+export type ReturnSettlement = 'cash' | 'ledger';
+
+// ── Record interfaces ─────────────────────────────────────────────────────────
 
 export interface SaleItem {
   description: string;
@@ -97,6 +101,8 @@ export interface ExpenseRecord {
   category: ExpenseCategory;
   description: string;
   amount: number;
+  inputTaxRate?: number;
+  inputTaxAmount?: number;
   reference?: string;
   notes?: string;
 }
@@ -124,7 +130,67 @@ export interface GLEntry {
   description: string;
 }
 
+/** Cash Book — real-time liquid cash flow tracking. */
+export interface CashBookEntry {
+  id?: number;
+  voucherNo: string;
+  timestamp: Date;
+  type: CashBookType;
+  partyId?: number;
+  partyName: string;
+  amount: number;
+  description: string;
+  reference?: string;
+  syncStatus: SyncStatus;
+}
+
+/** A single line item on a customer or supplier return note. */
+export interface ReturnItem {
+  description: string;
+  qty: number;
+  unit: UnitType;
+  rate: number;
+  amount: number;
+}
+
+/** Credit Note — customer returns goods to us. */
+export interface CreditNote {
+  id?: number;
+  creditNoteNo: string;
+  timestamp: Date;
+  originalInvoiceNo?: string;
+  partyId?: number;
+  partyName: string;
+  items: ReturnItem[];
+  grossAmount: number;
+  gstRate: number;
+  gstAmount: number;
+  netAmount: number;
+  settlementType: ReturnSettlement;
+  notes?: string;
+  syncStatus: SyncStatus;
+}
+
+/** Debit Note — we return goods to supplier. */
+export interface DebitNote {
+  id?: number;
+  debitNoteNo: string;
+  timestamp: Date;
+  originalPONo?: string;
+  partyId?: number;
+  partyName: string;
+  items: ReturnItem[];
+  grossAmount: number;
+  gstRate: number;
+  gstAmount: number;
+  netAmount: number;
+  notes?: string;
+  syncStatus: SyncStatus;
+}
+
 export const LOW_STOCK_THRESHOLD = 5;
+
+// ── Database class ────────────────────────────────────────────────────────────
 
 class AccountingDatabase extends Dexie {
   sales!: Table<SaleRecord, number>;
@@ -134,6 +200,9 @@ class AccountingDatabase extends Dexie {
   expenses!: Table<ExpenseRecord, number>;
   generalLedger!: Table<GLEntry, number>;
   payments!: Table<PaymentRecord, number>;
+  cashBook!: Table<CashBookEntry, number>;
+  creditNotes!: Table<CreditNote, number>;
+  debitNotes!: Table<DebitNote, number>;
 
   constructor() {
     super('DTTAccountingDB');
@@ -150,12 +219,18 @@ class AccountingDatabase extends Dexie {
     this.version(3).stores({
       payments: '++id, partyId, timestamp, direction',
     });
+    this.version(4).stores({
+      cashBook: '++id, voucherNo, timestamp, type, partyId',
+      creditNotes: '++id, creditNoteNo, timestamp, partyId',
+      debitNotes: '++id, debitNoteNo, timestamp, partyId',
+    });
   }
 }
 
 export const db = new AccountingDatabase();
 
-// ── Sales ────────────────────────────────────────────────────────────────────
+// ── Sales ─────────────────────────────────────────────────────────────────────
+
 export const salesCRUD = {
   async getNextInvoiceNo(): Promise<string> {
     const year = String(new Date().getFullYear()).slice(-2);
@@ -176,6 +251,7 @@ export const salesCRUD = {
 };
 
 // ── Purchases ─────────────────────────────────────────────────────────────────
+
 export const purchaseCRUD = {
   async getNextPONo(): Promise<string> {
     const count = await db.purchases.count();
@@ -191,6 +267,7 @@ export const purchaseCRUD = {
 };
 
 // ── Parties ───────────────────────────────────────────────────────────────────
+
 export const partyCRUD = {
   create: (data: Omit<PartyRecord, 'id'>) => db.parties.add(data),
   getAll: () => db.parties.orderBy('name').toArray(),
@@ -209,6 +286,7 @@ export const partyCRUD = {
 };
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
+
 export const inventoryCRUD = {
   create: (data: Omit<InventoryItem, 'id'>) => db.inventory.add(data),
   getAll: () => db.inventory.orderBy('description').toArray(),
@@ -227,6 +305,7 @@ export const inventoryCRUD = {
 };
 
 // ── Expenses ──────────────────────────────────────────────────────────────────
+
 export const expenseCRUD = {
   create: (data: Omit<ExpenseRecord, 'id'>) => db.expenses.add(data),
   getAll: () => db.expenses.orderBy('date').reverse().toArray(),
@@ -238,6 +317,7 @@ export const expenseCRUD = {
 };
 
 // ── Payments ──────────────────────────────────────────────────────────────────
+
 export const paymentCRUD = {
   create: (data: Omit<PaymentRecord, 'id'>) => db.payments.add(data),
   getAll: () => db.payments.orderBy('timestamp').reverse().toArray(),
@@ -246,6 +326,46 @@ export const paymentCRUD = {
   delete: (id: number) => db.payments.delete(id),
   getByParty: (partyId: number) =>
     db.payments.where('partyId').equals(partyId).reverse().sortBy('timestamp'),
+};
+
+// ── Cash Book ─────────────────────────────────────────────────────────────────
+
+export const cashBookCRUD = {
+  async getNextVoucherNo(): Promise<string> {
+    const count = await db.cashBook.count();
+    return `CB-${String(count + 1).padStart(4, '0')}`;
+  },
+  create: (data: Omit<CashBookEntry, 'id'>) => db.cashBook.add(data),
+  getAll: () => db.cashBook.orderBy('timestamp').reverse().toArray(),
+  getById: (id: number) => db.cashBook.get(id),
+  update: (id: number, data: Partial<CashBookEntry>) => db.cashBook.update(id, data),
+  delete: (id: number) => db.cashBook.delete(id),
+};
+
+// ── Credit Notes (Customer Returns) ──────────────────────────────────────────
+
+export const creditNoteCRUD = {
+  async getNextCNNo(): Promise<string> {
+    const count = await db.creditNotes.count();
+    return `CN-${String(count + 1).padStart(4, '0')}`;
+  },
+  create: (data: Omit<CreditNote, 'id'>) => db.creditNotes.add(data),
+  getAll: () => db.creditNotes.orderBy('timestamp').reverse().toArray(),
+  getById: (id: number) => db.creditNotes.get(id),
+  delete: (id: number) => db.creditNotes.delete(id),
+};
+
+// ── Debit Notes (Supplier Returns) ───────────────────────────────────────────
+
+export const debitNoteCRUD = {
+  async getNextDNNo(): Promise<string> {
+    const count = await db.debitNotes.count();
+    return `DN-${String(count + 1).padStart(4, '0')}`;
+  },
+  create: (data: Omit<DebitNote, 'id'>) => db.debitNotes.add(data),
+  getAll: () => db.debitNotes.orderBy('timestamp').reverse().toArray(),
+  getById: (id: number) => db.debitNotes.get(id),
+  delete: (id: number) => db.debitNotes.delete(id),
 };
 
 // ── Inventory automation ──────────────────────────────────────────────────────
@@ -257,26 +377,74 @@ async function findInventoryItem(description: string): Promise<InventoryItem | u
     .first();
   if (exact) return exact;
   return db.inventory
-    .filter(i => i.description.toLowerCase().includes(q) || q.includes(i.description.toLowerCase().trim()))
+    .filter(
+      i =>
+        i.description.toLowerCase().includes(q) ||
+        q.includes(i.description.toLowerCase().trim()),
+    )
     .first();
 }
 
 export async function autoDecrementStock(items: SaleItem[]): Promise<void> {
   for (const item of items) {
     const inv = await findInventoryItem(item.description);
-    if (inv?.id != null) {
-      await inventoryCRUD.adjustStock(inv.id, -item.qty);
-    }
+    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, -item.qty);
   }
 }
 
 export async function autoIncrementStock(items: PurchaseItem[]): Promise<void> {
   for (const item of items) {
     const inv = await findInventoryItem(item.description);
-    if (inv?.id != null) {
-      await inventoryCRUD.adjustStock(inv.id, item.qty);
+    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, item.qty);
+  }
+}
+
+/**
+ * Decrements inventory stock AND posts the perpetual COGS double-entry to the GL.
+ *   DR  Cost of Goods Sold  (expense) = qty × unitCost
+ *   CR  Inventory / COGS    (asset)   = qty × unitCost
+ * Falls back to 60 % of retail rate if no baseRate is on record.
+ */
+export async function decrementStockAndPostCOGS(
+  items: SaleItem[],
+  invoiceNo: string,
+  timestamp: Date,
+): Promise<void> {
+  const cogsEntries: Omit<GLEntry, 'id'>[] = [];
+
+  for (const item of items) {
+    const inv = await findInventoryItem(item.description);
+    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, -item.qty);
+
+    let unitCost = inv?.baseRate ?? 0;
+    if (unitCost <= 0) {
+      unitCost = item.rate * 0.60;
+      console.warn(
+        `[COGS] No purchase cost for "${item.description}" — ` +
+        `fallback 60% of retail: Nu.${unitCost.toFixed(2)}`,
+      );
+    }
+
+    const cogsCost = Math.round(unitCost * item.qty * 100) / 100;
+    if (cogsCost > 0) {
+      cogsEntries.push(
+        {
+          timestamp, transactionRef: invoiceNo, transactionType: 'sale',
+          account: 'Cost of Goods Sold', accountType: 'expense',
+          debit: cogsCost, credit: 0,
+          description: `COGS — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})`,
+        },
+        {
+          timestamp, transactionRef: invoiceNo, transactionType: 'sale',
+          account: 'Inventory / COGS', accountType: 'asset',
+          debit: 0, credit: cogsCost,
+          description: `Stock sold — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})`,
+        },
+      );
     }
   }
+
+  if (cogsEntries.length > 0) await db.generalLedger.bulkAdd(cogsEntries);
 }
 
 // ── General Ledger posting ────────────────────────────────────────────────────
@@ -333,20 +501,35 @@ export async function postPurchaseToGL(purchase: PurchaseRecord & { id: number }
 
 export async function postExpenseToGL(expense: ExpenseRecord & { id: number }): Promise<void> {
   const ts = new Date(expense.date);
-  await db.generalLedger.bulkAdd([
+  const ref = `EXP-${expense.id}`;
+  const inputTax = expense.inputTaxAmount ?? 0;
+  const netExpense = expense.amount - inputTax;
+
+  const entries: Omit<GLEntry, 'id'>[] = [
     {
-      timestamp: ts, transactionRef: `EXP-${expense.id}`, transactionType: 'expense',
+      timestamp: ts, transactionRef: ref, transactionType: 'expense',
       account: expense.category, accountType: 'expense',
-      debit: expense.amount, credit: 0,
+      debit: netExpense, credit: 0,
       description: expense.description,
     },
     {
-      timestamp: ts, transactionRef: `EXP-${expense.id}`, transactionType: 'expense',
+      timestamp: ts, transactionRef: ref, transactionType: 'expense',
       account: 'Cash / Bank', accountType: 'asset',
       debit: 0, credit: expense.amount,
       description: `Expense paid — ${expense.description}`,
     },
-  ] as Omit<GLEntry, 'id'>[]);
+  ];
+
+  if (inputTax > 0) {
+    entries.push({
+      timestamp: ts, transactionRef: ref, transactionType: 'expense',
+      account: 'GST Input Credit', accountType: 'asset',
+      debit: inputTax, credit: 0,
+      description: `GST input credit on expense — ${expense.description}`,
+    });
+  }
+
+  await db.generalLedger.bulkAdd(entries);
 }
 
 export async function postPaymentToGL(
@@ -356,7 +539,6 @@ export async function postPaymentToGL(
   const ts = new Date(payment.timestamp);
   const ref = `PAY-${payment.id}`;
   if (payment.direction === 'in') {
-    // Customer pays us: DR Cash, CR Accounts Receivable
     await db.generalLedger.bulkAdd([
       {
         timestamp: ts, transactionRef: ref, transactionType: 'payment',
@@ -372,7 +554,6 @@ export async function postPaymentToGL(
       },
     ] as Omit<GLEntry, 'id'>[]);
   } else {
-    // We pay supplier: DR Accounts Payable, CR Cash
     await db.generalLedger.bulkAdd([
       {
         timestamp: ts, transactionRef: ref, transactionType: 'payment',
@@ -388,4 +569,141 @@ export async function postPaymentToGL(
       },
     ] as Omit<GLEntry, 'id'>[]);
   }
+}
+
+/**
+ * Cash Book GL posting.
+ *   Received: DR Cash/Bank · CR Accounts Receivable
+ *   Payment:  DR Accounts Payable · CR Cash/Bank
+ */
+export async function postCashBookToGL(entry: CashBookEntry & { id: number }): Promise<void> {
+  const ts = new Date(entry.timestamp);
+  const ref = entry.voucherNo;
+  const label = `${entry.partyName}${entry.reference ? ` — ${entry.reference}` : ''}`;
+
+  if (entry.type === 'received') {
+    await db.generalLedger.bulkAdd([
+      {
+        timestamp: ts, transactionRef: ref, transactionType: 'payment',
+        account: 'Cash / Bank', accountType: 'asset',
+        debit: entry.amount, credit: 0,
+        description: `Cash received — ${label}`,
+      },
+      {
+        timestamp: ts, transactionRef: ref, transactionType: 'payment',
+        account: 'Accounts Receivable', accountType: 'asset',
+        debit: 0, credit: entry.amount,
+        description: `Cash received — ${label}`,
+      },
+    ] as Omit<GLEntry, 'id'>[]);
+  } else {
+    await db.generalLedger.bulkAdd([
+      {
+        timestamp: ts, transactionRef: ref, transactionType: 'payment',
+        account: 'Accounts Payable', accountType: 'liability',
+        debit: entry.amount, credit: 0,
+        description: `Cash paid — ${label}`,
+      },
+      {
+        timestamp: ts, transactionRef: ref, transactionType: 'payment',
+        account: 'Cash / Bank', accountType: 'asset',
+        debit: 0, credit: entry.amount,
+        description: `Cash paid — ${label}`,
+      },
+    ] as Omit<GLEntry, 'id'>[]);
+  }
+}
+
+/**
+ * Credit Note GL posting (customer return).
+ *   DR Sales Revenue        (revenue)    grossAmount   ← reverse sales
+ *   DR GST Collected (5%)   (liability)  gstAmount     ← reverse GST liability
+ *   CR Cash/Bank or AR      (asset)      netAmount     ← refund or ledger credit
+ *   DR Inventory/COGS       (asset)      costAmount    ← goods back in stock (per item)
+ *   CR Cost of Goods Sold   (expense)    costAmount    ← COGS reversed (per item)
+ */
+export async function postCreditNoteToGL(cn: CreditNote & { id: number }): Promise<void> {
+  const ts = new Date(cn.timestamp);
+  const ref = cn.creditNoteNo;
+  const label = `${cn.partyName} — ${cn.creditNoteNo}`;
+  const creditAccount = cn.settlementType === 'cash' ? 'Cash / Bank' : 'Accounts Receivable';
+
+  const entries: Omit<GLEntry, 'id'>[] = [
+    {
+      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
+      account: 'Sales Revenue', accountType: 'revenue',
+      debit: cn.grossAmount, credit: 0,
+      description: `Customer return — revenue reversed — ${label}`,
+    },
+    {
+      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
+      account: 'GST Collected (5%)', accountType: 'liability',
+      debit: cn.gstAmount, credit: 0,
+      description: `Customer return — GST liability reversed — ${label}`,
+    },
+    {
+      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
+      account: creditAccount, accountType: 'asset',
+      debit: 0, credit: cn.netAmount,
+      description: `Customer return — ${cn.settlementType === 'cash' ? 'cash refund' : 'ledger credit'} — ${label}`,
+    },
+  ];
+
+  // Reverse COGS per item
+  for (const item of cn.items) {
+    const inv = await findInventoryItem(item.description);
+    const unitCost = (inv?.baseRate ?? 0) > 0 ? inv!.baseRate : item.rate * 0.60;
+    const costAmount = Math.round(unitCost * item.qty * 100) / 100;
+    if (costAmount > 0) {
+      entries.push(
+        {
+          timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
+          account: 'Inventory / COGS', accountType: 'asset',
+          debit: costAmount, credit: 0,
+          description: `Return — stock restored — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})`,
+        },
+        {
+          timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
+          account: 'Cost of Goods Sold', accountType: 'expense',
+          debit: 0, credit: costAmount,
+          description: `Return — COGS reversed — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})`,
+        },
+      );
+    }
+  }
+
+  await db.generalLedger.bulkAdd(entries);
+}
+
+/**
+ * Debit Note GL posting (supplier return).
+ *   DR Accounts Payable   (liability) netAmount     ← reduce what we owe supplier
+ *   CR Inventory/COGS     (asset)     grossAmount   ← remove stock value
+ *   CR GST Input Credit   (asset)     gstAmount     ← reverse input credit we claimed
+ */
+export async function postDebitNoteToGL(dn: DebitNote & { id: number }): Promise<void> {
+  const ts = new Date(dn.timestamp);
+  const ref = dn.debitNoteNo;
+  const label = `${dn.partyName} — ${dn.debitNoteNo}`;
+
+  await db.generalLedger.bulkAdd([
+    {
+      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
+      account: 'Accounts Payable', accountType: 'liability',
+      debit: dn.netAmount, credit: 0,
+      description: `Supplier return — AP reduced — ${label}`,
+    },
+    {
+      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
+      account: 'Inventory / COGS', accountType: 'asset',
+      debit: 0, credit: dn.grossAmount,
+      description: `Supplier return — stock removed — ${label}`,
+    },
+    {
+      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
+      account: 'GST Input Credit', accountType: 'asset',
+      debit: 0, credit: dn.gstAmount,
+      description: `Supplier return — GST input credit reversed — ${label}`,
+    },
+  ] as Omit<GLEntry, 'id'>[]);
 }

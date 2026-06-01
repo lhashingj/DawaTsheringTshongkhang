@@ -3,27 +3,23 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
-import { SalesLedger } from '@/components/accounting/SalesLedger';
-import { PurchaseLedger } from '@/components/accounting/PurchaseLedger';
-import { PartyLedger } from '@/components/accounting/PartyLedger';
-import { InventoryManager } from '@/components/accounting/InventoryManager';
-import { GLAudit } from '@/components/accounting/GLAudit';
-import { Receipt, ShoppingBag, Users, Package, ShieldAlert } from 'lucide-react';
+import { CashBook } from '@/components/accounting/CashBook';
+import { CustomerReturns } from '@/components/accounting/CustomerReturns';
+import { SupplierReturns } from '@/components/accounting/SupplierReturns';
+import { BookOpen, RotateCcw, PackageX } from 'lucide-react';
 
-type Tab = 'sales' | 'purchases' | 'parties' | 'inventory' | 'gl-audit';
+type Tab = 'cashbook' | 'customer-returns' | 'supplier-returns';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'sales',     label: 'Sales Ledger',    icon: Receipt      },
-  { id: 'purchases', label: 'Purchase Ledger', icon: ShoppingBag  },
-  { id: 'parties',   label: 'Party Directory', icon: Users        },
-  { id: 'inventory', label: 'Inventory',       icon: Package      },
-  { id: 'gl-audit',  label: 'Admin Audit',     icon: ShieldAlert  },
+  { id: 'cashbook',          label: 'Cash Book',         icon: BookOpen    },
+  { id: 'customer-returns',  label: 'Customer Returns',  icon: RotateCcw   },
+  { id: 'supplier-returns',  label: 'Supplier Returns',  icon: PackageX    },
 ];
 
-function LedgersContent() {
+function CashPageContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab') as Tab | null;
-  const [tab, setTab] = useState<Tab>('sales');
+  const [tab, setTab] = useState<Tab>('cashbook');
 
   useEffect(() => {
     if (tabParam && TABS.some(t => t.id === tabParam)) setTab(tabParam);
@@ -50,31 +46,34 @@ function LedgersContent() {
       </div>
 
       <div>
-        {tab === 'sales'     && <SalesLedger />}
-        {tab === 'purchases' && <PurchaseLedger />}
-        {tab === 'parties'   && <PartyLedger />}
-        {tab === 'inventory' && <InventoryManager />}
-        {tab === 'gl-audit'  && <GLAudit />}
+        {tab === 'cashbook'         && <CashBook />}
+        {tab === 'customer-returns' && <CustomerReturns />}
+        {tab === 'supplier-returns' && <SupplierReturns />}
       </div>
     </>
   );
 }
 
-export default function LedgersPage() {
+export default function CashPage() {
   return (
     <div className="min-h-screen bg-slate-900">
       <AccountingNav />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-white text-2xl font-bold">Ledgers</h1>
-          <p className="text-slate-400 text-sm mt-1">Full CRUD management for all accounting records. Use <span className="text-orange-400 font-medium">Admin Audit</span> to edit or delete any GL entry or party balance.</p>
+          <h1 className="text-white text-2xl font-bold">Cash Book & Returns</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Track liquid cash flows with printable vouchers, and manage{' '}
+            <span className="text-orange-400 font-medium">Customer Returns</span> (credit notes) and{' '}
+            <span className="text-orange-400 font-medium">Supplier Returns</span> (debit notes) with
+            automatic GL reversal and inventory adjustment.
+          </p>
         </div>
         <Suspense fallback={
           <div className="flex gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1 mb-6 animate-pulse">
             {TABS.map(t => <div key={t.id} className="flex-1 h-10 bg-slate-700 rounded-lg" />)}
           </div>
         }>
-          <LedgersContent />
+          <CashPageContent />
         </Suspense>
       </div>
     </div>

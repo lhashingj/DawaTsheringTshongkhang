@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, salesCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
+import { deleteSaleWithCascade, editSaleWithCascade } from '@/lib/ledger-mutations';
 import { InvoicePrint } from './InvoicePrint';
 import { Eye, Trash2, Edit2, X, Plus, ChevronDown, Search } from 'lucide-react';
 import type { PartyRecord } from '@/lib/accounting-db';
@@ -97,7 +98,10 @@ export function SalesLedger() {
     setIsSaving(true);
     const gross = editItems.reduce((s, i) => s + i.amount, 0);
     const gst = Math.round(gross * selected.gstRate) / 100;
-    await salesCRUD.update(selected.id, {
+    const net = gross + gst;
+
+    const newData: Omit<SaleRecord, 'id'> = {
+      ...selected,
       customerName: editCustomer.name,
       customerPhone: editCustomer.phone || undefined,
       customerAddress: editCustomer.address || undefined,
@@ -105,18 +109,32 @@ export function SalesLedger() {
       items: editItems,
       grossAmount: gross,
       gstAmount: gst,
-      netAmount: gross + gst,
+      netAmount: net,
       notes: editNotes || undefined,
-    });
+      syncStatus: 'pending',
+    };
+
+    // Determine party IDs for balance cascade
+    const oldPartyId = (customerParties || []).find(
+      p => p.name.toLowerCase() === (selected.customerName || '').toLowerCase(),
+    )?.id;
+    const newPartyId = selectedCustomerId ?? undefined;
+
+    await editSaleWithCascade(selected.id, newData, oldPartyId, newPartyId);
     setIsSaving(false);
     setModalMode(null);
   }
 
   async function confirmDelete() {
-    if (deleteId) {
-      await salesCRUD.delete(deleteId);
-      setDeleteId(null);
-    }
+    if (deleteId == null) return;
+    const sale = (sales || []).find(s => s.id === deleteId);
+    const partyId = sale
+      ? (customerParties || []).find(
+          p => p.name.toLowerCase() === (sale.customerName || '').toLowerCase(),
+        )?.id
+      : undefined;
+    await deleteSaleWithCascade(deleteId, partyId);
+    setDeleteId(null);
   }
 
   if (!sales) {

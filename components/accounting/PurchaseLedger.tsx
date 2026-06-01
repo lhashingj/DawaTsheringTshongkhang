@@ -7,6 +7,7 @@ import {
   PurchaseRecord, PurchaseItem, InventoryItem, UnitType,
   autoIncrementStock, postPurchaseToGL,
 } from '@/lib/accounting-db';
+import { deletePurchaseWithCascade, editPurchaseWithCascade } from '@/lib/ledger-mutations';
 import { Eye, Trash2, Edit2, X, Plus, Search, ChevronDown } from 'lucide-react';
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS'];
@@ -153,17 +154,27 @@ export function PurchaseLedger() {
         await partyCRUD.updateBalance(selectedPartyId, -totals.netAmount);
       }
     } else if (selected?.id) {
-      await purchaseCRUD.update(selected.id, record);
+      // Determine old/new party IDs for balance cascade
+      const oldPartyId = (supplierParties || []).find(
+        p => p.name.toLowerCase() === (selected.supplierName || '').toLowerCase(),
+      )?.id;
+      const newPartyId = selectedPartyId ?? undefined;
+      await editPurchaseWithCascade(selected.id, record, oldPartyId, newPartyId);
     }
     setIsSaving(false);
     setModalMode(null);
   }
 
   async function confirmDelete() {
-    if (deleteId) {
-      await purchaseCRUD.delete(deleteId);
-      setDeleteId(null);
-    }
+    if (deleteId == null) return;
+    const purchase = (purchases || []).find(p => p.id === deleteId);
+    const partyId = purchase
+      ? (supplierParties || []).find(
+          p => p.name.toLowerCase() === (purchase.supplierName || '').toLowerCase(),
+        )?.id
+      : undefined;
+    await deletePurchaseWithCascade(deleteId, partyId);
+    setDeleteId(null);
   }
 
   if (!purchases) return <div className="text-slate-400 text-sm p-8 text-center">Loading purchase records…</div>;

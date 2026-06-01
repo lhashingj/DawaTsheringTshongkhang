@@ -7,6 +7,7 @@ import { TaxReport } from '@/components/accounting/TaxReport';
 import { ProfitLoss } from '@/components/accounting/ProfitLoss';
 import { BalanceSheet } from '@/components/accounting/BalanceSheet';
 import { ExpenseManager } from '@/components/accounting/ExpenseManager';
+import { ReportsDownload } from '@/components/accounting/ReportsDownload';
 import {
   Scale, FileText, Download, TrendingUp, LayoutList, Receipt,
 } from 'lucide-react';
@@ -14,7 +15,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/accounting-db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Tab = 'financial-statements' | 'expenses' | 'trial-balance' | 'tax-report' | 'export';
+type Tab = 'financial-statements' | 'expenses' | 'trial-balance' | 'tax-report' | 'download-reports';
 type FinStmt = 'pnl' | 'balance-sheet';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
@@ -22,7 +23,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'expenses',             label: 'Expenses',             icon: LayoutList  },
   { id: 'trial-balance',        label: 'Trial Balance',        icon: Scale       },
   { id: 'tax-report',           label: 'Tax Records',          icon: Receipt     },
-  { id: 'export',               label: 'Full Export',          icon: Download    },
+  { id: 'download-reports',     label: 'Download Reports',     icon: Download    },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -318,7 +319,7 @@ export default function ReportsPage() {
         <div className="mb-6">
           <h1 className="text-white text-2xl font-bold">Reports &amp; Export</h1>
           <p className="text-slate-400 text-sm mt-1">
-            Financial statements, expense tracking, trial balance, and data exports.
+            Financial statements, GST compliance reports, and one-click Excel downloads.
           </p>
         </div>
 
@@ -369,7 +370,7 @@ export default function ReportsPage() {
           {tab === 'expenses'             && <ExpenseManager />}
           {tab === 'trial-balance'        && <TrialBalance />}
           {tab === 'tax-report'           && <TaxReport />}
-          {tab === 'export'               && <FullExport />}
+          {tab === 'download-reports'     && <ReportsDownload />}
         </div>
       </div>
     </div>

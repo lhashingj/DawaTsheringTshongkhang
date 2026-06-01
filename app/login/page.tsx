@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 const FEATURES = [
   { icon: ShieldCheck, text: "GST Certified Supplier — No. P10037232" },
@@ -29,6 +30,7 @@ const inputCls = "w-full h-11 bg-slate-700 border border-slate-600 text-white ro
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -53,6 +55,9 @@ export default function LoginPage() {
       if (profile) {
         try { sessionStorage.setItem(`dtt-profile-${data.user.id}`, JSON.stringify(profile)); } catch {}
       }
+      // Populate auth context BEFORE navigating so the admin guard doesn't
+      // see stale null-user state and immediately bounce back to /login.
+      await refreshUser();
       router.push(profile?.role === "admin" ? "/admin" : "/");
     } catch (err: unknown) {
       const msg = (err as { message?: string }).message ?? "";

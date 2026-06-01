@@ -27,10 +27,11 @@ export function TrialBalance() {
   const [suppressZero, setSuppressZero] = useState(true);
   const [refreshKey,   setRefreshKey]   = useState(0);
 
-  const sales     = useLiveQuery(() => db.sales.toArray(),     [refreshKey]);
-  const purchases = useLiveQuery(() => db.purchases.toArray(), [refreshKey]);
-  const parties   = useLiveQuery(() => db.parties.toArray(),   [refreshKey]);
-  const expenses  = useLiveQuery(() => db.expenses.toArray(),  [refreshKey]);
+  const sales      = useLiveQuery(() => db.sales.toArray(),        [refreshKey]);
+  const purchases  = useLiveQuery(() => db.purchases.toArray(),    [refreshKey]);
+  const parties    = useLiveQuery(() => db.parties.toArray(),      [refreshKey]);
+  const expenses   = useLiveQuery(() => db.expenses.toArray(),     [refreshKey]);
+  const glEntries  = useLiveQuery(() => db.generalLedger.toArray(), [refreshKey]);
 
   const { rows, totalDebit, totalCredit, difference, isBalanced, netGSTLiability } = useMemo(() => {
     const cutoff = asOf ? new Date(asOf + 'T23:59:59') : new Date();
@@ -38,6 +39,8 @@ export function TrialBalance() {
     const fSales     = (sales     || []).filter(s => new Date(s.timestamp) <= cutoff);
     const fPurchases = (purchases || []).filter(p => new Date(p.timestamp) <= cutoff);
     const fExpenses  = (expenses  || []).filter(e => new Date(e.date)      <= cutoff);
+    const fGL        = (glEntries || []).filter(e => new Date(e.timestamp) <= cutoff);
+    const totalCOGS  = fGL.filter(e => e.account === 'Cost of Goods Sold').reduce((s, e) => s + e.debit, 0);
 
     const totalSalesGross    = fSales.reduce((s, r) => s + r.grossAmount, 0);
     const totalSalesGST      = fSales.reduce((s, r) => s + r.gstAmount,   0);
@@ -45,7 +48,8 @@ export function TrialBalance() {
     const totalPurchaseGross = fPurchases.reduce((s, r) => s + r.grossAmount, 0);
     const totalPurchaseGST   = fPurchases.reduce((s, r) => s + r.gstAmount,   0);
     const totalPurchaseNet   = fPurchases.reduce((s, r) => s + r.netAmount,    0);
-    const totalExpenses      = fExpenses.reduce((s, e)  => s + e.amount,       0);
+    const totalExpenses      = fExpenses.reduce((s, e) => s + e.amount - (e.inputTaxAmount ?? 0), 0);
+    const expInputTax        = fExpenses.reduce((s, e) => s + (e.inputTaxAmount ?? 0), 0);
 
     const totalReceivable = (parties || [])
       .filter(p => p.outstandingBalance > 0)
@@ -56,27 +60,31 @@ export function TrialBalance() {
 
     // Cash: receipts from sales (net of receivable) minus payments to suppliers (net of payable) minus expenses
     const cashReceipts  = Math.max(0, totalSalesNet - totalReceivable);
-    const cashPayments  = Math.max(0, totalPurchaseNet - totalPayable) + totalExpenses;
+    // Cash payments use total amount paid (gross incl. input tax) for cash flow accuracy
+    const totalExpPaid  = fExpenses.reduce((s, e) => s + e.amount, 0);
+    const cashPayments  = Math.max(0, totalPurchaseNet - totalPayable) + totalExpPaid;
 
-    // Expense rows grouped by category
+    // Expense rows use NET amounts (input tax goes to GST Input Credit)
     const expByCategory: Record<string, number> = {};
     for (const e of fExpenses) {
-      expByCategory[e.category] = (expByCategory[e.category] || 0) + e.amount;
+      expByCategory[e.category] = (expByCategory[e.category] || 0) + (e.amount - (e.inputTaxAmount ?? 0));
     }
 
     const rawRows: TrialRow[] = [
       // Assets (Dr-normal)
-      { account: 'Cash / Bank (Receipts)',      category: 'Asset',     debit: cashReceipts,      credit: 0             },
-      { account: 'Cash / Bank (Payments)',      category: 'Asset',     debit: 0,                 credit: cashPayments  },
-      { account: 'Accounts Receivable',         category: 'Asset',     debit: totalReceivable,   credit: 0             },
-      { account: 'Inventory / COGS',            category: 'Asset',     debit: totalPurchaseGross,credit: 0             },
-      { account: 'GST Input Credit',            category: 'Asset',     debit: totalPurchaseGST,  credit: 0             },
+      { account: 'Cash / Bank (Receipts)',      category: 'Asset',     debit: cashReceipts,                         credit: 0             },
+      { account: 'Cash / Bank (Payments)',      category: 'Asset',     debit: 0,                                    credit: cashPayments  },
+      { account: 'Accounts Receivable',         category: 'Asset',     debit: totalReceivable,                      credit: 0             },
+      { account: 'Inventory / COGS',            category: 'Asset',     debit: totalPurchaseGross,                   credit: totalCOGS     },
+      { account: 'GST Input Credit',            category: 'Asset',     debit: totalPurchaseGST + expInputTax,       credit: 0             },
       // Liabilities (Cr-normal)
-      { account: 'Accounts Payable',            category: 'Liability', debit: 0,                 credit: totalPayable  },
-      { account: 'GST Collected (5%)',          category: 'Liability', debit: 0,                 credit: totalSalesGST },
+      { account: 'Accounts Payable',            category: 'Liability', debit: 0,                                    credit: totalPayable  },
+      { account: 'GST Collected (5%)',          category: 'Liability', debit: 0,                                    credit: totalSalesGST },
       // Revenue (Cr-normal)
-      { account: 'Sales Revenue',               category: 'Revenue',   debit: 0,                 credit: totalSalesGross },
-      // Expenses (Dr-normal) — one row per category
+      { account: 'Sales Revenue',               category: 'Revenue',   debit: 0,                                    credit: totalSalesGross },
+      // COGS (Dr-normal) — perpetual: posted at time of each sale
+      { account: 'Cost of Goods Sold',          category: 'Expense',   debit: totalCOGS,                            credit: 0              },
+      // Expenses (Dr-normal) — one row per category, net of input tax
       ...Object.entries(expByCategory).map(([cat, amt]) => ({
         account: cat, category: 'Expense', debit: amt, credit: 0,
       })),
@@ -93,7 +101,7 @@ export function TrialBalance() {
     const netGSTLiability = totalSalesGST - totalPurchaseGST;
 
     return { rows, totalDebit, totalCredit, difference, isBalanced, netGSTLiability };
-  }, [sales, purchases, parties, expenses, asOf, suppressZero]);
+  }, [sales, purchases, parties, expenses, glEntries, asOf, suppressZero]);
 
   async function exportExcel() {
     const XLSX = await import('xlsx');
@@ -112,6 +120,9 @@ export function TrialBalance() {
       ['TOTALS', '', totalDebit.toFixed(2), totalCredit.toFixed(2), '', ''],
       ['Difference', '', difference.toFixed(2), '', '', ''],
       [],
+      ['COGS Summary', '', '', '', '', ''],
+      ['Cost of Goods Sold (perpetual)', '', (glEntries || []).filter(e => e.account === 'Cost of Goods Sold' && new Date(e.timestamp) <= new Date(asOf + 'T23:59:59')).reduce((s, e) => s + e.debit, 0).toFixed(2), '', '', 'Dr'],
+      [],
       ['GST Summary', '', '', '', '', ''],
       ['Net GST Payable to Govt', '', '', netGSTLiability.toFixed(2), '', 'Cr'],
     ];
@@ -122,7 +133,7 @@ export function TrialBalance() {
     XLSX.writeFile(wb, `TrialBalance_${asOf}.xlsx`);
   }
 
-  if (!sales || !purchases || !parties || !expenses) {
+  if (!sales || !purchases || !parties || !expenses || !glEntries) {
     return <div className="text-slate-400 text-sm p-8 text-center">Computing trial balance…</div>;
   }
 

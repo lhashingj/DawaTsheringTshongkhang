@@ -6,6 +6,7 @@ import {
   db, expenseCRUD, postExpenseToGL,
   ExpenseRecord, ExpenseCategory,
 } from '@/lib/accounting-db';
+import { deleteExpenseWithCascade, editExpenseWithCascade } from '@/lib/ledger-mutations';
 import { Plus, Trash2, Edit2, X, Search } from 'lucide-react';
 
 const CATEGORIES: ExpenseCategory[] = [
@@ -37,6 +38,8 @@ const emptyForm = (): Omit<ExpenseRecord, 'id'> => ({
   category: 'Other',
   description: '',
   amount: 0,
+  inputTaxRate: 0,
+  inputTaxAmount: 0,
   reference: '',
   notes: '',
 });
@@ -90,14 +93,16 @@ export function ExpenseManager() {
       const id = await expenseCRUD.create({ ...form, date: new Date(form.date) }) as number;
       await postExpenseToGL({ ...form, date: new Date(form.date), id });
     } else if (selected?.id) {
-      await expenseCRUD.update(selected.id, { ...form, date: new Date(form.date) });
+      await editExpenseWithCascade(selected.id, { ...form, date: new Date(form.date) });
     }
     setIsSaving(false);
     setModalMode(null);
   }
 
   async function confirmDelete() {
-    if (deleteId) { await expenseCRUD.delete(deleteId); setDeleteId(null); }
+    if (deleteId == null) return;
+    await deleteExpenseWithCascade(deleteId);
+    setDeleteId(null);
   }
 
   if (!expenses) return <div className="text-slate-400 text-sm p-8 text-center">Loading expenses…</div>;
@@ -151,6 +156,7 @@ export function ExpenseManager() {
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Category</th>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Description</th>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Ref.</th>
+              <th className="text-right px-4 py-3 text-slate-400 font-medium">Input Tax</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Amount (Nu.)</th>
               <th className="text-center px-4 py-3 text-slate-400 font-medium">Actions</th>
             </tr>
@@ -166,6 +172,9 @@ export function ExpenseManager() {
                 </td>
                 <td className="px-4 py-3 text-white">{e.description}</td>
                 <td className="px-4 py-3 text-slate-500 text-xs">{e.reference || '—'}</td>
+                <td className="px-4 py-3 text-right text-teal-400 font-mono text-xs">
+                  {(e.inputTaxAmount ?? 0) > 0 ? `Nu. ${fmtNum(e.inputTaxAmount!)}` : '—'}
+                </td>
                 <td className="px-4 py-3 text-right text-orange-400 font-mono font-semibold">{fmtNum(e.amount)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-2">
@@ -206,13 +215,72 @@ export function ExpenseManager() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 text-xs mb-1">Amount (Nu.) *</label>
-                  <input type="number" min="0" step="0.01" className={inputCls} placeholder="0.00" value={form.amount || ''} onChange={e => setForm(p => ({ ...p, amount: parseFloat(e.target.value) || 0 }))} />
+                  <label className="block text-slate-400 text-xs mb-1">Total Amount Paid (Nu.) *</label>
+                  <input
+                    type="number" min="0" step="0.01" className={inputCls} placeholder="0.00"
+                    value={form.amount || ''}
+                    onChange={e => {
+                      const amt = parseFloat(e.target.value) || 0;
+                      const rate = form.inputTaxRate ?? 0;
+                      const inputTax = rate > 0 ? parseFloat((amt * rate / (100 + rate)).toFixed(2)) : 0;
+                      setForm(p => ({ ...p, amount: amt, inputTaxAmount: inputTax }));
+                    }}
+                  />
                 </div>
                 <div>
                   <label className="block text-slate-400 text-xs mb-1">Reference (optional)</label>
                   <input className={inputCls} placeholder="Receipt / voucher no." value={form.reference || ''} onChange={e => setForm(p => ({ ...p, reference: e.target.value }))} />
                 </div>
+              </div>
+
+              {/* Deductible Input Tax */}
+              <div className="border border-slate-600 rounded-lg p-3 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={(form.inputTaxRate ?? 0) > 0}
+                    onChange={e => {
+                      const rate = e.target.checked ? 5 : 0;
+                      const inputTax = rate > 0 ? parseFloat((form.amount * rate / (100 + rate)).toFixed(2)) : 0;
+                      setForm(p => ({ ...p, inputTaxRate: rate, inputTaxAmount: inputTax }));
+                    }}
+                    className="w-4 h-4 accent-teal-500 rounded"
+                  />
+                  <span className="text-sm font-medium text-slate-300">Claim GST Input Tax Credit</span>
+                  <span className="text-xs text-slate-500">(expense includes GST paid to supplier)</span>
+                </label>
+                {(form.inputTaxRate ?? 0) > 0 && (
+                  <div className="grid grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <label className="block text-slate-400 text-xs mb-1">GST Rate (%)</label>
+                      <input
+                        type="number" min="0" max="100" step="0.01" className={inputCls}
+                        value={form.inputTaxRate ?? 5}
+                        onChange={e => {
+                          const rate = parseFloat(e.target.value) || 0;
+                          const inputTax = rate > 0 ? parseFloat((form.amount * rate / (100 + rate)).toFixed(2)) : 0;
+                          setForm(p => ({ ...p, inputTaxRate: rate, inputTaxAmount: inputTax }));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 text-xs mb-1">Input Tax Credit (Nu.)</label>
+                      <input
+                        type="number" min="0" step="0.01" className={inputCls}
+                        value={form.inputTaxAmount ?? 0}
+                        onChange={e => setForm(p => ({ ...p, inputTaxAmount: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 text-xs mb-1">Net Expense (Nu.)</label>
+                      <input
+                        readOnly
+                        className={inputCls + ' opacity-60 cursor-default'}
+                        value={fmtNum(form.amount - (form.inputTaxAmount ?? 0))}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-slate-400 text-xs mb-1">Notes</label>

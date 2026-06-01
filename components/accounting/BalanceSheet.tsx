@@ -19,13 +19,14 @@ interface BSSection {
 }
 
 export function BalanceSheet() {
-  const sales     = useLiveQuery(() => db.sales.toArray(),     []);
-  const purchases = useLiveQuery(() => db.purchases.toArray(), []);
-  const parties   = useLiveQuery(() => db.parties.toArray(),   []);
-  const inventory = useLiveQuery(() => db.inventory.toArray(), []);
-  const expenses  = useLiveQuery(() => db.expenses.toArray(),  []);
+  const sales      = useLiveQuery(() => db.sales.toArray(),        []);
+  const purchases  = useLiveQuery(() => db.purchases.toArray(),    []);
+  const parties    = useLiveQuery(() => db.parties.toArray(),      []);
+  const inventory  = useLiveQuery(() => db.inventory.toArray(),    []);
+  const expenses   = useLiveQuery(() => db.expenses.toArray(),     []);
+  const glEntries  = useLiveQuery(() => db.generalLedger.toArray(), []);
 
-  if (!sales || !purchases || !parties || !inventory || !expenses) {
+  if (!sales || !purchases || !parties || !inventory || !expenses || !glEntries) {
     return <div className="text-slate-400 text-sm p-8 text-center">Computing balance sheet…</div>;
   }
 
@@ -41,7 +42,8 @@ export function BalanceSheet() {
 
   const inventoryValue = inventory.reduce((s, i) => s + i.stockQty * i.baseRate, 0);
 
-  const gstInputCredit = purchases.reduce((s, r) => s + r.gstAmount, 0);
+  const gstInputCredit = purchases.reduce((s, r) => s + r.gstAmount, 0)
+    + expenses.reduce((s, e) => s + (e.inputTaxAmount ?? 0), 0);
 
   const totalCurrentAssets = cashBalance + accountsReceivable + inventoryValue + gstInputCredit;
 
@@ -56,8 +58,12 @@ export function BalanceSheet() {
 
   // ── Equity ────────────────────────────────────────────────────────────────
   const grossRevenue  = sales.reduce((s, r) => s + r.grossAmount, 0);
-  const cogs          = purchases.reduce((s, r) => s + r.grossAmount, 0);
-  const retainedEarnings = grossRevenue - cogs - totalExpenses;
+  // Perpetual COGS: actual wholesale cost of sold items from GL
+  const cogs          = glEntries
+    .filter(e => e.account === 'Cost of Goods Sold')
+    .reduce((s, e) => s + e.debit, 0);
+  const netExpenses = expenses.reduce((s, e) => s + e.amount - (e.inputTaxAmount ?? 0), 0);
+  const retainedEarnings = grossRevenue - cogs - netExpenses;
   const ownersEquity     = totalCurrentAssets - totalLiabilities;
 
   const totalLiabEquity  = totalLiabilities + ownersEquity;

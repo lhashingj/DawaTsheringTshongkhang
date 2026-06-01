@@ -23,10 +23,11 @@ export function TaxReport() {
   const [showDetailSales, setShowDetailSales] = useState(false);
   const [showDetailPurchases, setShowDetailPurchases] = useState(false);
 
-  const allSales = useLiveQuery(() => db.sales.orderBy('timestamp').toArray(), []);
+  const allSales     = useLiveQuery(() => db.sales.orderBy('timestamp').toArray(),     []);
   const allPurchases = useLiveQuery(() => db.purchases.orderBy('timestamp').toArray(), []);
+  const allExpenses  = useLiveQuery(() => db.expenses.toArray(),                       []);
 
-  if (!allSales || !allPurchases) return <div className="text-slate-400 text-sm p-8 text-center">Loading tax data…</div>;
+  if (!allSales || !allPurchases || !allExpenses) return <div className="text-slate-400 text-sm p-8 text-center">Loading tax data…</div>;
 
   const fromDate = new Date(from);
   const toDate = new Date(to + 'T23:59:59');
@@ -39,16 +40,22 @@ export function TaxReport() {
     const d = new Date(p.timestamp);
     return d >= fromDate && d <= toDate;
   });
+  const filteredExpenses = allExpenses.filter(e => {
+    const d = new Date(e.date);
+    return d >= fromDate && d <= toDate;
+  });
 
   const salesGross = filteredSales.reduce((s, r) => s + r.grossAmount, 0);
-  const salesGST = filteredSales.reduce((s, r) => s + r.gstAmount, 0);
-  const salesNet = filteredSales.reduce((s, r) => s + r.netAmount, 0);
+  const salesGST   = filteredSales.reduce((s, r) => s + r.gstAmount,   0);
+  const salesNet   = filteredSales.reduce((s, r) => s + r.netAmount,    0);
 
   const purchaseGross = filteredPurchases.reduce((s, r) => s + r.grossAmount, 0);
-  const purchaseGST = filteredPurchases.reduce((s, r) => s + r.gstAmount, 0);
-  const purchaseNet = filteredPurchases.reduce((s, r) => s + r.netAmount, 0);
+  const purchaseGST   = filteredPurchases.reduce((s, r) => s + r.gstAmount,   0);
+  const purchaseNet   = filteredPurchases.reduce((s, r) => s + r.netAmount,    0);
 
-  const netGSTLiability = salesGST - purchaseGST;
+  const expenseInputTax  = filteredExpenses.reduce((s, e) => s + (e.inputTaxAmount ?? 0), 0);
+  const totalInputCredit = purchaseGST + expenseInputTax;
+  const netGSTLiability  = salesGST - totalInputCredit;
 
   async function exportExcel() {
     const XLSX = await import('xlsx');
@@ -75,7 +82,9 @@ export function TaxReport() {
       [],
       ['GST PAYABLE RECONCILIATION'],
       ['GST Collected (Output Tax)', salesGST.toFixed(2)],
-      ['GST Input Credit', purchaseGST.toFixed(2)],
+      ['GST Input Credit — Purchases', purchaseGST.toFixed(2)],
+      ['GST Input Credit — Deductible Expenses', expenseInputTax.toFixed(2)],
+      ['Total Input Tax Credit', totalInputCredit.toFixed(2)],
       ['Net GST Payable to Government', netGSTLiability.toFixed(2)],
     ];
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
@@ -187,6 +196,12 @@ export function TaxReport() {
               <span className="text-blue-400 text-sm font-medium">GST Input Credit @ 5%</span>
               <span className="text-blue-400 font-mono font-bold">Nu. {fmtNum(purchaseGST)}</span>
             </div>
+            {expenseInputTax > 0 && (
+              <div className="flex justify-between">
+                <span className="text-teal-400 text-sm font-medium">+ Expense Input Tax</span>
+                <span className="text-teal-400 font-mono font-bold">Nu. {fmtNum(expenseInputTax)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-300 text-sm font-medium">Total Paid</span>
               <span className="text-orange-400 font-mono font-bold">Nu. {fmtNum(purchaseNet)}</span>
@@ -203,8 +218,8 @@ export function TaxReport() {
               <span className="text-yellow-400 font-mono">Nu. {fmtNum(salesGST)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400 text-sm">Input Credit (Paid)</span>
-              <span className="text-blue-400 font-mono">Nu. {fmtNum(purchaseGST)}</span>
+              <span className="text-slate-400 text-sm">Input Credit (Total)</span>
+              <span className="text-blue-400 font-mono">Nu. {fmtNum(totalInputCredit)}</span>
             </div>
             <div className="flex justify-between border-t border-slate-600 pt-2">
               <span className="text-white font-bold">Net GST Payable</span>

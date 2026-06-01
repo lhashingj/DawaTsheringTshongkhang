@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, BookOpen, BarChart3, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, BookOpen, BarChart3, ArrowLeft, Wallet } from 'lucide-react';
 import { BackupButton } from './BackupButton';
 
 const navItems = [
-  { href: '/admin/accounting', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/accounting/pos', label: 'Point of Sale', icon: ShoppingCart },
-  { href: '/admin/accounting/ledgers', label: 'Ledgers', icon: BookOpen },
-  { href: '/admin/accounting/reports', label: 'Reports & Export', icon: BarChart3 },
+  { href: '/admin/accounting',         label: 'Dashboard',       icon: LayoutDashboard },
+  { href: '/admin/accounting/pos',     label: 'Point of Sale',   icon: ShoppingCart    },
+  { href: '/admin/accounting/ledgers', label: 'Ledgers',         icon: BookOpen        },
+  { href: '/admin/accounting/cash',    label: 'Cash & Returns',  icon: Wallet          },
+  { href: '/admin/accounting/reports', label: 'Reports & Export', icon: BarChart3      },
 ];
 
 export function AccountingNav() {
