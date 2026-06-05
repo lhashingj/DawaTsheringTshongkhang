@@ -8,18 +8,20 @@ import { ProfitLoss } from '@/components/accounting/ProfitLoss';
 import { BalanceSheet } from '@/components/accounting/BalanceSheet';
 import { ExpenseManager } from '@/components/accounting/ExpenseManager';
 import { ReportsDownload } from '@/components/accounting/ReportsDownload';
+import { SalesReport } from '@/components/accounting/SalesReport';
 import {
-  Scale, FileText, Download, TrendingUp, LayoutList, Receipt,
+  Scale, FileText, Download, TrendingUp, LayoutList, Receipt, BarChart2,
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/accounting-db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Tab = 'financial-statements' | 'expenses' | 'trial-balance' | 'tax-report' | 'download-reports';
+type Tab = 'sales-report' | 'financial-statements' | 'expenses' | 'trial-balance' | 'tax-report' | 'download-reports';
 type FinStmt = 'pnl' | 'balance-sheet';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'financial-statements', label: 'Financial Statements', icon: TrendingUp },
+  { id: 'sales-report',         label: 'Sales Report',         icon: BarChart2   },
+  { id: 'financial-statements', label: 'Financial Statements', icon: TrendingUp  },
   { id: 'expenses',             label: 'Expenses',             icon: LayoutList  },
   { id: 'trial-balance',        label: 'Trial Balance',        icon: Scale       },
   { id: 'tax-report',           label: 'Tax Records',          icon: Receipt     },
@@ -309,7 +311,7 @@ function FullExport() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ReportsPage() {
-  const [tab, setTab]       = useState<Tab>('financial-statements');
+  const [tab, setTab]       = useState<Tab>('sales-report');
   const [finStmt, setFinStmt] = useState<FinStmt>('pnl');
 
   return (
@@ -365,6 +367,7 @@ export default function ReportsPage() {
 
         {/* Content */}
         <div>
+          {tab === 'sales-report'         && <SalesReport />}
           {tab === 'financial-statements' && finStmt === 'pnl'          && <ProfitLoss />}
           {tab === 'financial-statements' && finStmt === 'balance-sheet' && <BalanceSheet />}
           {tab === 'expenses'             && <ExpenseManager />}
