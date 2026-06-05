@@ -108,7 +108,7 @@ export function Header() {
                   className="items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/10"
                 >
                   <UserCircle className="h-4 w-4" />
-                  <span className="text-xs max-w-[80px] truncate">{user.user_metadata?.name ?? user.email}</span>
+                  <span className="text-xs max-w-[160px] truncate">{user.user_metadata?.name ?? user.email}</span>
                 </Button>
                 <AnimatePresence>
                   {userMenuOpen && (
