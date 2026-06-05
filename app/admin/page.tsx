@@ -73,23 +73,6 @@ export default function AdminPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
-
-  async function handleBulkImport() {
-    if (!confirm("Import all inventory items from the PDF stock list? Existing products will not be duplicated.")) return;
-    setImporting(true);
-    try {
-      const res = await fetch("/api/admin/import-inventory", { method: "POST" });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      toast({ title: `Imported ${data.added} new products`, description: `${data.total} items processed from inventory list.` });
-      refreshProducts();
-    } catch (err: unknown) {
-      toast({ title: "Import failed", description: (err as { message?: string }).message, variant: "destructive" });
-    } finally {
-      setImporting(false);
-    }
-  }
 
   interface CartNotif {
     id: string;
@@ -331,15 +314,6 @@ export default function AdminPage() {
                 <span className="hidden sm:block">Accounting</span>
               </button>
             </Link>
-            <button
-              onClick={handleBulkImport}
-              disabled={importing}
-              className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-60 text-slate-200 px-3 py-1.5 rounded-md text-xs font-medium transition-colors border border-slate-600"
-              title="Import all products from PDF inventory list"
-            >
-              {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Package className="h-3.5 w-3.5" />}
-              <span className="hidden sm:block">{importing ? "Importing…" : "Import Inventory"}</span>
-            </button>
             <button
               onClick={() => { setEditTarget(null); setModalOpen(true); }}
               className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
