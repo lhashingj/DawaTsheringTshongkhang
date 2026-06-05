@@ -410,8 +410,8 @@ export default function ProfilePage() {
                             const { items, total } = firstMsg
                               ? parseOrderContent(firstMsg.content)
                               : { items: [], total: "" };
-                            const date = new Date(order.created_at).toLocaleDateString("en-BT", {
-                              year: "numeric", month: "short", day: "numeric",
+                            const date = new Date(order.created_at).toLocaleDateString("en-GB", {
+                              day: "2-digit", month: "2-digit", year: "numeric",
                             });
                             const statusColor =
                               order.status === "open"

@@ -231,7 +231,7 @@ export default function AdminUsersPage() {
                     </div>
                     <p className="text-xs text-slate-400 truncate mt-0.5">{u.email}</p>
                     <p className="text-[10px] text-slate-600 mt-0.5">
-                      {new Date(u.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      {new Date(u.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </p>
                   </div>
                   {u.role !== "admin" && (
