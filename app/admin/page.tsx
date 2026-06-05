@@ -6,7 +6,7 @@ import {
   Plus, Pencil, Trash2, Search, X, LogOut, Wrench,
   Package, TrendingUp, AlertTriangle, CheckCircle,
   ChevronUp, ChevronDown, ChevronsUpDown, MessageCircle, Loader2,
-  Bell, ShoppingCart, Users,
+  Bell, ShoppingCart, Users, Home,
   Star, Zap, Tractor, Hammer, Shield, Droplets, Settings, Scissors,
   BarChart3, Calculator,
 } from "lucide-react";
@@ -347,6 +347,14 @@ export default function AdminPage() {
               <Plus className="h-3.5 w-3.5" />
               <span className="hidden sm:block">Add Product</span>
             </button>
+            <Link href="/">
+              <button
+                className="w-9 h-9 flex items-center justify-center rounded-md text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
+                title="Back to Home"
+              >
+                <Home className="h-4 w-4" />
+              </button>
+            </Link>
             <button
               onClick={handleLogout}
               className="w-9 h-9 flex items-center justify-center rounded-md text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
