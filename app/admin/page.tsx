@@ -21,6 +21,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { formatPrice } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { db, inventoryCRUD } from "@/lib/accounting-db";
 import type { Product, ProductCategory } from "@/types";
 
 const CATEGORIES: ProductCategory[] = [
@@ -192,8 +193,15 @@ export default function AdminPage() {
 
   async function handleDelete(id: string) {
     try {
+      const product = products.find(p => p.id === id);
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
+      if (product?.sku) {
+        try {
+          const inv = await db.inventory.filter(i => i.itemCode === product.sku).first();
+          if (inv?.id) await inventoryCRUD.delete(inv.id);
+        } catch { /* best-effort */ }
+      }
       toast({ title: "Product deleted.", variant: "success" });
       refreshProducts();
     } catch {

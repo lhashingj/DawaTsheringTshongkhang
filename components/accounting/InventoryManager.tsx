@@ -4,9 +4,27 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, inventoryCRUD, InventoryItem, UnitType } from '@/lib/accounting-db';
 import { Plus, Trash2, Edit2, X, Search, Package, AlertTriangle, ChevronDown, Minus, Download } from 'lucide-react';
-import { seedInventoryFromProducts, seedInventoryFromBulkData } from '@/lib/seed-inventory';
+import { seedInventoryFromProducts } from '@/lib/seed-inventory';
+import type { ProductCategory } from '@/types';
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS', 'PAIR'];
+
+const PRODUCT_CATEGORIES: ProductCategory[] = [
+  'Power Tools', 'Agricultural Machinery', 'Hand Tools', 'Safety Equipment',
+  'Irrigation & Water', 'Spare Parts', 'Garden & Landscaping', 'Welding Equipment', 'Measuring Tools',
+];
+
+function unitTypeToStr(u: UnitType): string {
+  switch (u) {
+    case 'MTR': return 'metre';
+    case 'KG': return 'kg';
+    case 'LTR': return 'litre';
+    case 'SET': return 'set';
+    case 'BOX': return 'box';
+    case 'PAIR': return 'pair';
+    default: return 'piece';
+  }
+}
 const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
 function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -69,8 +87,48 @@ export function InventoryManager() {
     const data = { ...form, lastUpdated: new Date() };
     if (modalMode === 'add') {
       await inventoryCRUD.create(data);
+      try {
+        const category = PRODUCT_CATEGORIES.find(c => c === form.notes) ?? 'Spare Parts';
+        const sku = form.itemCode || form.description.replace(/\s+/g, '-').toUpperCase().slice(0, 20);
+        await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.description,
+            category,
+            price: form.baseRate,
+            stock: form.stockQty,
+            unit: unitTypeToStr(form.unit),
+            sku,
+            description: form.notes || '',
+            featured: false,
+            image: null,
+          }),
+        });
+      } catch { /* best-effort */ }
     } else if (selected?.id) {
       await inventoryCRUD.update(selected.id, data);
+      if (selected.itemCode) {
+        try {
+          const res = await fetch('/api/products');
+          if (res.ok) {
+            const allProducts: Array<{ id: string; sku: string }> = await res.json();
+            const match = allProducts.find(p => p.sku === selected.itemCode);
+            if (match) {
+              await fetch(`/api/products/${match.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: form.description,
+                  price: form.baseRate,
+                  stock: form.stockQty,
+                  unit: unitTypeToStr(form.unit),
+                }),
+              });
+            }
+          }
+        } catch { /* best-effort */ }
+      }
     }
     setIsSaving(false);
     setModalMode(null);
@@ -81,6 +139,24 @@ export function InventoryManager() {
     const delta = parseFloat(adjusting.delta);
     if (isNaN(delta)) return;
     await inventoryCRUD.adjustStock(adjusting.id, delta);
+    const item = (inventory || []).find(i => i.id === adjusting.id);
+    if (item?.itemCode) {
+      try {
+        const newStock = Math.max(0, adjusting.qty + delta);
+        const res = await fetch('/api/products');
+        if (res.ok) {
+          const allProducts: Array<{ id: string; sku: string }> = await res.json();
+          const match = allProducts.find(p => p.sku === item.itemCode);
+          if (match) {
+            await fetch(`/api/products/${match.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ stock: newStock }),
+            });
+          }
+        }
+      } catch { /* best-effort */ }
+    }
     setAdjusting(null);
   }
 
@@ -100,28 +176,21 @@ export function InventoryManager() {
     }
   }
 
-  async function handleImportBulk() {
-    setIsSeeding(true);
-    setSeedMsg('');
-    try {
-      const { added, skipped } = await seedInventoryFromBulkData();
-      setSeedMsg(
-        added > 0
-          ? `Imported ${added} items from PDF inventory (${skipped} already existed).`
-          : `All PDF inventory items already exist (${skipped} skipped).`
-      );
-    } catch {
-      setSeedMsg('Import failed. Please try again.');
-    } finally {
-      setIsSeeding(false);
-    }
-  }
-
   async function confirmDelete() {
-    if (deleteId) {
-      await inventoryCRUD.delete(deleteId);
-      setDeleteId(null);
+    if (!deleteId) return;
+    const item = (inventory || []).find(i => i.id === deleteId);
+    await inventoryCRUD.delete(deleteId);
+    if (item?.itemCode) {
+      try {
+        const res = await fetch('/api/products');
+        if (res.ok) {
+          const allProducts: Array<{ id: string; sku: string }> = await res.json();
+          const match = allProducts.find(p => p.sku === item.itemCode);
+          if (match) await fetch(`/api/products/${match.id}`, { method: 'DELETE' });
+        }
+      } catch { /* best-effort */ }
     }
+    setDeleteId(null);
   }
 
   if (!inventory) return <div className="text-slate-400 text-sm p-8 text-center">Loading inventory…</div>;
@@ -158,15 +227,6 @@ export function InventoryManager() {
           >
             <Download className="w-4 h-4" />
             {isSeeding ? 'Importing…' : 'Import Store Products'}
-          </button>
-          <button
-            onClick={handleImportBulk}
-            disabled={isSeeding}
-            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            title="Import all 900+ items from the physical inventory PDF"
-          >
-            <Download className="w-4 h-4" />
-            {isSeeding ? 'Importing…' : 'Import PDF Inventory'}
           </button>
           <button onClick={openAdd} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" /> Add Item

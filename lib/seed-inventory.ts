@@ -1,6 +1,4 @@
 import { db, inventoryCRUD, UnitType } from './accounting-db';
-import productsData from '@/data/db.json';
-import { PDF_INVENTORY_DATA, autoUnit, toSKU } from './inventory-bulk-data';
 
 function mapUnit(unit: string): UnitType {
   switch (unit.toLowerCase()) {
@@ -22,7 +20,11 @@ export async function seedInventoryFromProducts(): Promise<{ added: number; skip
   let added = 0;
   let skipped = 0;
 
-  for (const product of productsData.products) {
+  const res = await fetch('/api/products');
+  if (!res.ok) throw new Error('Failed to fetch products');
+  const products: Array<{ sku: string; name: string; unit: string; price: number; stock: number; category: string }> = await res.json();
+
+  for (const product of products) {
     if (existingCodes.has(product.sku)) {
       skipped++;
       continue;
@@ -40,40 +42,6 @@ export async function seedInventoryFromProducts(): Promise<{ added: number; skip
     });
 
     existingCodes.add(product.sku);
-    added++;
-  }
-
-  return { added, skipped };
-}
-
-export async function seedInventoryFromBulkData(): Promise<{ added: number; skipped: number }> {
-  const existing = await db.inventory.toArray();
-  const existingDescs = new Set(
-    existing.map(i => i.description.toUpperCase().trim())
-  );
-
-  let added = 0;
-  let skipped = 0;
-
-  for (const [name, stock] of PDF_INVENTORY_DATA) {
-    const key = name.toUpperCase().trim();
-    if (existingDescs.has(key)) {
-      skipped++;
-      continue;
-    }
-
-    const sku = toSKU(name);
-    await inventoryCRUD.create({
-      itemCode: sku,
-      description: name,
-      unit: autoUnit(name) as UnitType,
-      baseRate: 0,
-      stockQty: Math.max(0, stock),
-      reorderLevel: 5,
-      lastUpdated: new Date(),
-    });
-
-    existingDescs.add(key);
     added++;
   }
 

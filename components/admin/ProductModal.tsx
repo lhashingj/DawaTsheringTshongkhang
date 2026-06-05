@@ -9,7 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Upload, X, ImageIcon } from "lucide-react";
+import { db, inventoryCRUD } from "@/lib/accounting-db";
+import type { UnitType } from "@/lib/accounting-db";
 import type { Product, ProductCategory } from "@/types";
+
+function mapUnit(unit: string): UnitType {
+  switch (unit.toLowerCase()) {
+    case "set": return "SET";
+    case "metre": case "meter": return "MTR";
+    case "litre": case "liter": return "LTR";
+    case "kg": case "kilogram": return "KG";
+    case "box": return "BOX";
+    case "pair": return "PAIR";
+    default: return "EACH";
+  }
+}
 
 const CATEGORIES: ProductCategory[] = [
   "Power Tools",
@@ -133,6 +147,33 @@ export function ProductModal({ open, onClose, product, onSaved }: ProductModalPr
       });
       if (!res.ok) throw new Error("Request failed");
       const saved: Product = await res.json();
+      // Sync to accounting inventory
+      try {
+        const invItem = await db.inventory.filter(i => i.itemCode === saved.sku).first();
+        if (!isEdit) {
+          if (!invItem) {
+            await inventoryCRUD.create({
+              itemCode: saved.sku,
+              description: saved.name,
+              unit: mapUnit(saved.unit),
+              baseRate: saved.price,
+              stockQty: saved.stock,
+              reorderLevel: 5,
+              lastUpdated: new Date(),
+              notes: saved.category,
+            });
+          }
+        } else if (invItem?.id) {
+          await inventoryCRUD.update(invItem.id, {
+            description: saved.name,
+            unit: mapUnit(saved.unit),
+            baseRate: saved.price,
+            stockQty: saved.stock,
+            lastUpdated: new Date(),
+            notes: saved.category,
+          });
+        }
+      } catch { /* best-effort */ }
       onSaved(saved);
       toast({
         title: isEdit ? "Product updated!" : "Product created!",
