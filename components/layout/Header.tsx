@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ShoppingCart, Menu, X, Phone, MapPin, Mail, LogIn, LogOut, UserCircle, User,
+  ShoppingCart, Menu, X, Phone, MapPin, Mail, LogIn, LogOut, UserCircle, User, LayoutDashboard,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -129,6 +129,16 @@ export function Header() {
                           <User className="h-4 w-4" />
                           My Profile
                         </Link>
+                        {user.role === "admin" && (
+                          <Link
+                            href="/admin"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-orange transition-colors border-t border-slate-50"
+                          >
+                            <LayoutDashboard className="h-4 w-4" />
+                            Admin Dashboard
+                          </Link>
+                        )}
                         <button
                           onClick={() => { signOut(); setUserMenuOpen(false); }}
                           className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-red-500 transition-colors border-t border-slate-50 cursor-pointer"
@@ -232,6 +242,16 @@ export function Header() {
                         <User className="h-4 w-4" />
                         My Profile
                       </Link>
+                      {user.role === "admin" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setMobileOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          Admin Dashboard
+                        </Link>
+                      )}
                       <button
                         onClick={() => { signOut(); setMobileOpen(false); }}
                         className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-white/60 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer"

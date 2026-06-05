@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, BookOpen, BarChart3, ArrowLeft, Wallet } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, BookOpen, BarChart3, ArrowLeft, Wallet, Home } from 'lucide-react';
 import { BackupButton } from './BackupButton';
 
 const navItems = [
@@ -20,6 +20,14 @@ export function AccountingNav() {
     <nav className="bg-slate-900 border-b border-slate-700 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center gap-0 overflow-x-auto no-scrollbar w-full">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 py-4 px-3 text-slate-400 hover:text-white text-sm whitespace-nowrap shrink-0 transition-colors"
+          >
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Home</span>
+          </Link>
+          <div className="w-px h-6 bg-slate-700 mx-1 shrink-0" />
           <Link
             href="/admin"
             className="flex items-center gap-1.5 py-4 px-3 text-slate-400 hover:text-white text-sm whitespace-nowrap shrink-0 transition-colors"
