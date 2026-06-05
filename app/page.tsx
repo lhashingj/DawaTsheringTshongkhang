@@ -6,7 +6,7 @@ import { BentoGrid } from "@/components/home/BentoGrid";
 import { CategorySection } from "@/components/home/CategorySection";
 import { StatsSection } from "@/components/home/StatsSection";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage() {
   const products = await getAllProducts();

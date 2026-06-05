@@ -1,6 +1,5 @@
 import { readFileSync } from "fs";
 import path from "path";
-import { unstable_noStore as noStore } from "next/cache";
 import { createServerClient } from "./supabase-server";
 import type { Database, Product } from "@/types";
 
@@ -21,7 +20,6 @@ async function autoSeed(supabase: ReturnType<typeof createServerClient>, product
 }
 
 export async function getAllProducts(): Promise<Product[]> {
-  noStore();
   if (!isSupabaseConfigured()) return readDbJson().products;
   const supabase = createServerClient();
   const { data, error } = await supabase.from("products").select("*").order("name");

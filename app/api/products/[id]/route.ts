@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getProductById, updateProduct, deleteProduct } from "@/lib/products";
 
+export const dynamic = "force-dynamic";
+
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params) {
@@ -31,6 +33,7 @@ export async function PUT(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
     revalidatePath("/");
+    revalidatePath("/products");
     return NextResponse.json(updated);
   } catch (err) {
     console.error("[PUT /api/products/:id]", err);
@@ -44,6 +47,7 @@ export async function DELETE(_: Request, { params }: Params) {
     const deleted = await deleteProduct(id);
     if (!deleted) return NextResponse.json({ error: "Product not found" }, { status: 404 });
     revalidatePath("/");
+    revalidatePath("/products");
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[DELETE /api/products/:id]", err);

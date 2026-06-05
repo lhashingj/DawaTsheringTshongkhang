@@ -13,20 +13,6 @@ const TRUST_ITEMS = [
   { icon: Wrench, label: "Expert Advice", sub: "Est. 2012, Paro" },
 ];
 
-const PARTICLES = [
-  { id: 0, x: 8,  y: 22, s: 3,  dur: 14, delay: 0   },
-  { id: 1, x: 22, y: 68, s: 2,  dur: 11, delay: 2   },
-  { id: 2, x: 43, y: 12, s: 4,  dur: 16, delay: 1   },
-  { id: 3, x: 68, y: 35, s: 2,  dur: 13, delay: 3   },
-  { id: 4, x: 83, y: 60, s: 3,  dur: 10, delay: 0.5 },
-  { id: 5, x: 94, y: 24, s: 2,  dur: 15, delay: 2.5 },
-  { id: 6, x: 55, y: 82, s: 3,  dur: 12, delay: 1.5 },
-  { id: 7, x: 6,  y: 55, s: 2,  dur: 14, delay: 4   },
-  { id: 8, x: 74, y: 90, s: 3,  dur: 11, delay: 3.5 },
-  { id: 9, x: 36, y: 46, s: 2,  dur: 13, delay: 0.8 },
-  { id: 10, x: 18, y: 88, s: 2, dur: 16, delay: 2.2 },
-  { id: 11, x: 90, y: 8,  s: 3, dur: 9,  delay: 1.8 },
-];
 
 export function HeroSection() {
   return (
@@ -36,16 +22,6 @@ export function HeroSection() {
       {/* Ambient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-brand-orange/6 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Floating particles */}
-      {PARTICLES.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute rounded-full bg-brand-orange/30 pointer-events-none"
-          style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.s, height: p.s }}
-          animate={{ y: [0, -22, 0], opacity: [0.2, 0.55, 0.2] }}
-          transition={{ duration: p.dur, repeat: Infinity, delay: p.delay, ease: "easeInOut" }}
-        />
-      ))}
 
       <div className="container relative z-10 pt-28 pb-16">
         <div className="max-w-4xl mx-auto text-center">

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getAllProducts, createProduct } from "@/lib/products";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const products = await getAllProducts();
@@ -36,6 +38,7 @@ export async function POST(request: Request) {
     });
 
     revalidatePath("/");
+    revalidatePath("/products");
     return NextResponse.json(product, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
