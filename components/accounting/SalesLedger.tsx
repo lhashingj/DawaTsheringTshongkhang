@@ -36,12 +36,10 @@ export function SalesLedger() {
   const [sales, setSales] = useState<(SaleRecord & { id: number })[] | null>(null);
 
   const loadSales = useCallback(async () => {
-    // One-time migration: if Supabase is empty but Dexie has data, push it up
+    const dexieSales = await db.sales.toArray();
     try {
-      const [apiSales, dexieSales] = await Promise.all([
-        salesCRUD.getAll(),
-        db.sales.toArray(),
-      ]);
+      const apiSales = await salesCRUD.getAll();
+      // One-time migration: push local Dexie data up if Supabase table is empty
       if (apiSales.length === 0 && dexieSales.length > 0) {
         for (const s of dexieSales) {
           try { await salesCRUD.create({ ...s, syncStatus: 'synced' }); } catch { /* skip duplicates */ }
@@ -51,7 +49,8 @@ export function SalesLedger() {
         setSales(apiSales);
       }
     } catch {
-      setSales([]);
+      // API unavailable (table not set up yet) — show local Dexie data as fallback
+      setSales(dexieSales as (SaleRecord & { id: number })[]);
     }
   }, []);
 

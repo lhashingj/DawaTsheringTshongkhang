@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/accounting-db';
+import { db, salesCRUD, SaleRecord } from '@/lib/accounting-db';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import Link from 'next/link';
 import {
@@ -44,12 +45,22 @@ function StatCard({ label, value, sub, color, icon: Icon }: {
 }
 
 export default function AccountingDashboard() {
-  const sales = useLiveQuery(() => db.sales.toArray(), []);
+  const [sales, setSales] = useState<(SaleRecord & { id: number })[] | null>(null);
+  useEffect(() => {
+    salesCRUD.getAll()
+      .then(setSales)
+      .catch(async () => {
+        // Fallback to Dexie if Supabase table not yet created
+        const local = await db.sales.toArray();
+        setSales(local as (SaleRecord & { id: number })[]);
+      });
+  }, []);
+
   const purchases = useLiveQuery(() => db.purchases.toArray(), []);
   const inventory = useLiveQuery(() => db.inventory.toArray(), []);
   const parties = useLiveQuery(() => db.parties.toArray(), []);
 
-  const isLoading = !sales || !purchases || !inventory || !parties;
+  const isLoading = sales === null || !purchases || !inventory || !parties;
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
