@@ -61,15 +61,17 @@ export function SalesLedger() {
     [],
   );
 
-  const filtered = (sales || []).filter(s => {
-    const matchSearch =
-      !search ||
-      s.invoiceNo.includes(search) ||
-      s.customerName?.toLowerCase().includes(search.toLowerCase());
-    const matchFrom = !filterFrom || new Date(s.timestamp) >= new Date(filterFrom);
-    const matchTo = !filterTo || new Date(s.timestamp) <= new Date(filterTo + 'T23:59:59');
-    return matchSearch && matchFrom && matchTo;
-  });
+  const filtered = (sales || [])
+    .filter(s => {
+      const matchSearch =
+        !search ||
+        s.invoiceNo.includes(search) ||
+        s.customerName?.toLowerCase().includes(search.toLowerCase());
+      const matchFrom = !filterFrom || new Date(s.timestamp) >= new Date(filterFrom);
+      const matchTo = !filterTo || new Date(s.timestamp) <= new Date(filterTo + 'T23:59:59');
+      return matchSearch && matchFrom && matchTo;
+    })
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const totalNet = filtered.reduce((s, r) => s + r.netAmount, 0);
   const totalGst = filtered.reduce((s, r) => s + r.gstAmount, 0);
