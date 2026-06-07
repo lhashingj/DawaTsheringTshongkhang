@@ -1,7 +1,10 @@
 'use client';
 
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/accounting-db';
+import { useState, useEffect } from 'react';
+import {
+  salesCRUD, purchaseCRUD, partyCRUD, inventoryCRUD, expenseCRUD, glCRUD,
+  SaleRecord, PurchaseRecord, PartyRecord, InventoryItem, ExpenseRecord, GLEntry,
+} from '@/lib/accounting-db';
 import { Download, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 
 function fmt(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -19,14 +22,21 @@ interface BSSection {
 }
 
 export function BalanceSheet() {
-  const sales      = useLiveQuery(() => db.sales.toArray(),        []);
-  const purchases  = useLiveQuery(() => db.purchases.toArray(),    []);
-  const parties    = useLiveQuery(() => db.parties.toArray(),      []);
-  const inventory  = useLiveQuery(() => db.inventory.toArray(),    []);
-  const expenses   = useLiveQuery(() => db.expenses.toArray(),     []);
-  const glEntries  = useLiveQuery(() => db.generalLedger.toArray(), []);
+  const [sales, setSales]           = useState<(SaleRecord & { id: number })[] | null>(null);
+  const [purchases, setPurchases]   = useState<(PurchaseRecord & { id: number })[] | null>(null);
+  const [parties, setParties]       = useState<(PartyRecord & { id: number })[] | null>(null);
+  const [inventory, setInventory]   = useState<(InventoryItem & { id: number })[] | null>(null);
+  const [expenses, setExpenses]     = useState<(ExpenseRecord & { id: number })[] | null>(null);
+  const [glEntries, setGlEntries]   = useState<(GLEntry & { id: number })[] | null>(null);
 
-  if (!sales || !purchases || !parties || !inventory || !expenses || !glEntries) {
+  useEffect(() => { salesCRUD.getAll().then(setSales); }, []);
+  useEffect(() => { purchaseCRUD.getAll().then(setPurchases); }, []);
+  useEffect(() => { partyCRUD.getAll().then(setParties); }, []);
+  useEffect(() => { inventoryCRUD.getAll().then(setInventory); }, []);
+  useEffect(() => { expenseCRUD.getAll().then(setExpenses); }, []);
+  useEffect(() => { glCRUD.getAll().then(setGlEntries); }, []);
+
+  if (sales === null || purchases === null || parties === null || inventory === null || expenses === null || glEntries === null) {
     return <div className="text-slate-400 text-sm p-8 text-center">Computing balance sheet…</div>;
   }
 

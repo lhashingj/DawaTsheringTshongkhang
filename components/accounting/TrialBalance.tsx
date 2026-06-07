@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/accounting-db';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import {
+  salesCRUD, purchaseCRUD, partyCRUD, expenseCRUD, glCRUD,
+  SaleRecord, PurchaseRecord, PartyRecord, ExpenseRecord, GLEntry,
+} from '@/lib/accounting-db';
 import { Scale, CheckCircle, AlertCircle, Download, RefreshCw } from 'lucide-react';
 
 interface TrialRow {
@@ -25,13 +27,22 @@ const CATEGORY_COLORS: Record<string, string> = {
 export function TrialBalance() {
   const [asOf,         setAsOf]         = useState(today());
   const [suppressZero, setSuppressZero] = useState(true);
-  const [refreshKey,   setRefreshKey]   = useState(0);
 
-  const sales      = useLiveQuery(() => db.sales.toArray(),        [refreshKey]);
-  const purchases  = useLiveQuery(() => db.purchases.toArray(),    [refreshKey]);
-  const parties    = useLiveQuery(() => db.parties.toArray(),      [refreshKey]);
-  const expenses   = useLiveQuery(() => db.expenses.toArray(),     [refreshKey]);
-  const glEntries  = useLiveQuery(() => db.generalLedger.toArray(), [refreshKey]);
+  const [sales,      setSales]      = useState<(SaleRecord & { id: number })[] | null>(null);
+  const [purchases,  setPurchases]  = useState<(PurchaseRecord & { id: number })[] | null>(null);
+  const [parties,    setParties]    = useState<(PartyRecord & { id: number })[] | null>(null);
+  const [expenses,   setExpenses]   = useState<(ExpenseRecord & { id: number })[] | null>(null);
+  const [glEntries,  setGlEntries]  = useState<(GLEntry & { id: number })[] | null>(null);
+
+  const loadAll = useCallback(() => {
+    salesCRUD.getAll().then(setSales);
+    purchaseCRUD.getAll().then(setPurchases);
+    partyCRUD.getAll().then(setParties);
+    expenseCRUD.getAll().then(setExpenses);
+    glCRUD.getAll().then(setGlEntries);
+  }, []);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   const { rows, totalDebit, totalCredit, difference, isBalanced, netGSTLiability } = useMemo(() => {
     const cutoff = asOf ? new Date(asOf + 'T23:59:59') : new Date();
@@ -121,7 +132,7 @@ export function TrialBalance() {
       ['Difference', '', difference.toFixed(2), '', '', ''],
       [],
       ['COGS Summary', '', '', '', '', ''],
-      ['Cost of Goods Sold (perpetual)', '', (glEntries || []).filter(e => e.account === 'Cost of Goods Sold' && new Date(e.timestamp) <= new Date(asOf + 'T23:59:59')).reduce((s, e) => s + e.debit, 0).toFixed(2), '', '', 'Dr'],
+      ['Cost of Goods Sold (perpetual)', '', glEntries.filter(e => e.account === 'Cost of Goods Sold' && new Date(e.timestamp) <= new Date(asOf + 'T23:59:59')).reduce((s, e) => s + e.debit, 0).toFixed(2), '', '', 'Dr'],
       [],
       ['GST Summary', '', '', '', '', ''],
       ['Net GST Payable to Govt', '', '', netGSTLiability.toFixed(2), '', 'Cr'],
@@ -133,7 +144,7 @@ export function TrialBalance() {
     XLSX.writeFile(wb, `TrialBalance_${asOf}.xlsx`);
   }
 
-  if (!sales || !purchases || !parties || !expenses || !glEntries) {
+  if (sales === null || purchases === null || parties === null || expenses === null || glEntries === null) {
     return <div className="text-slate-400 text-sm p-8 text-center">Computing trial balance…</div>;
   }
 
@@ -162,7 +173,7 @@ export function TrialBalance() {
         </label>
         <div className="flex gap-2 ml-auto pb-0.5">
           <button
-            onClick={() => setRefreshKey(k => k + 1)}
+            onClick={loadAll}
             className="flex items-center gap-1.5 border border-slate-600 hover:border-orange-500 text-slate-300 hover:text-orange-400 px-4 py-2 rounded-lg text-sm transition-colors"
           >
             <RefreshCw className="w-4 h-4" /> Refresh
@@ -281,11 +292,11 @@ export function TrialBalance() {
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div className="text-center">
             <p className="text-slate-400 text-xs mb-1">GST Collected (Output)</p>
-            <p className="text-yellow-400 font-mono font-bold text-lg">Nu. {fmt((sales || []).reduce((s, r) => s + (new Date(r.timestamp) <= new Date(asOf + 'T23:59:59') ? r.gstAmount : 0), 0))}</p>
+            <p className="text-yellow-400 font-mono font-bold text-lg">Nu. {fmt(sales.reduce((s, r) => s + (new Date(r.timestamp) <= new Date(asOf + 'T23:59:59') ? r.gstAmount : 0), 0))}</p>
           </div>
           <div className="text-center border-x border-slate-600">
             <p className="text-slate-400 text-xs mb-1">GST Input Credit</p>
-            <p className="text-blue-400 font-mono font-bold text-lg">Nu. {fmt((purchases || []).reduce((s, r) => s + (new Date(r.timestamp) <= new Date(asOf + 'T23:59:59') ? r.gstAmount : 0), 0))}</p>
+            <p className="text-blue-400 font-mono font-bold text-lg">Nu. {fmt(purchases.reduce((s, r) => s + (new Date(r.timestamp) <= new Date(asOf + 'T23:59:59') ? r.gstAmount : 0), 0))}</p>
           </div>
           <div className="text-center">
             <p className="text-slate-400 text-xs mb-1">Net GST Payable to Govt</p>

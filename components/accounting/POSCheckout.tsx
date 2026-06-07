@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  db,
   salesCRUD,
   partyCRUD,
+  inventoryCRUD,
   SaleRecord,
   SaleItem,
   InventoryItem,
@@ -67,11 +66,16 @@ export function POSCheckout() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const inventory = useLiveQuery(() => db.inventory.toArray(), []);
-  const customerParties = useLiveQuery(
-    () => db.parties.orderBy('name').filter((p: PartyRecord) => p.partyType === 'customer' || p.partyType === 'both').toArray(),
-    [],
-  );
+  const [inventory, setInventory] = useState<(InventoryItem & { id: number })[] | null>(null);
+  const [customerParties, setCustomerParties] = useState<(PartyRecord & { id: number })[] | null>(null);
+
+  const loadInventory = useCallback(() => inventoryCRUD.getAll().then(setInventory), []);
+  const loadParties   = useCallback(() =>
+    partyCRUD.getAll().then(all => setCustomerParties(all.filter(p => p.partyType === 'customer' || p.partyType === 'both'))),
+    []);
+
+  useEffect(() => { loadInventory(); }, [loadInventory]);
+  useEffect(() => { loadParties(); },   [loadParties]);
 
   function switchMode(mode: CustomerMode) {
     setCustomerMode(mode);
@@ -96,7 +100,7 @@ export function POSCheckout() {
   }, []);
 
   useEffect(() => {
-    if (itemForm.description.trim().length < 2 || !inventory) {
+    if (itemForm.description.trim().length < 2 || inventory === null) {
       setSuggestions([]);
       return;
     }
@@ -169,6 +173,7 @@ export function POSCheckout() {
       }
       const next = await salesCRUD.getNextInvoiceNo();
       setInvoiceNo(next);
+      loadInventory();
     } finally {
       setIsSaving(false);
     }

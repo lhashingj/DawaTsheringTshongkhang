@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, SaleRecord, PurchaseRecord, ExpenseRecord, ExpenseCategory } from '@/lib/accounting-db';
+import { useState, useMemo, useEffect } from 'react';
+import {
+  salesCRUD, purchaseCRUD, expenseCRUD, glCRUD,
+  SaleRecord, PurchaseRecord, ExpenseRecord, GLEntry, ExpenseCategory,
+} from '@/lib/accounting-db';
 import { Download, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = [
@@ -36,10 +38,15 @@ export function ProfitLoss() {
   const [from, setFrom] = useState(defaultRange.from);
   const [to, setTo] = useState(defaultRange.to);
 
-  const sales = useLiveQuery(() => db.sales.toArray(), []);
-  const purchases = useLiveQuery(() => db.purchases.toArray(), []);
-  const expenses = useLiveQuery(() => db.expenses.toArray(), []);
-  const glEntries = useLiveQuery(() => db.generalLedger.toArray(), []);
+  const [sales, setSales] = useState<(SaleRecord & { id: number })[] | null>(null);
+  const [purchases, setPurchases] = useState<(PurchaseRecord & { id: number })[] | null>(null);
+  const [expenses, setExpenses] = useState<(ExpenseRecord & { id: number })[] | null>(null);
+  const [glEntries, setGlEntries] = useState<(GLEntry & { id: number })[] | null>(null);
+
+  useEffect(() => { salesCRUD.getAll().then(setSales); }, []);
+  useEffect(() => { purchaseCRUD.getAll().then(setPurchases); }, []);
+  useEffect(() => { expenseCRUD.getAll().then(setExpenses); }, []);
+  useEffect(() => { glCRUD.getAll().then(setGlEntries); }, []);
 
   const { filteredSales, filteredPurchases, filteredExpenses, filteredGLCOGS } = useMemo(() => {
     const fromDate = from ? new Date(from) : new Date(0);
@@ -140,7 +147,7 @@ export function ProfitLoss() {
 
   function printPDF() { window.print(); }
 
-  if (!sales || !purchases || !expenses || !glEntries) {
+  if (sales === null || purchases === null || expenses === null || glEntries === null) {
     return <div className="text-slate-400 text-sm p-8 text-center">Computing P&L…</div>;
   }
 

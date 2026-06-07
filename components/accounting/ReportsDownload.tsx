@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/accounting-db';
+import { useState, useEffect } from 'react';
+import {
+  salesCRUD, purchaseCRUD, partyCRUD, inventoryCRUD, expenseCRUD, glCRUD,
+  SaleRecord, PurchaseRecord, PartyRecord, InventoryItem, ExpenseRecord, GLEntry,
+} from '@/lib/accounting-db';
 import {
   FileSpreadsheet, TrendingUp, Scale, Receipt,
   Loader2, Calendar, Info,
@@ -57,14 +59,21 @@ export function ReportsDownload() {
   const [loadingTB,  setLoadingTB]  = useState(false);
   const [loadingGST, setLoadingGST] = useState(false);
 
-  const sales      = useLiveQuery(() => db.sales.orderBy('timestamp').toArray(),        []);
-  const purchases  = useLiveQuery(() => db.purchases.orderBy('timestamp').toArray(),    []);
-  const parties    = useLiveQuery(() => db.parties.toArray(),                            []);
-  const inventory  = useLiveQuery(() => db.inventory.toArray(),                          []);
-  const expenses   = useLiveQuery(() => db.expenses.orderBy('date').toArray(),           []);
-  const glEntries  = useLiveQuery(() => db.generalLedger.orderBy('timestamp').toArray(), []);
+  const [sales,     setSales]     = useState<(SaleRecord & { id: number })[] | null>(null);
+  const [purchases, setPurchases] = useState<(PurchaseRecord & { id: number })[] | null>(null);
+  const [parties,   setParties]   = useState<(PartyRecord & { id: number })[] | null>(null);
+  const [inventory, setInventory] = useState<(InventoryItem & { id: number })[] | null>(null);
+  const [expenses,  setExpenses]  = useState<(ExpenseRecord & { id: number })[] | null>(null);
+  const [glEntries, setGlEntries] = useState<(GLEntry & { id: number })[] | null>(null);
 
-  const isReady = !!(sales && purchases && parties && inventory && expenses && glEntries);
+  useEffect(() => { salesCRUD.getAll().then(setSales); }, []);
+  useEffect(() => { purchaseCRUD.getAll().then(setPurchases); }, []);
+  useEffect(() => { partyCRUD.getAll().then(setParties); }, []);
+  useEffect(() => { inventoryCRUD.getAll().then(setInventory); }, []);
+  useEffect(() => { expenseCRUD.getAll().then(setExpenses); }, []);
+  useEffect(() => { glCRUD.getAll().then(setGlEntries); }, []);
+
+  const isReady = sales !== null && purchases !== null && parties !== null && inventory !== null && expenses !== null && glEntries !== null;
 
   // ── Date range filter helpers ─────────────────────────────────────────────
   function inPeriod(d: Date | string) {
@@ -111,20 +120,20 @@ export function ReportsDownload() {
 
   // ── Download 1 — Profit & Loss ────────────────────────────────────────────
   async function downloadPnL() {
-    if (!isReady) return;
+    if (!isReady || sales === null || purchases === null || expenses === null || glEntries === null) return;
     setLoadingPnL(true);
     try {
       const XLSX = await import('xlsx');
       const periodStr = `Period: ${fmtDate(from)} to ${fmtDate(to)}`;
 
-      const fSales     = sales!.filter(s => inPeriod(s.timestamp));
-      const fPurchases = purchases!.filter(p => inPeriod(p.timestamp));
-      const fExpenses  = expenses!.filter(e => inPeriod(e.date));
+      const fSales     = sales.filter(s => inPeriod(s.timestamp));
+      const fPurchases = purchases.filter(p => inPeriod(p.timestamp));
+      const fExpenses  = expenses.filter(e => inPeriod(e.date));
 
       const grossRevenue     = fSales.reduce((s, r) => s + r.grossAmount, 0);
       const gstCollected     = fSales.reduce((s, r) => s + r.gstAmount,   0);
       // Perpetual COGS: GL entries posted at time of each sale
-      const cogs             = glEntries!.filter(e => e.account === 'Cost of Goods Sold' && inPeriod(e.timestamp)).reduce((s, e) => s + e.debit, 0);
+      const cogs             = glEntries.filter(e => e.account === 'Cost of Goods Sold' && inPeriod(e.timestamp)).reduce((s, e) => s + e.debit, 0);
       const gstInputPurchase = fPurchases.reduce((s, r) => s + r.gstAmount,   0);
       const gstInputExpense  = fExpenses.reduce((s, e) => s + (e.inputTaxAmount ?? 0), 0);
 
@@ -221,29 +230,29 @@ export function ReportsDownload() {
 
   // ── Download 2 — Balance Sheet ────────────────────────────────────────────
   async function downloadBalanceSheet() {
-    if (!isReady) return;
+    if (!isReady || sales === null || purchases === null || parties === null || inventory === null || expenses === null) return;
     setLoadingBS(true);
     try {
       const XLSX = await import('xlsx');
       const asOf = `As of: ${fmtDate(to)}`;
 
-      const fSales     = sales!.filter(s => upToDate(s.timestamp));
-      const fPurchases = purchases!.filter(p => upToDate(p.timestamp));
-      const fExpenses  = expenses!.filter(e => upToDate(e.date));
+      const fSales     = sales.filter(s => upToDate(s.timestamp));
+      const fPurchases = purchases.filter(p => upToDate(p.timestamp));
+      const fExpenses  = expenses.filter(e => upToDate(e.date));
 
       const totalSalesNet    = fSales.reduce((s, r) => s + r.netAmount, 0);
       const totalPurchaseNet = fPurchases.reduce((s, r) => s + r.netAmount, 0);
       const totalExpPaid     = fExpenses.reduce((s, e) => s + e.amount, 0);
       const cashBalance      = Math.max(0, totalSalesNet - totalPurchaseNet - totalExpPaid);
 
-      const ar       = parties!.filter(p => p.outstandingBalance > 0).reduce((s, p) => s + p.outstandingBalance, 0);
-      const invVal   = inventory!.reduce((s, i) => s + i.stockQty * i.baseRate, 0);
+      const ar       = parties.filter(p => p.outstandingBalance > 0).reduce((s, p) => s + p.outstandingBalance, 0);
+      const invVal   = inventory.reduce((s, i) => s + i.stockQty * i.baseRate, 0);
       const gstIPur  = fPurchases.reduce((s, r) => s + r.gstAmount, 0);
       const gstIExp  = fExpenses.reduce((s, e) => s + (e.inputTaxAmount ?? 0), 0);
       const gstIC    = gstIPur + gstIExp;
       const totalA   = cashBalance + ar + invVal + gstIC;
 
-      const ap          = Math.abs(parties!.filter(p => p.outstandingBalance < 0).reduce((s, p) => s + p.outstandingBalance, 0));
+      const ap          = Math.abs(parties.filter(p => p.outstandingBalance < 0).reduce((s, p) => s + p.outstandingBalance, 0));
       const gstOut      = fSales.reduce((s, r) => s + r.gstAmount, 0);
       const netGST      = Math.max(0, gstOut - gstIC);
       const totalL      = ap + netGST;
@@ -297,15 +306,15 @@ export function ReportsDownload() {
 
   // ── Download 3 — Trial Balance ────────────────────────────────────────────
   async function downloadTrialBalance() {
-    if (!isReady) return;
+    if (!isReady || sales === null || purchases === null || parties === null || expenses === null || glEntries === null) return;
     setLoadingTB(true);
     try {
       const XLSX = await import('xlsx');
       const asOf = `As of: ${fmtDate(to)}`;
 
-      const fSales     = sales!.filter(s => upToDate(s.timestamp));
-      const fPurchases = purchases!.filter(p => upToDate(p.timestamp));
-      const fExpenses  = expenses!.filter(e => upToDate(e.date));
+      const fSales     = sales.filter(s => upToDate(s.timestamp));
+      const fPurchases = purchases.filter(p => upToDate(p.timestamp));
+      const fExpenses  = expenses.filter(e => upToDate(e.date));
 
       const totalSalesGross  = fSales.reduce((s, r) => s + r.grossAmount, 0);
       const totalSalesGST    = fSales.reduce((s, r) => s + r.gstAmount,   0);
@@ -316,10 +325,10 @@ export function ReportsDownload() {
       const expInputTax      = fExpenses.reduce((s, e) => s + (e.inputTaxAmount ?? 0), 0);
       const totalExpPaid     = fExpenses.reduce((s, e) => s + e.amount, 0);
       // Perpetual COGS from GL
-      const totalCOGS        = glEntries!.filter(e => e.account === 'Cost of Goods Sold' && upToDate(e.timestamp)).reduce((s, e) => s + e.debit, 0);
+      const totalCOGS        = glEntries.filter(e => e.account === 'Cost of Goods Sold' && upToDate(e.timestamp)).reduce((s, e) => s + e.debit, 0);
 
-      const ar  = parties!.filter(p => p.outstandingBalance > 0).reduce((s, p) => s + p.outstandingBalance, 0);
-      const ap  = Math.abs(parties!.filter(p => p.outstandingBalance < 0).reduce((s, p) => s + p.outstandingBalance, 0));
+      const ar  = parties.filter(p => p.outstandingBalance > 0).reduce((s, p) => s + p.outstandingBalance, 0);
+      const ap  = Math.abs(parties.filter(p => p.outstandingBalance < 0).reduce((s, p) => s + p.outstandingBalance, 0));
 
       const cashReceipts = Math.max(0, totalSalesNet - ar);
       const cashPayments = Math.max(0, totalPurchNet - ap) + totalExpPaid;
@@ -382,15 +391,15 @@ export function ReportsDownload() {
 
   // ── Download 4 — GST Taxation Summary ────────────────────────────────────
   async function downloadGSTSummary() {
-    if (!isReady) return;
+    if (!isReady || sales === null || purchases === null || expenses === null) return;
     setLoadingGST(true);
     try {
       const XLSX = await import('xlsx');
       const periodStr = `Period: ${fmtDate(from)} to ${fmtDate(to)}`;
 
-      const fSales     = sales!.filter(s => inPeriod(s.timestamp));
-      const fPurchases = purchases!.filter(p => inPeriod(p.timestamp));
-      const fExpenses  = expenses!.filter(e => inPeriod(e.date));
+      const fSales     = sales.filter(s => inPeriod(s.timestamp));
+      const fPurchases = purchases.filter(p => inPeriod(p.timestamp));
+      const fExpenses  = expenses.filter(e => inPeriod(e.date));
 
       const salesGross       = fSales.reduce((s, r) => s + r.grossAmount, 0);
       const gstCollected     = fSales.reduce((s, r) => s + r.gstAmount,   0);

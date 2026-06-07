@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import { TrialBalance } from '@/components/accounting/TrialBalance';
 import { TaxReport } from '@/components/accounting/TaxReport';
@@ -12,8 +12,10 @@ import { SalesReport } from '@/components/accounting/SalesReport';
 import {
   Scale, FileText, Download, TrendingUp, LayoutList, Receipt, BarChart2,
 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/accounting-db';
+import {
+  salesCRUD, purchaseCRUD, partyCRUD, inventoryCRUD, expenseCRUD,
+  SaleRecord, PurchaseRecord, PartyRecord, InventoryItem, ExpenseRecord,
+} from '@/lib/accounting-db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Tab = 'sales-report' | 'financial-statements' | 'expenses' | 'trial-balance' | 'tax-report' | 'download-reports';
@@ -38,14 +40,20 @@ function fmtInt(n: number) {
 
 // ── Full Export tab ───────────────────────────────────────────────────────────
 function FullExport() {
-  const sales     = useLiveQuery(() => db.sales.orderBy('timestamp').toArray(),     []);
-  const purchases = useLiveQuery(() => db.purchases.orderBy('timestamp').toArray(), []);
-  const parties   = useLiveQuery(() => db.parties.orderBy('name').toArray(),        []);
-  const inventory = useLiveQuery(() => db.inventory.orderBy('description').toArray(), []);
-  const expenses  = useLiveQuery(() => db.expenses.orderBy('date').toArray(),       []);
+  const [sales,     setSales]     = useState<(SaleRecord & { id: number })[] | null>(null);
+  const [purchases, setPurchases] = useState<(PurchaseRecord & { id: number })[] | null>(null);
+  const [parties,   setParties]   = useState<(PartyRecord & { id: number })[] | null>(null);
+  const [inventory, setInventory] = useState<(InventoryItem & { id: number })[] | null>(null);
+  const [expenses,  setExpenses]  = useState<(ExpenseRecord & { id: number })[] | null>(null);
+
+  useEffect(() => { salesCRUD.getAll().then(setSales); }, []);
+  useEffect(() => { purchaseCRUD.getAll().then(setPurchases); }, []);
+  useEffect(() => { partyCRUD.getAll().then(setParties); }, []);
+  useEffect(() => { inventoryCRUD.getAll().then(setInventory); }, []);
+  useEffect(() => { expenseCRUD.getAll().then(setExpenses); }, []);
 
   async function exportAll() {
-    if (!sales || !purchases || !parties || !inventory || !expenses) return;
+    if (sales === null || purchases === null || parties === null || inventory === null || expenses === null) return;
     const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
 
@@ -131,7 +139,7 @@ function FullExport() {
   }
 
   async function exportPnL() {
-    if (!sales || !purchases || !expenses) return;
+    if (sales === null || purchases === null || expenses === null) return;
     const XLSX = await import('xlsx');
     const grossRevenue = sales.reduce((s, r) => s + r.grossAmount, 0);
     const gstCollected = sales.reduce((s, r) => s + r.gstAmount, 0);
@@ -177,7 +185,7 @@ function FullExport() {
   }
 
   async function exportBalanceSheet() {
-    if (!sales || !purchases || !parties || !inventory || !expenses) return;
+    if (sales === null || purchases === null || parties === null || inventory === null || expenses === null) return;
     const XLSX = await import('xlsx');
     const totalSalesNet    = sales.reduce((s, r) => s + r.netAmount, 0);
     const totalPurchNet    = purchases.reduce((s, r) => s + r.netAmount, 0);
@@ -226,7 +234,7 @@ function FullExport() {
     XLSX.writeFile(wb, `BalanceSheet_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
-  if (!sales || !purchases || !parties || !inventory || !expenses) {
+  if (sales === null || purchases === null || parties === null || inventory === null || expenses === null) {
     return <div className="text-slate-400 text-sm p-8 text-center">Loading data…</div>;
   }
 

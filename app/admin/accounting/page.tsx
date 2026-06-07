@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, salesCRUD, SaleRecord } from '@/lib/accounting-db';
+import {
+  salesCRUD, purchaseCRUD, inventoryCRUD, partyCRUD,
+  SaleRecord, PurchaseRecord, InventoryItem, PartyRecord,
+} from '@/lib/accounting-db';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import Link from 'next/link';
 import {
@@ -45,22 +47,17 @@ function StatCard({ label, value, sub, color, icon: Icon }: {
 }
 
 export default function AccountingDashboard() {
-  const [sales, setSales] = useState<(SaleRecord & { id: number })[] | null>(null);
-  useEffect(() => {
-    salesCRUD.getAll()
-      .then(setSales)
-      .catch(async () => {
-        // Fallback to Dexie if Supabase table not yet created
-        const local = await db.sales.toArray();
-        setSales(local as (SaleRecord & { id: number })[]);
-      });
-  }, []);
+  const [sales,      setSales]      = useState<(SaleRecord & { id: number })[] | null>(null);
+  const [purchases,  setPurchases]  = useState<(PurchaseRecord & { id: number })[] | null>(null);
+  const [inventory,  setInventory]  = useState<(InventoryItem & { id: number })[] | null>(null);
+  const [parties,    setParties]    = useState<(PartyRecord & { id: number })[] | null>(null);
 
-  const purchases = useLiveQuery(() => db.purchases.toArray(), []);
-  const inventory = useLiveQuery(() => db.inventory.toArray(), []);
-  const parties = useLiveQuery(() => db.parties.toArray(), []);
+  useEffect(() => { salesCRUD.getAll().then(setSales); }, []);
+  useEffect(() => { purchaseCRUD.getAll().then(setPurchases); }, []);
+  useEffect(() => { inventoryCRUD.getAll().then(setInventory); }, []);
+  useEffect(() => { partyCRUD.getAll().then(setParties); }, []);
 
-  const isLoading = sales === null || !purchases || !inventory || !parties;
+  const isLoading = sales === null || purchases === null || inventory === null || parties === null;
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];

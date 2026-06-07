@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/accounting-db';
+import { useState, useEffect, useCallback } from 'react';
+import { salesCRUD, creditNoteCRUD } from '@/lib/accounting-db';
 import type { SaleRecord, CreditNote } from '@/lib/accounting-db';
 import { FileText, Printer, RotateCcw } from 'lucide-react';
 
@@ -505,17 +504,25 @@ export function SalesReport() {
     setShowReport(false);
   }
 
-  const sales = useLiveQuery(() => {
-    const f = new Date(from);
-    const t = new Date(to + 'T23:59:59');
-    return db.sales.where('timestamp').between(f, t, true, true).toArray();
-  }, [from, to]);
+  const [allSales, setAllSales] = useState<SaleRecord[] | null>(null);
+  const [allCreditNotes, setAllCreditNotes] = useState<CreditNote[] | null>(null);
 
-  const creditNotes = useLiveQuery(() => {
-    const f = new Date(from);
-    const t = new Date(to + 'T23:59:59');
-    return db.creditNotes.where('timestamp').between(f, t, true, true).toArray();
-  }, [from, to]);
+  const loadData = useCallback(() => {
+    salesCRUD.getAll().then(setAllSales);
+    creditNoteCRUD.getAll().then(setAllCreditNotes);
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Filter client-side by date range
+  const sales = allSales === null ? null : allSales.filter(s => {
+    const d = new Date(s.timestamp);
+    return d >= new Date(from) && d <= new Date(to + 'T23:59:59');
+  });
+  const creditNotes = allCreditNotes === null ? null : allCreditNotes.filter(cn => {
+    const d = new Date(cn.timestamp);
+    return d >= new Date(from) && d <= new Date(to + 'T23:59:59');
+  });
 
   const isReady = !!(sales && creditNotes);
 

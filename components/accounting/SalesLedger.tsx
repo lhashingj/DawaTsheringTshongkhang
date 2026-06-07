@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, salesCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
+import { db, salesCRUD, partyCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
 import { deleteSaleWithCascade, editSaleWithCascade } from '@/lib/ledger-mutations';
 import { InvoicePrint } from './InvoicePrint';
 import { Eye, Trash2, Edit2, X, Plus, ChevronDown, Search } from 'lucide-react';
@@ -56,10 +55,10 @@ export function SalesLedger() {
 
   useEffect(() => { loadSales(); }, [loadSales]);
 
-  const customerParties = useLiveQuery(
-    () => db.parties.orderBy('name').filter((p: PartyRecord) => p.partyType === 'customer' || p.partyType === 'both').toArray(),
-    [],
-  );
+  const [customerParties, setCustomerParties] = useState<(PartyRecord & { id: number })[]>([]);
+  useEffect(() => {
+    partyCRUD.getAll().then(all => setCustomerParties(all.filter(p => p.partyType === 'customer' || p.partyType === 'both')));
+  }, []);
 
   const filtered = (sales || []).filter(s => {
     const matchSearch =

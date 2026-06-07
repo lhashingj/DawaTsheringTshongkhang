@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, SaleRecord, PurchaseRecord } from '@/lib/accounting-db';
+import { useState, useEffect } from 'react';
+import {
+  salesCRUD, purchaseCRUD, expenseCRUD,
+  SaleRecord, PurchaseRecord, ExpenseRecord,
+} from '@/lib/accounting-db';
 import { Download, FileText, Calendar } from 'lucide-react';
 
 function fmtDate(d: Date | string) {
@@ -23,11 +25,15 @@ export function TaxReport() {
   const [showDetailSales, setShowDetailSales] = useState(false);
   const [showDetailPurchases, setShowDetailPurchases] = useState(false);
 
-  const allSales     = useLiveQuery(() => db.sales.orderBy('timestamp').toArray(),     []);
-  const allPurchases = useLiveQuery(() => db.purchases.orderBy('timestamp').toArray(), []);
-  const allExpenses  = useLiveQuery(() => db.expenses.toArray(),                       []);
+  const [allSales,     setAllSales]     = useState<(SaleRecord & { id: number })[] | null>(null);
+  const [allPurchases, setAllPurchases] = useState<(PurchaseRecord & { id: number })[] | null>(null);
+  const [allExpenses,  setAllExpenses]  = useState<(ExpenseRecord & { id: number })[] | null>(null);
 
-  if (!allSales || !allPurchases || !allExpenses) return <div className="text-slate-400 text-sm p-8 text-center">Loading tax data…</div>;
+  useEffect(() => { salesCRUD.getAll().then(setAllSales); }, []);
+  useEffect(() => { purchaseCRUD.getAll().then(setAllPurchases); }, []);
+  useEffect(() => { expenseCRUD.getAll().then(setAllExpenses); }, []);
+
+  if (allSales === null || allPurchases === null || allExpenses === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading tax data…</div>;
 
   const fromDate = new Date(from);
   const toDate = new Date(to + 'T23:59:59');

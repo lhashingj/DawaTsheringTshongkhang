@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, partyCRUD, PartyRecord, PartyType } from '@/lib/accounting-db';
+import { useState, useEffect, useCallback } from 'react';
+import { partyCRUD, PartyRecord, PartyType } from '@/lib/accounting-db';
 import { Plus, Trash2, Edit2, X, Search, ChevronDown, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
@@ -43,7 +42,9 @@ export function PartyLedger() {
   const [isSaving, setIsSaving] = useState(false);
   const [balanceAdj, setBalanceAdj] = useState<{ id: number; amount: string } | null>(null);
 
-  const parties = useLiveQuery(() => db.parties.orderBy('name').toArray(), []);
+  const [parties, setParties] = useState<(PartyRecord & { id: number })[] | null>(null);
+  const loadParties = useCallback(() => partyCRUD.getAll().then(setParties), []);
+  useEffect(() => { loadParties(); }, [loadParties]);
 
   const filtered = (parties || []).filter(p => {
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search) || p.tpn?.includes(search);
@@ -80,6 +81,7 @@ export function PartyLedger() {
     }
     setIsSaving(false);
     setModalMode(null);
+    loadParties();
   }
 
   async function applyBalanceAdj() {
@@ -88,16 +90,18 @@ export function PartyLedger() {
     if (isNaN(delta)) return;
     await partyCRUD.updateBalance(balanceAdj.id, delta);
     setBalanceAdj(null);
+    loadParties();
   }
 
   async function confirmDelete() {
     if (deleteId) {
       await partyCRUD.delete(deleteId);
       setDeleteId(null);
+      loadParties();
     }
   }
 
-  if (!parties) return <div className="text-slate-400 text-sm p-8 text-center">Loading party records…</div>;
+  if (parties === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading party records…</div>;
 
   return (
     <div className="space-y-4">

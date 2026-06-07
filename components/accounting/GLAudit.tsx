@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  db,
+  glCRUD,
+  partyCRUD,
   GLEntry,
   GLAccountType,
   GLTransactionType,
@@ -127,8 +127,13 @@ export function GLAudit() {
   const [partyBulkDeleting, setPartyBulkDeleting]   = useState(false);
 
   // ── Live data ───────────────────────────────────────────────────────────────
-  const glEntries = useLiveQuery(() => db.generalLedger.orderBy('timestamp').reverse().toArray(), []);
-  const parties   = useLiveQuery(() => db.parties.orderBy('name').toArray(), []);
+  const [glEntries, setGlEntries] = useState<(GLEntry & { id: number })[] | undefined>(undefined);
+  const [parties, setParties]     = useState<(PartyRecord & { id: number })[] | undefined>(undefined);
+
+  const loadGL      = useCallback(() => glCRUD.getAll().then(d => setGlEntries(d.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))), []);
+  const loadParties = useCallback(() => partyCRUD.getAll().then(setParties), []);
+
+  useEffect(() => { loadGL(); loadParties(); }, [loadGL, loadParties]);
 
   // ── GL filtered + paginated ─────────────────────────────────────────────────
   const filteredGL = useMemo(() => {
@@ -235,20 +240,23 @@ export function GLAudit() {
     setGlSaving(false);
     setEditingGL(null);
     setGlForm(null);
+    await loadGL();
   }
 
   async function confirmDeleteGL() {
     if (deletingGLId == null) return;
     await deleteGLEntryById(deletingGLId);
     setDeletingGLId(null);
+    await loadGL();
   }
 
   async function executeBulkDeleteGL() {
     setGlBulkDeleting(true);
-    await db.generalLedger.bulkDelete([...glSelectedIds]);
+    await glCRUD.bulkDelete([...glSelectedIds]);
     setGlSelectedIds(new Set());
     setGlBulkConfirm(false);
     setGlBulkDeleting(false);
+    await loadGL();
   }
 
   // ── Party handlers ──────────────────────────────────────────────────────────
@@ -263,27 +271,27 @@ export function GLAudit() {
     setPartySaving(true);
     const newBalance = parseFloat(partyBalanceInput);
     if (!isNaN(newBalance)) {
-      await db.parties.update(editingParty.id, {
-        outstandingBalance: newBalance,
-        updatedAt: new Date(),
-      });
+      await partyCRUD.update(editingParty.id, { outstandingBalance: newBalance, updatedAt: new Date() });
     }
     setPartySaving(false);
     setEditingParty(null);
+    await loadParties();
   }
 
   async function confirmDeleteParty() {
     if (deletingPartyId == null) return;
-    await db.parties.delete(deletingPartyId);
+    await partyCRUD.delete(deletingPartyId);
     setDeletingPartyId(null);
+    await loadParties();
   }
 
   async function executeBulkDeleteParties() {
     setPartyBulkDeleting(true);
-    await db.parties.bulkDelete([...partySelectedIds]);
+    await Promise.all([...partySelectedIds].map(id => partyCRUD.delete(id)));
     setPartySelectedIds(new Set());
     setPartyBulkConfirm(false);
     setPartyBulkDeleting(false);
+    await loadParties();
   }
 
   if (!glEntries || !parties) {

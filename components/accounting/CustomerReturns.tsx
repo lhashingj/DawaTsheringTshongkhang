@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  db,
   CreditNote,
   ReturnItem,
   ReturnSettlement,
   UnitType,
   InventoryItem,
+  PartyRecord,
   creditNoteCRUD,
   inventoryCRUD,
   partyCRUD,
+  glCRUD,
   postCreditNoteToGL,
 } from '@/lib/accounting-db';
 import {
@@ -71,9 +71,19 @@ export function CustomerReturns() {
   const [date, setDate]                         = useState(new Date().toISOString().slice(0, 10));
   const [items, setItems]                       = useState<ItemRow[]>([blankItem()]);
 
-  const creditNotes = useLiveQuery(() => db.creditNotes.orderBy('timestamp').reverse().toArray(), []);
-  const parties     = useLiveQuery(() => db.parties.where('partyType').anyOf(['customer', 'both']).toArray(), []);
-  const inventory   = useLiveQuery(() => db.inventory.orderBy('description').toArray(), []);
+  const [creditNotes, setCreditNotes] = useState<(CreditNote & { id: number })[] | null>(null);
+  const [parties, setParties]         = useState<(PartyRecord & { id: number })[] | null>(null);
+  const [inventory, setInventory]     = useState<(InventoryItem & { id: number })[] | null>(null);
+
+  const loadCreditNotes = useCallback(() => creditNoteCRUD.getAll().then(setCreditNotes), []);
+  const loadParties     = useCallback(() =>
+    partyCRUD.getAll().then(all => setParties(all.filter(p => p.partyType === 'customer' || p.partyType === 'both'))),
+    []);
+  const loadInventory   = useCallback(() => inventoryCRUD.getAll().then(setInventory), []);
+
+  useEffect(() => { loadCreditNotes(); }, [loadCreditNotes]);
+  useEffect(() => { loadParties(); },    [loadParties]);
+  useEffect(() => { loadInventory(); },  [loadInventory]);
 
   // ── Computed totals ────────────────────────────────────────────────────────
   const computedItems: ReturnItem[] = useMemo(() => items.map(i => ({
@@ -90,7 +100,7 @@ export function CustomerReturns() {
 
   // ── Filters ────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    if (!creditNotes) return [];
+    if (creditNotes === null) return [];
     return creditNotes.filter(cn => {
       const matchSearch =
         !search ||
@@ -181,6 +191,8 @@ export function CustomerReturns() {
     setSaving(false);
     resetForm();
     setShowModal(false);
+    loadCreditNotes();
+    loadInventory();
   }
 
   function resetForm() {
@@ -196,25 +208,26 @@ export function CustomerReturns() {
   // ── Delete credit note with cascade ───────────────────────────────────────
   async function confirmDelete() {
     if (deletingId == null) return;
-    const cn = await db.creditNotes.get(deletingId);
+    const cn = await creditNoteCRUD.getById(deletingId);
     if (cn) {
-      // Reverse inventory (remove stock again)
+      // Reverse inventory (remove stock again) — load all, filter client-side
+      const allInv = await inventoryCRUD.getAll();
       for (const item of cn.items) {
-        const inv = await db.inventory
-          .filter(i => i.description.toLowerCase().trim() === item.description.toLowerCase().trim())
-          .first();
+        const inv = allInv.find(i => i.description.toLowerCase().trim() === item.description.toLowerCase().trim());
         if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, -item.qty);
       }
       // Reverse party balance
       if (cn.partyId) await partyCRUD.updateBalance(cn.partyId, cn.netAmount);
       // Clear GL
-      await db.generalLedger.where('transactionRef').equals(cn.creditNoteNo).delete();
+      await glCRUD.deleteByRef(cn.creditNoteNo);
       await creditNoteCRUD.delete(deletingId);
     }
     setDeletingId(null);
+    loadCreditNotes();
+    loadInventory();
   }
 
-  if (!creditNotes || !parties) {
+  if (creditNotes === null || parties === null) {
     return <div className="text-slate-400 text-sm p-8 text-center animate-pulse">Loading…</div>;
   }
 

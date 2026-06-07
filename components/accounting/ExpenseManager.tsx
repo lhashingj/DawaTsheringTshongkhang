@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  db, expenseCRUD, postExpenseToGL,
+  expenseCRUD, postExpenseToGL,
   ExpenseRecord, ExpenseCategory,
 } from '@/lib/accounting-db';
 import { deleteExpenseWithCascade, editExpenseWithCascade } from '@/lib/ledger-mutations';
@@ -57,7 +56,9 @@ export function ExpenseManager() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const expenses = useLiveQuery(() => db.expenses.orderBy('date').reverse().toArray(), []);
+  const [expenses, setExpenses] = useState<(ExpenseRecord & { id: number })[] | null>(null);
+  const loadExpenses = useCallback(() => expenseCRUD.getAll().then(setExpenses), []);
+  useEffect(() => { loadExpenses(); }, [loadExpenses]);
 
   const filtered = (expenses || []).filter(e => {
     const matchSearch = !search || e.description.toLowerCase().includes(search.toLowerCase()) || e.reference?.toLowerCase().includes(search.toLowerCase());
@@ -97,15 +98,17 @@ export function ExpenseManager() {
     }
     setIsSaving(false);
     setModalMode(null);
+    loadExpenses();
   }
 
   async function confirmDelete() {
     if (deleteId == null) return;
     await deleteExpenseWithCascade(deleteId);
     setDeleteId(null);
+    loadExpenses();
   }
 
-  if (!expenses) return <div className="text-slate-400 text-sm p-8 text-center">Loading expenses…</div>;
+  if (expenses === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading expenses…</div>;
 
   return (
     <div className="space-y-4">

@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  db,
   CashBookEntry,
   CashBookType,
   cashBookCRUD,
   partyCRUD,
+  glCRUD,
   postCashBookToGL,
+  PartyRecord,
 } from '@/lib/accounting-db';
 import { numberToWords } from '@/lib/number-to-words';
 import {
@@ -257,12 +257,18 @@ export function CashBook() {
   const [toDate, setToDate]             = useState('');
   const [page, setPage]                 = useState(0);
 
-  const entries = useLiveQuery(() => db.cashBook.orderBy('timestamp').reverse().toArray(), []);
-  const parties = useLiveQuery(() => db.parties.orderBy('name').toArray(), []);
+  const [entries, setEntries] = useState<(CashBookEntry & { id: number })[] | null>(null);
+  const [parties, setParties] = useState<(PartyRecord & { id: number })[] | null>(null);
+
+  const loadEntries = useCallback(() => cashBookCRUD.getAll().then(setEntries), []);
+  const loadParties = useCallback(() => partyCRUD.getAll().then(setParties), []);
+
+  useEffect(() => { loadEntries(); }, [loadEntries]);
+  useEffect(() => { loadParties(); }, [loadParties]);
 
   // ── Filters ────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    if (!entries) return [];
+    if (entries === null) return [];
     return entries.filter(e => {
       const matchSearch =
         !search ||
@@ -319,12 +325,13 @@ export function CashBook() {
     setSaving(false);
     setShowModal(false);
     setForm(blankForm());
+    loadEntries();
   }
 
   // ── Delete with cascade ────────────────────────────────────────────────────
   async function confirmDelete() {
     if (deletingId == null) return;
-    const entry = await db.cashBook.get(deletingId);
+    const entry = await cashBookCRUD.getById(deletingId);
     if (entry) {
       // Reverse party balance
       if (entry.partyId) {
@@ -332,11 +339,12 @@ export function CashBook() {
         await partyCRUD.updateBalance(entry.partyId, delta);
       }
       // Clear GL
-      await db.generalLedger.where('transactionRef').equals(entry.voucherNo).delete();
+      await glCRUD.deleteByRef(entry.voucherNo);
       // Delete record
       await cashBookCRUD.delete(deletingId);
     }
     setDeletingId(null);
+    loadEntries();
   }
 
   // ── Party selection helper ─────────────────────────────────────────────────
@@ -348,7 +356,7 @@ export function CashBook() {
     });
   }
 
-  if (!entries || !parties) {
+  if (entries === null || parties === null) {
     return <div className="text-slate-400 text-sm p-8 text-center animate-pulse">Loading cash book…</div>;
   }
 

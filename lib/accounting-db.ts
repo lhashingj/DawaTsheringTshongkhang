@@ -130,7 +130,6 @@ export interface GLEntry {
   description: string;
 }
 
-/** Cash Book — real-time liquid cash flow tracking. */
 export interface CashBookEntry {
   id?: number;
   voucherNo: string;
@@ -144,7 +143,6 @@ export interface CashBookEntry {
   syncStatus: SyncStatus;
 }
 
-/** A single line item on a customer or supplier return note. */
 export interface ReturnItem {
   description: string;
   qty: number;
@@ -153,7 +151,6 @@ export interface ReturnItem {
   amount: number;
 }
 
-/** Credit Note — customer returns goods to us. */
 export interface CreditNote {
   id?: number;
   creditNoteNo: string;
@@ -171,7 +168,6 @@ export interface CreditNote {
   syncStatus: SyncStatus;
 }
 
-/** Debit Note — we return goods to supplier. */
 export interface DebitNote {
   id?: number;
   debitNoteNo: string;
@@ -190,7 +186,7 @@ export interface DebitNote {
 
 export const LOW_STOCK_THRESHOLD = 5;
 
-// ── Database class ────────────────────────────────────────────────────────────
+// ── Dexie (kept only for one-time local migration reads) ──────────────────────
 
 class AccountingDatabase extends Dexie {
   sales!: Table<SaleRecord, number>;
@@ -229,190 +225,275 @@ class AccountingDatabase extends Dexie {
 
 export const db = new AccountingDatabase();
 
-// ── Sales (Supabase-backed, shared across all browsers) ───────────────────────
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, init);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error((err as { error: string }).error || res.statusText);
+  }
+  return res.json() as Promise<T>;
+}
+
+// ── Sales (Supabase) ──────────────────────────────────────────────────────────
 
 export const salesCRUD = {
   async getNextInvoiceNo(): Promise<string> {
-    const res = await fetch('/api/accounting/sales?next=1');
-    if (!res.ok) throw new Error('Failed to get next invoice number');
-    const { invoiceNo } = await res.json();
-    return invoiceNo as string;
+    const { invoiceNo } = await apiFetch<{ invoiceNo: string }>('/api/accounting/sales?next=1');
+    return invoiceNo;
   },
   async create(data: Omit<SaleRecord, 'id'>): Promise<number> {
-    const res = await fetch('/api/accounting/sales', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+    const saved = await apiFetch<{ id: number }>('/api/accounting/sales', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create sale');
-    const saved = await res.json();
-    return saved.id as number;
+    return saved.id;
   },
-  async getAll(): Promise<(SaleRecord & { id: number })[]> {
-    const res = await fetch('/api/accounting/sales');
-    if (!res.ok) throw new Error('Failed to load sales');
-    return res.json();
-  },
+  getAll: () => apiFetch<(SaleRecord & { id: number })[]>('/api/accounting/sales'),
   async getById(id: number): Promise<(SaleRecord & { id: number }) | undefined> {
-    const res = await fetch(`/api/accounting/sales/${id}`);
-    if (res.status === 404) return undefined;
-    if (!res.ok) throw new Error('Failed to get sale');
-    return res.json();
+    try { return await apiFetch<SaleRecord & { id: number }>(`/api/accounting/sales/${id}`); }
+    catch { return undefined; }
   },
-  async update(id: number, data: Partial<SaleRecord>): Promise<void> {
-    const res = await fetch(`/api/accounting/sales/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Failed to update sale');
-  },
-  async delete(id: number): Promise<void> {
-    const res = await fetch(`/api/accounting/sales/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete sale');
-  },
+  update: (id: number, data: Partial<SaleRecord>) =>
+    apiFetch<void>(`/api/accounting/sales/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    }),
+  delete: (id: number) => apiFetch<void>(`/api/accounting/sales/${id}`, { method: 'DELETE' }),
   async getByDateRange(from: Date, to: Date): Promise<(SaleRecord & { id: number })[]> {
     const all = await this.getAll();
-    return all.filter(s => {
-      const t = new Date(s.timestamp);
-      return t >= from && t <= to;
-    });
+    return all.filter(s => { const t = new Date(s.timestamp); return t >= from && t <= to; });
   },
 };
 
-// ── Purchases ─────────────────────────────────────────────────────────────────
+// ── Purchases (Supabase) ──────────────────────────────────────────────────────
 
 export const purchaseCRUD = {
   async getNextPONo(): Promise<string> {
-    const count = await db.purchases.count();
-    return `PO-${String(count + 1).padStart(4, '0')}`;
+    const { purchaseOrderNo } = await apiFetch<{ purchaseOrderNo: string }>('/api/accounting/purchases?next=1');
+    return purchaseOrderNo;
   },
-  create: (data: Omit<PurchaseRecord, 'id'>) => db.purchases.add(data),
-  getAll: () => db.purchases.orderBy('timestamp').reverse().toArray(),
-  getById: (id: number) => db.purchases.get(id),
-  update: (id: number, data: Partial<PurchaseRecord>) => db.purchases.update(id, data),
-  delete: (id: number) => db.purchases.delete(id),
-  getByDateRange: (from: Date, to: Date) =>
-    db.purchases.where('timestamp').between(from, to, true, true).toArray(),
+  async create(data: Omit<PurchaseRecord, 'id'>): Promise<number> {
+    const saved = await apiFetch<{ id: number }>('/api/accounting/purchases', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    return saved.id;
+  },
+  getAll: () => apiFetch<(PurchaseRecord & { id: number })[]>('/api/accounting/purchases'),
+  async getById(id: number): Promise<(PurchaseRecord & { id: number }) | undefined> {
+    try { return await apiFetch<PurchaseRecord & { id: number }>(`/api/accounting/purchases/${id}`); }
+    catch { return undefined; }
+  },
+  update: (id: number, data: Partial<PurchaseRecord>) =>
+    apiFetch<void>(`/api/accounting/purchases/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    }),
+  delete: (id: number) => apiFetch<void>(`/api/accounting/purchases/${id}`, { method: 'DELETE' }),
+  async getByDateRange(from: Date, to: Date): Promise<(PurchaseRecord & { id: number })[]> {
+    const all = await this.getAll();
+    return all.filter(p => { const t = new Date(p.timestamp); return t >= from && t <= to; });
+  },
 };
 
-// ── Parties ───────────────────────────────────────────────────────────────────
+// ── Parties (Supabase) ────────────────────────────────────────────────────────
 
 export const partyCRUD = {
-  create: (data: Omit<PartyRecord, 'id'>) => db.parties.add(data),
-  getAll: () => db.parties.orderBy('name').toArray(),
-  getById: (id: number) => db.parties.get(id),
-  update: (id: number, data: Partial<PartyRecord>) => db.parties.update(id, data),
-  delete: (id: number) => db.parties.delete(id),
-  async updateBalance(id: number, delta: number) {
-    const party = await db.parties.get(id);
-    if (party) {
-      await db.parties.update(id, {
-        outstandingBalance: party.outstandingBalance + delta,
-        updatedAt: new Date(),
-      });
-    }
+  async create(data: Omit<PartyRecord, 'id'>): Promise<number> {
+    const saved = await apiFetch<{ id: number }>('/api/accounting/parties', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    return saved.id;
   },
+  getAll: () => apiFetch<(PartyRecord & { id: number })[]>('/api/accounting/parties'),
+  async getById(id: number): Promise<(PartyRecord & { id: number }) | undefined> {
+    try { return await apiFetch<PartyRecord & { id: number }>(`/api/accounting/parties/${id}`); }
+    catch { return undefined; }
+  },
+  update: (id: number, data: Partial<PartyRecord>) =>
+    apiFetch<void>(`/api/accounting/parties/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    }),
+  delete: (id: number) => apiFetch<void>(`/api/accounting/parties/${id}`, { method: 'DELETE' }),
+  updateBalance: (id: number, delta: number) =>
+    apiFetch<void>(`/api/accounting/parties/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outstandingBalanceDelta: delta }),
+    }),
 };
 
-// ── Inventory ─────────────────────────────────────────────────────────────────
+// ── Inventory (Supabase) ──────────────────────────────────────────────────────
 
 export const inventoryCRUD = {
-  create: (data: Omit<InventoryItem, 'id'>) => db.inventory.add(data),
-  getAll: () => db.inventory.orderBy('description').toArray(),
-  getById: (id: number) => db.inventory.get(id),
-  update: (id: number, data: Partial<InventoryItem>) => db.inventory.update(id, data),
-  delete: (id: number) => db.inventory.delete(id),
-  async adjustStock(id: number, delta: number) {
-    const item = await db.inventory.get(id);
-    if (item) {
-      await db.inventory.update(id, {
-        stockQty: Math.max(0, item.stockQty + delta),
-        lastUpdated: new Date(),
-      });
-    }
+  async create(data: Omit<InventoryItem, 'id'>): Promise<number> {
+    const saved = await apiFetch<{ id: number }>('/api/accounting/inventory', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    return saved.id;
+  },
+  getAll: () => apiFetch<(InventoryItem & { id: number })[]>('/api/accounting/inventory'),
+  async getById(id: number): Promise<(InventoryItem & { id: number }) | undefined> {
+    try { return await apiFetch<InventoryItem & { id: number }>(`/api/accounting/inventory/${id}`); }
+    catch { return undefined; }
+  },
+  update: (id: number, data: Partial<InventoryItem>) =>
+    apiFetch<void>(`/api/accounting/inventory/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    }),
+  delete: (id: number) => apiFetch<void>(`/api/accounting/inventory/${id}`, { method: 'DELETE' }),
+  adjustStock: (id: number, delta: number) =>
+    apiFetch<void>(`/api/accounting/inventory/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stockDelta: delta }),
+    }),
+};
+
+// ── Expenses (Supabase) ───────────────────────────────────────────────────────
+
+export const expenseCRUD = {
+  async create(data: Omit<ExpenseRecord, 'id'>): Promise<number> {
+    const saved = await apiFetch<{ id: number }>('/api/accounting/expenses', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    return saved.id;
+  },
+  getAll: () => apiFetch<(ExpenseRecord & { id: number })[]>('/api/accounting/expenses'),
+  async getById(id: number): Promise<(ExpenseRecord & { id: number }) | undefined> {
+    try { return await apiFetch<ExpenseRecord & { id: number }>(`/api/accounting/expenses/${id}`); }
+    catch { return undefined; }
+  },
+  update: (id: number, data: Partial<ExpenseRecord>) =>
+    apiFetch<void>(`/api/accounting/expenses/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    }),
+  delete: (id: number) => apiFetch<void>(`/api/accounting/expenses/${id}`, { method: 'DELETE' }),
+  async getByDateRange(from: Date, to: Date): Promise<(ExpenseRecord & { id: number })[]> {
+    const all = await this.getAll();
+    return all.filter(e => { const t = new Date(e.date); return t >= from && t <= to; });
   },
 };
 
-// ── Expenses ──────────────────────────────────────────────────────────────────
-
-export const expenseCRUD = {
-  create: (data: Omit<ExpenseRecord, 'id'>) => db.expenses.add(data),
-  getAll: () => db.expenses.orderBy('date').reverse().toArray(),
-  getById: (id: number) => db.expenses.get(id),
-  update: (id: number, data: Partial<ExpenseRecord>) => db.expenses.update(id, data),
-  delete: (id: number) => db.expenses.delete(id),
-  getByDateRange: (from: Date, to: Date) =>
-    db.expenses.where('date').between(from, to, true, true).toArray(),
-};
-
-// ── Payments ──────────────────────────────────────────────────────────────────
+// ── Payments (Supabase) ───────────────────────────────────────────────────────
 
 export const paymentCRUD = {
-  create: (data: Omit<PaymentRecord, 'id'>) => db.payments.add(data),
-  getAll: () => db.payments.orderBy('timestamp').reverse().toArray(),
-  getById: (id: number) => db.payments.get(id),
-  update: (id: number, data: Partial<PaymentRecord>) => db.payments.update(id, data),
-  delete: (id: number) => db.payments.delete(id),
+  async create(data: Omit<PaymentRecord, 'id'>): Promise<number> {
+    const saved = await apiFetch<{ id: number }>('/api/accounting/payments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    return saved.id;
+  },
+  getAll: () => apiFetch<(PaymentRecord & { id: number })[]>('/api/accounting/payments'),
+  async getById(id: number): Promise<(PaymentRecord & { id: number }) | undefined> {
+    try { return await apiFetch<PaymentRecord & { id: number }>(`/api/accounting/payments/${id}`); }
+    catch { return undefined; }
+  },
+  update: (id: number, data: Partial<PaymentRecord>) =>
+    apiFetch<void>(`/api/accounting/payments/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    }),
+  delete: (id: number) => apiFetch<void>(`/api/accounting/payments/${id}`, { method: 'DELETE' }),
   getByParty: (partyId: number) =>
-    db.payments.where('partyId').equals(partyId).reverse().sortBy('timestamp'),
+    apiFetch<(PaymentRecord & { id: number })[]>(`/api/accounting/payments?partyId=${partyId}`),
 };
 
-// ── Cash Book ─────────────────────────────────────────────────────────────────
+// ── General Ledger (Supabase) ─────────────────────────────────────────────────
+
+export const glCRUD = {
+  getAll: () => apiFetch<(GLEntry & { id: number })[]>('/api/accounting/general-ledger'),
+  async bulkAdd(entries: Omit<GLEntry, 'id'>[]): Promise<void> {
+    await apiFetch<void>('/api/accounting/general-ledger', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entries),
+    });
+  },
+  async deleteByRef(transactionRef: string): Promise<void> {
+    await apiFetch<void>(`/api/accounting/general-ledger?ref=${encodeURIComponent(transactionRef)}`, { method: 'DELETE' });
+  },
+  async bulkDelete(ids: number[]): Promise<void> {
+    if (ids.length === 0) return;
+    await apiFetch<void>(`/api/accounting/general-ledger?ids=${ids.join(',')}`, { method: 'DELETE' });
+  },
+  update: (id: number, data: Partial<GLEntry>) =>
+    apiFetch<void>(`/api/accounting/general-ledger/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    }),
+  delete: (id: number) => apiFetch<void>(`/api/accounting/general-ledger/${id}`, { method: 'DELETE' }),
+};
+
+// ── Cash Book (Supabase) ──────────────────────────────────────────────────────
 
 export const cashBookCRUD = {
   async getNextVoucherNo(): Promise<string> {
-    const count = await db.cashBook.count();
-    return `CB-${String(count + 1).padStart(4, '0')}`;
+    const { voucherNo } = await apiFetch<{ voucherNo: string }>('/api/accounting/cash-book?next=1');
+    return voucherNo;
   },
-  create: (data: Omit<CashBookEntry, 'id'>) => db.cashBook.add(data),
-  getAll: () => db.cashBook.orderBy('timestamp').reverse().toArray(),
-  getById: (id: number) => db.cashBook.get(id),
-  update: (id: number, data: Partial<CashBookEntry>) => db.cashBook.update(id, data),
-  delete: (id: number) => db.cashBook.delete(id),
+  async create(data: Omit<CashBookEntry, 'id'>): Promise<number> {
+    const saved = await apiFetch<{ id: number }>('/api/accounting/cash-book', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    return saved.id;
+  },
+  getAll: () => apiFetch<(CashBookEntry & { id: number })[]>('/api/accounting/cash-book'),
+  async getById(id: number): Promise<(CashBookEntry & { id: number }) | undefined> {
+    try { return await apiFetch<CashBookEntry & { id: number }>(`/api/accounting/cash-book/${id}`); }
+    catch { return undefined; }
+  },
+  update: (id: number, data: Partial<CashBookEntry>) =>
+    apiFetch<void>(`/api/accounting/cash-book/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    }),
+  delete: (id: number) => apiFetch<void>(`/api/accounting/cash-book/${id}`, { method: 'DELETE' }),
 };
 
-// ── Credit Notes (Customer Returns) ──────────────────────────────────────────
+// ── Credit Notes (Supabase) ───────────────────────────────────────────────────
 
 export const creditNoteCRUD = {
   async getNextCNNo(): Promise<string> {
-    const count = await db.creditNotes.count();
-    return `CN-${String(count + 1).padStart(4, '0')}`;
+    const { creditNoteNo } = await apiFetch<{ creditNoteNo: string }>('/api/accounting/credit-notes?next=1');
+    return creditNoteNo;
   },
-  create: (data: Omit<CreditNote, 'id'>) => db.creditNotes.add(data),
-  getAll: () => db.creditNotes.orderBy('timestamp').reverse().toArray(),
-  getById: (id: number) => db.creditNotes.get(id),
-  delete: (id: number) => db.creditNotes.delete(id),
+  async create(data: Omit<CreditNote, 'id'>): Promise<number> {
+    const saved = await apiFetch<{ id: number }>('/api/accounting/credit-notes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    return saved.id;
+  },
+  getAll: () => apiFetch<(CreditNote & { id: number })[]>('/api/accounting/credit-notes'),
+  async getById(id: number): Promise<(CreditNote & { id: number }) | undefined> {
+    try { return await apiFetch<CreditNote & { id: number }>(`/api/accounting/credit-notes/${id}`); }
+    catch { return undefined; }
+  },
+  delete: (id: number) => apiFetch<void>(`/api/accounting/credit-notes/${id}`, { method: 'DELETE' }),
 };
 
-// ── Debit Notes (Supplier Returns) ───────────────────────────────────────────
+// ── Debit Notes (Supabase) ────────────────────────────────────────────────────
 
 export const debitNoteCRUD = {
   async getNextDNNo(): Promise<string> {
-    const count = await db.debitNotes.count();
-    return `DN-${String(count + 1).padStart(4, '0')}`;
+    const { debitNoteNo } = await apiFetch<{ debitNoteNo: string }>('/api/accounting/debit-notes?next=1');
+    return debitNoteNo;
   },
-  create: (data: Omit<DebitNote, 'id'>) => db.debitNotes.add(data),
-  getAll: () => db.debitNotes.orderBy('timestamp').reverse().toArray(),
-  getById: (id: number) => db.debitNotes.get(id),
-  delete: (id: number) => db.debitNotes.delete(id),
+  async create(data: Omit<DebitNote, 'id'>): Promise<number> {
+    const saved = await apiFetch<{ id: number }>('/api/accounting/debit-notes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    });
+    return saved.id;
+  },
+  getAll: () => apiFetch<(DebitNote & { id: number })[]>('/api/accounting/debit-notes'),
+  async getById(id: number): Promise<(DebitNote & { id: number }) | undefined> {
+    try { return await apiFetch<DebitNote & { id: number }>(`/api/accounting/debit-notes/${id}`); }
+    catch { return undefined; }
+  },
+  delete: (id: number) => apiFetch<void>(`/api/accounting/debit-notes/${id}`, { method: 'DELETE' }),
 };
 
-// ── Inventory automation ──────────────────────────────────────────────────────
+// ── Inventory fuzzy search (client-side, loads all from API) ──────────────────
 
-async function findInventoryItem(description: string): Promise<InventoryItem | undefined> {
+async function findInventoryItem(description: string): Promise<(InventoryItem & { id: number }) | undefined> {
+  const all = await inventoryCRUD.getAll();
   const q = description.toLowerCase().trim();
-  const exact = await db.inventory
-    .filter(i => i.description.toLowerCase().trim() === q)
-    .first();
+  const exact = all.find(i => i.description.toLowerCase().trim() === q);
   if (exact) return exact;
-  return db.inventory
-    .filter(
-      i =>
-        i.description.toLowerCase().includes(q) ||
-        q.includes(i.description.toLowerCase().trim()),
-    )
-    .first();
+  return all.find(
+    i => i.description.toLowerCase().includes(q) || q.includes(i.description.toLowerCase().trim()),
+  );
 }
 
 export async function autoDecrementStock(items: SaleItem[]): Promise<void> {
@@ -429,12 +510,6 @@ export async function autoIncrementStock(items: PurchaseItem[]): Promise<void> {
   }
 }
 
-/**
- * Decrements inventory stock AND posts the perpetual COGS double-entry to the GL.
- *   DR  Cost of Goods Sold  (expense) = qty × unitCost
- *   CR  Inventory / COGS    (asset)   = qty × unitCost
- * Falls back to 60 % of retail rate if no baseRate is on record.
- */
 export async function decrementStockAndPostCOGS(
   items: SaleItem[],
   invoiceNo: string,
@@ -447,13 +522,7 @@ export async function decrementStockAndPostCOGS(
     if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, -item.qty);
 
     let unitCost = inv?.baseRate ?? 0;
-    if (unitCost <= 0) {
-      unitCost = item.rate * 0.60;
-      console.warn(
-        `[COGS] No purchase cost for "${item.description}" — ` +
-        `fallback 60% of retail: Nu.${unitCost.toFixed(2)}`,
-      );
-    }
+    if (unitCost <= 0) unitCost = item.rate * 0.60;
 
     const cogsCost = Math.round(unitCost * item.qty * 100) / 100;
     if (cogsCost > 0) {
@@ -474,7 +543,7 @@ export async function decrementStockAndPostCOGS(
     }
   }
 
-  if (cogsEntries.length > 0) await db.generalLedger.bulkAdd(cogsEntries);
+  if (cogsEntries.length > 0) await glCRUD.bulkAdd(cogsEntries);
 }
 
 // ── General Ledger posting ────────────────────────────────────────────────────
@@ -482,51 +551,21 @@ export async function decrementStockAndPostCOGS(
 export async function postSaleToGL(sale: SaleRecord & { id: number }): Promise<void> {
   const ts = new Date(sale.timestamp);
   const label = `${sale.customerName || 'Cash Customer'} — Inv #${sale.invoiceNo}`;
-  await db.generalLedger.bulkAdd([
-    {
-      timestamp: ts, transactionRef: sale.invoiceNo, transactionType: 'sale',
-      account: 'Cash / Bank', accountType: 'asset',
-      debit: sale.netAmount, credit: 0,
-      description: `Cash received — ${label}`,
-    },
-    {
-      timestamp: ts, transactionRef: sale.invoiceNo, transactionType: 'sale',
-      account: 'Sales Revenue', accountType: 'revenue',
-      debit: 0, credit: sale.grossAmount,
-      description: `Gross revenue — ${label}`,
-    },
-    {
-      timestamp: ts, transactionRef: sale.invoiceNo, transactionType: 'sale',
-      account: 'GST Collected (5%)', accountType: 'liability',
-      debit: 0, credit: sale.gstAmount,
-      description: `GST 5% collected — ${label}`,
-    },
-  ] as Omit<GLEntry, 'id'>[]);
+  await glCRUD.bulkAdd([
+    { timestamp: ts, transactionRef: sale.invoiceNo, transactionType: 'sale', account: 'Cash / Bank', accountType: 'asset', debit: sale.netAmount, credit: 0, description: `Cash received — ${label}` },
+    { timestamp: ts, transactionRef: sale.invoiceNo, transactionType: 'sale', account: 'Sales Revenue', accountType: 'revenue', debit: 0, credit: sale.grossAmount, description: `Gross revenue — ${label}` },
+    { timestamp: ts, transactionRef: sale.invoiceNo, transactionType: 'sale', account: 'GST Collected (5%)', accountType: 'liability', debit: 0, credit: sale.gstAmount, description: `GST 5% collected — ${label}` },
+  ]);
 }
 
 export async function postPurchaseToGL(purchase: PurchaseRecord & { id: number }): Promise<void> {
   const ts = new Date(purchase.timestamp);
   const label = `${purchase.supplierName} — ${purchase.purchaseOrderNo}`;
-  await db.generalLedger.bulkAdd([
-    {
-      timestamp: ts, transactionRef: purchase.purchaseOrderNo, transactionType: 'purchase',
-      account: 'Inventory / COGS', accountType: 'asset',
-      debit: purchase.grossAmount, credit: 0,
-      description: `Stock purchased — ${label}`,
-    },
-    {
-      timestamp: ts, transactionRef: purchase.purchaseOrderNo, transactionType: 'purchase',
-      account: 'GST Input Credit', accountType: 'asset',
-      debit: purchase.gstAmount, credit: 0,
-      description: `GST input credit — ${label}`,
-    },
-    {
-      timestamp: ts, transactionRef: purchase.purchaseOrderNo, transactionType: 'purchase',
-      account: 'Cash / Bank', accountType: 'asset',
-      debit: 0, credit: purchase.netAmount,
-      description: `Cash paid — ${label}`,
-    },
-  ] as Omit<GLEntry, 'id'>[]);
+  await glCRUD.bulkAdd([
+    { timestamp: ts, transactionRef: purchase.purchaseOrderNo, transactionType: 'purchase', account: 'Inventory / COGS', accountType: 'asset', debit: purchase.grossAmount, credit: 0, description: `Stock purchased — ${label}` },
+    { timestamp: ts, transactionRef: purchase.purchaseOrderNo, transactionType: 'purchase', account: 'GST Input Credit', accountType: 'asset', debit: purchase.gstAmount, credit: 0, description: `GST input credit — ${label}` },
+    { timestamp: ts, transactionRef: purchase.purchaseOrderNo, transactionType: 'purchase', account: 'Cash / Bank', accountType: 'asset', debit: 0, credit: purchase.netAmount, description: `Cash paid — ${label}` },
+  ]);
 }
 
 export async function postExpenseToGL(expense: ExpenseRecord & { id: number }): Promise<void> {
@@ -536,122 +575,48 @@ export async function postExpenseToGL(expense: ExpenseRecord & { id: number }): 
   const netExpense = expense.amount - inputTax;
 
   const entries: Omit<GLEntry, 'id'>[] = [
-    {
-      timestamp: ts, transactionRef: ref, transactionType: 'expense',
-      account: expense.category, accountType: 'expense',
-      debit: netExpense, credit: 0,
-      description: expense.description,
-    },
-    {
-      timestamp: ts, transactionRef: ref, transactionType: 'expense',
-      account: 'Cash / Bank', accountType: 'asset',
-      debit: 0, credit: expense.amount,
-      description: `Expense paid — ${expense.description}`,
-    },
+    { timestamp: ts, transactionRef: ref, transactionType: 'expense', account: expense.category, accountType: 'expense', debit: netExpense, credit: 0, description: expense.description },
+    { timestamp: ts, transactionRef: ref, transactionType: 'expense', account: 'Cash / Bank', accountType: 'asset', debit: 0, credit: expense.amount, description: `Expense paid — ${expense.description}` },
   ];
-
   if (inputTax > 0) {
-    entries.push({
-      timestamp: ts, transactionRef: ref, transactionType: 'expense',
-      account: 'GST Input Credit', accountType: 'asset',
-      debit: inputTax, credit: 0,
-      description: `GST input credit on expense — ${expense.description}`,
-    });
+    entries.push({ timestamp: ts, transactionRef: ref, transactionType: 'expense', account: 'GST Input Credit', accountType: 'asset', debit: inputTax, credit: 0, description: `GST input credit on expense — ${expense.description}` });
   }
-
-  await db.generalLedger.bulkAdd(entries);
+  await glCRUD.bulkAdd(entries);
 }
 
-export async function postPaymentToGL(
-  payment: PaymentRecord & { id: number },
-  partyName: string,
-): Promise<void> {
+export async function postPaymentToGL(payment: PaymentRecord & { id: number }, partyName: string): Promise<void> {
   const ts = new Date(payment.timestamp);
   const ref = `PAY-${payment.id}`;
   if (payment.direction === 'in') {
-    await db.generalLedger.bulkAdd([
-      {
-        timestamp: ts, transactionRef: ref, transactionType: 'payment',
-        account: 'Cash / Bank', accountType: 'asset',
-        debit: payment.amount, credit: 0,
-        description: `Payment received from ${partyName} (${payment.mode})`,
-      },
-      {
-        timestamp: ts, transactionRef: ref, transactionType: 'payment',
-        account: 'Accounts Receivable', accountType: 'asset',
-        debit: 0, credit: payment.amount,
-        description: `Payment received from ${partyName} (${payment.mode})`,
-      },
-    ] as Omit<GLEntry, 'id'>[]);
+    await glCRUD.bulkAdd([
+      { timestamp: ts, transactionRef: ref, transactionType: 'payment', account: 'Cash / Bank', accountType: 'asset', debit: payment.amount, credit: 0, description: `Payment received from ${partyName} (${payment.mode})` },
+      { timestamp: ts, transactionRef: ref, transactionType: 'payment', account: 'Accounts Receivable', accountType: 'asset', debit: 0, credit: payment.amount, description: `Payment received from ${partyName} (${payment.mode})` },
+    ]);
   } else {
-    await db.generalLedger.bulkAdd([
-      {
-        timestamp: ts, transactionRef: ref, transactionType: 'payment',
-        account: 'Accounts Payable', accountType: 'liability',
-        debit: payment.amount, credit: 0,
-        description: `Payment made to ${partyName} (${payment.mode})`,
-      },
-      {
-        timestamp: ts, transactionRef: ref, transactionType: 'payment',
-        account: 'Cash / Bank', accountType: 'asset',
-        debit: 0, credit: payment.amount,
-        description: `Payment made to ${partyName} (${payment.mode})`,
-      },
-    ] as Omit<GLEntry, 'id'>[]);
+    await glCRUD.bulkAdd([
+      { timestamp: ts, transactionRef: ref, transactionType: 'payment', account: 'Accounts Payable', accountType: 'liability', debit: payment.amount, credit: 0, description: `Payment made to ${partyName} (${payment.mode})` },
+      { timestamp: ts, transactionRef: ref, transactionType: 'payment', account: 'Cash / Bank', accountType: 'asset', debit: 0, credit: payment.amount, description: `Payment made to ${partyName} (${payment.mode})` },
+    ]);
   }
 }
 
-/**
- * Cash Book GL posting.
- *   Received: DR Cash/Bank · CR Accounts Receivable
- *   Payment:  DR Accounts Payable · CR Cash/Bank
- */
 export async function postCashBookToGL(entry: CashBookEntry & { id: number }): Promise<void> {
   const ts = new Date(entry.timestamp);
   const ref = entry.voucherNo;
   const label = `${entry.partyName}${entry.reference ? ` — ${entry.reference}` : ''}`;
-
   if (entry.type === 'received') {
-    await db.generalLedger.bulkAdd([
-      {
-        timestamp: ts, transactionRef: ref, transactionType: 'payment',
-        account: 'Cash / Bank', accountType: 'asset',
-        debit: entry.amount, credit: 0,
-        description: `Cash received — ${label}`,
-      },
-      {
-        timestamp: ts, transactionRef: ref, transactionType: 'payment',
-        account: 'Accounts Receivable', accountType: 'asset',
-        debit: 0, credit: entry.amount,
-        description: `Cash received — ${label}`,
-      },
-    ] as Omit<GLEntry, 'id'>[]);
+    await glCRUD.bulkAdd([
+      { timestamp: ts, transactionRef: ref, transactionType: 'payment', account: 'Cash / Bank', accountType: 'asset', debit: entry.amount, credit: 0, description: `Cash received — ${label}` },
+      { timestamp: ts, transactionRef: ref, transactionType: 'payment', account: 'Accounts Receivable', accountType: 'asset', debit: 0, credit: entry.amount, description: `Cash received — ${label}` },
+    ]);
   } else {
-    await db.generalLedger.bulkAdd([
-      {
-        timestamp: ts, transactionRef: ref, transactionType: 'payment',
-        account: 'Accounts Payable', accountType: 'liability',
-        debit: entry.amount, credit: 0,
-        description: `Cash paid — ${label}`,
-      },
-      {
-        timestamp: ts, transactionRef: ref, transactionType: 'payment',
-        account: 'Cash / Bank', accountType: 'asset',
-        debit: 0, credit: entry.amount,
-        description: `Cash paid — ${label}`,
-      },
-    ] as Omit<GLEntry, 'id'>[]);
+    await glCRUD.bulkAdd([
+      { timestamp: ts, transactionRef: ref, transactionType: 'payment', account: 'Accounts Payable', accountType: 'liability', debit: entry.amount, credit: 0, description: `Cash paid — ${label}` },
+      { timestamp: ts, transactionRef: ref, transactionType: 'payment', account: 'Cash / Bank', accountType: 'asset', debit: 0, credit: entry.amount, description: `Cash paid — ${label}` },
+    ]);
   }
 }
 
-/**
- * Credit Note GL posting (customer return).
- *   DR Sales Revenue        (revenue)    grossAmount   ← reverse sales
- *   DR GST Collected (5%)   (liability)  gstAmount     ← reverse GST liability
- *   CR Cash/Bank or AR      (asset)      netAmount     ← refund or ledger credit
- *   DR Inventory/COGS       (asset)      costAmount    ← goods back in stock (per item)
- *   CR Cost of Goods Sold   (expense)    costAmount    ← COGS reversed (per item)
- */
 export async function postCreditNoteToGL(cn: CreditNote & { id: number }): Promise<void> {
   const ts = new Date(cn.timestamp);
   const ref = cn.creditNoteNo;
@@ -659,81 +624,33 @@ export async function postCreditNoteToGL(cn: CreditNote & { id: number }): Promi
   const creditAccount = cn.settlementType === 'cash' ? 'Cash / Bank' : 'Accounts Receivable';
 
   const entries: Omit<GLEntry, 'id'>[] = [
-    {
-      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
-      account: 'Sales Revenue', accountType: 'revenue',
-      debit: cn.grossAmount, credit: 0,
-      description: `Customer return — revenue reversed — ${label}`,
-    },
-    {
-      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
-      account: 'GST Collected (5%)', accountType: 'liability',
-      debit: cn.gstAmount, credit: 0,
-      description: `Customer return — GST liability reversed — ${label}`,
-    },
-    {
-      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
-      account: creditAccount, accountType: 'asset',
-      debit: 0, credit: cn.netAmount,
-      description: `Customer return — ${cn.settlementType === 'cash' ? 'cash refund' : 'ledger credit'} — ${label}`,
-    },
+    { timestamp: ts, transactionRef: ref, transactionType: 'adjustment', account: 'Sales Revenue', accountType: 'revenue', debit: cn.grossAmount, credit: 0, description: `Customer return — revenue reversed — ${label}` },
+    { timestamp: ts, transactionRef: ref, transactionType: 'adjustment', account: 'GST Collected (5%)', accountType: 'liability', debit: cn.gstAmount, credit: 0, description: `Customer return — GST liability reversed — ${label}` },
+    { timestamp: ts, transactionRef: ref, transactionType: 'adjustment', account: creditAccount, accountType: 'asset', debit: 0, credit: cn.netAmount, description: `Customer return — ${cn.settlementType === 'cash' ? 'cash refund' : 'ledger credit'} — ${label}` },
   ];
 
-  // Reverse COGS per item
   for (const item of cn.items) {
     const inv = await findInventoryItem(item.description);
     const unitCost = (inv?.baseRate ?? 0) > 0 ? inv!.baseRate : item.rate * 0.60;
     const costAmount = Math.round(unitCost * item.qty * 100) / 100;
     if (costAmount > 0) {
       entries.push(
-        {
-          timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
-          account: 'Inventory / COGS', accountType: 'asset',
-          debit: costAmount, credit: 0,
-          description: `Return — stock restored — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})`,
-        },
-        {
-          timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
-          account: 'Cost of Goods Sold', accountType: 'expense',
-          debit: 0, credit: costAmount,
-          description: `Return — COGS reversed — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})`,
-        },
+        { timestamp: ts, transactionRef: ref, transactionType: 'adjustment', account: 'Inventory / COGS', accountType: 'asset', debit: costAmount, credit: 0, description: `Return — stock restored — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})` },
+        { timestamp: ts, transactionRef: ref, transactionType: 'adjustment', account: 'Cost of Goods Sold', accountType: 'expense', debit: 0, credit: costAmount, description: `Return — COGS reversed — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})` },
       );
     }
   }
 
-  await db.generalLedger.bulkAdd(entries);
+  await glCRUD.bulkAdd(entries);
 }
 
-/**
- * Debit Note GL posting (supplier return).
- *   DR Accounts Payable   (liability) netAmount     ← reduce what we owe supplier
- *   CR Inventory/COGS     (asset)     grossAmount   ← remove stock value
- *   CR GST Input Credit   (asset)     gstAmount     ← reverse input credit we claimed
- */
 export async function postDebitNoteToGL(dn: DebitNote & { id: number }): Promise<void> {
   const ts = new Date(dn.timestamp);
   const ref = dn.debitNoteNo;
   const label = `${dn.partyName} — ${dn.debitNoteNo}`;
-
-  await db.generalLedger.bulkAdd([
-    {
-      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
-      account: 'Accounts Payable', accountType: 'liability',
-      debit: dn.netAmount, credit: 0,
-      description: `Supplier return — AP reduced — ${label}`,
-    },
-    {
-      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
-      account: 'Inventory / COGS', accountType: 'asset',
-      debit: 0, credit: dn.grossAmount,
-      description: `Supplier return — stock removed — ${label}`,
-    },
-    {
-      timestamp: ts, transactionRef: ref, transactionType: 'adjustment',
-      account: 'GST Input Credit', accountType: 'asset',
-      debit: 0, credit: dn.gstAmount,
-      description: `Supplier return — GST input credit reversed — ${label}`,
-    },
-  ] as Omit<GLEntry, 'id'>[]);
+  await glCRUD.bulkAdd([
+    { timestamp: ts, transactionRef: ref, transactionType: 'adjustment', account: 'Accounts Payable', accountType: 'liability', debit: dn.netAmount, credit: 0, description: `Supplier return — AP reduced — ${label}` },
+    { timestamp: ts, transactionRef: ref, transactionType: 'adjustment', account: 'Inventory / COGS', accountType: 'asset', debit: 0, credit: dn.grossAmount, description: `Supplier return — stock removed — ${label}` },
+    { timestamp: ts, transactionRef: ref, transactionType: 'adjustment', account: 'GST Input Credit', accountType: 'asset', debit: 0, credit: dn.gstAmount, description: `Supplier return — GST input credit reversed — ${label}` },
+  ]);
 }
