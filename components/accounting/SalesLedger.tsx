@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, salesCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
 import { deleteSaleWithCascade, editSaleWithCascade } from '@/lib/ledger-mutations';
@@ -33,7 +33,30 @@ export function SalesLedger() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
-  const sales = useLiveQuery(() => db.sales.orderBy('timestamp').reverse().toArray(), []);
+  const [sales, setSales] = useState<(SaleRecord & { id: number })[] | null>(null);
+
+  const loadSales = useCallback(async () => {
+    // One-time migration: if Supabase is empty but Dexie has data, push it up
+    try {
+      const [apiSales, dexieSales] = await Promise.all([
+        salesCRUD.getAll(),
+        db.sales.toArray(),
+      ]);
+      if (apiSales.length === 0 && dexieSales.length > 0) {
+        for (const s of dexieSales) {
+          try { await salesCRUD.create({ ...s, syncStatus: 'synced' }); } catch { /* skip duplicates */ }
+        }
+        setSales(await salesCRUD.getAll());
+      } else {
+        setSales(apiSales);
+      }
+    } catch {
+      setSales([]);
+    }
+  }, []);
+
+  useEffect(() => { loadSales(); }, [loadSales]);
+
   const customerParties = useLiveQuery(
     () => db.parties.orderBy('name').filter((p: PartyRecord) => p.partyType === 'customer' || p.partyType === 'both').toArray(),
     [],
@@ -111,10 +134,9 @@ export function SalesLedger() {
       gstAmount: gst,
       netAmount: net,
       notes: editNotes || undefined,
-      syncStatus: 'pending',
+      syncStatus: 'synced',
     };
 
-    // Determine party IDs for balance cascade
     const oldPartyId = (customerParties || []).find(
       p => p.name.toLowerCase() === (selected.customerName || '').toLowerCase(),
     )?.id;
@@ -123,6 +145,7 @@ export function SalesLedger() {
     await editSaleWithCascade(selected.id, newData, oldPartyId, newPartyId);
     setIsSaving(false);
     setModalMode(null);
+    await loadSales();
   }
 
   async function confirmDelete() {
@@ -135,9 +158,10 @@ export function SalesLedger() {
       : undefined;
     await deleteSaleWithCascade(deleteId, partyId);
     setDeleteId(null);
+    await loadSales();
   }
 
-  if (!sales) {
+  if (sales === null) {
     return <div className="text-slate-400 text-sm p-8 text-center">Loading sales records…</div>;
   }
 

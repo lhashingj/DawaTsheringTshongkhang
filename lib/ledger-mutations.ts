@@ -1,5 +1,6 @@
 import {
   db,
+  salesCRUD,
   SaleRecord,
   PurchaseRecord,
   ExpenseRecord,
@@ -49,7 +50,7 @@ export async function deleteSaleWithCascade(
   saleId: number,
   partyId?: number,
 ): Promise<void> {
-  const sale = await db.sales.get(saleId);
+  const sale = await salesCRUD.getById(saleId);
   if (!sale) return;
 
   for (const item of sale.items) {
@@ -60,7 +61,7 @@ export async function deleteSaleWithCascade(
   if (partyId != null) await partyCRUD.updateBalance(partyId, -sale.netAmount);
 
   await clearGLFor(sale.invoiceNo);
-  await db.sales.delete(saleId);
+  await salesCRUD.delete(saleId);
 }
 
 /**
@@ -79,7 +80,7 @@ export async function editSaleWithCascade(
   oldPartyId?: number,
   newPartyId?: number,
 ): Promise<void> {
-  const old = await db.sales.get(saleId);
+  const old = await salesCRUD.getById(saleId);
   if (!old) return;
 
   // Restore old inventory
@@ -95,9 +96,9 @@ export async function editSaleWithCascade(
   const updated: SaleRecord & { id: number } = {
     ...newData,
     id: saleId,
-    syncStatus: 'pending',
+    syncStatus: 'synced',
   };
-  await db.sales.put(updated);
+  await salesCRUD.update(saleId, updated);
 
   await decrementStockAndPostCOGS(
     newData.items,

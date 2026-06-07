@@ -229,25 +229,55 @@ class AccountingDatabase extends Dexie {
 
 export const db = new AccountingDatabase();
 
-// ── Sales ─────────────────────────────────────────────────────────────────────
+// ── Sales (Supabase-backed, shared across all browsers) ───────────────────────
 
 export const salesCRUD = {
   async getNextInvoiceNo(): Promise<string> {
-    const year = String(new Date().getFullYear()).slice(-2);
-    const prefix = `${year}-`;
-    const all = await db.sales.toArray();
-    const yearSales = all.filter(s => s.invoiceNo.startsWith(prefix));
-    if (yearSales.length === 0) return `${prefix}0001`;
-    const maxNo = Math.max(...yearSales.map(s => parseInt(s.invoiceNo.split('-')[1], 10) || 0));
-    return `${prefix}${String(maxNo + 1).padStart(4, '0')}`;
+    const res = await fetch('/api/accounting/sales?next=1');
+    if (!res.ok) throw new Error('Failed to get next invoice number');
+    const { invoiceNo } = await res.json();
+    return invoiceNo as string;
   },
-  create: (data: Omit<SaleRecord, 'id'>) => db.sales.add(data),
-  getAll: () => db.sales.orderBy('timestamp').reverse().toArray(),
-  getById: (id: number) => db.sales.get(id),
-  update: (id: number, data: Partial<SaleRecord>) => db.sales.update(id, data),
-  delete: (id: number) => db.sales.delete(id),
-  getByDateRange: (from: Date, to: Date) =>
-    db.sales.where('timestamp').between(from, to, true, true).toArray(),
+  async create(data: Omit<SaleRecord, 'id'>): Promise<number> {
+    const res = await fetch('/api/accounting/sales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create sale');
+    const saved = await res.json();
+    return saved.id as number;
+  },
+  async getAll(): Promise<(SaleRecord & { id: number })[]> {
+    const res = await fetch('/api/accounting/sales');
+    if (!res.ok) throw new Error('Failed to load sales');
+    return res.json();
+  },
+  async getById(id: number): Promise<(SaleRecord & { id: number }) | undefined> {
+    const res = await fetch(`/api/accounting/sales/${id}`);
+    if (res.status === 404) return undefined;
+    if (!res.ok) throw new Error('Failed to get sale');
+    return res.json();
+  },
+  async update(id: number, data: Partial<SaleRecord>): Promise<void> {
+    const res = await fetch(`/api/accounting/sales/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update sale');
+  },
+  async delete(id: number): Promise<void> {
+    const res = await fetch(`/api/accounting/sales/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete sale');
+  },
+  async getByDateRange(from: Date, to: Date): Promise<(SaleRecord & { id: number })[]> {
+    const all = await this.getAll();
+    return all.filter(s => {
+      const t = new Date(s.timestamp);
+      return t >= from && t <= to;
+    });
+  },
 };
 
 // ── Purchases ─────────────────────────────────────────────────────────────────
