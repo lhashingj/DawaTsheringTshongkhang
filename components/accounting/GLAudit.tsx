@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   db,
@@ -103,7 +103,6 @@ export function GLAudit() {
   const [glFromDate, setGlFromDate]       = useState('');
   const [glToDate, setGlToDate]           = useState('');
   const [glPage, setGlPage]               = useState(0);
-  const glTableRef = useRef<HTMLDivElement>(null);
   const [editingGL, setEditingGL]         = useState<GLEntry | null>(null);
   const [glForm, setGlForm]               = useState<GLForm | null>(null);
   const [deletingGLId, setDeletingGLId]   = useState<number | null>(null);
@@ -411,9 +410,9 @@ export function GLAudit() {
           )}
 
           {/* GL Table */}
-          <div ref={glTableRef} className="overflow-auto rounded-xl border border-slate-700 max-h-[55vh]">
+          <div className="overflow-x-auto rounded-xl border border-slate-700">
             <table className="w-full text-xs">
-              <thead className="bg-slate-700 sticky top-0 z-10">
+              <thead className="bg-slate-700">
                 <tr>
                   <th className="px-3 py-3 w-8">
                     <Checkbox
@@ -503,27 +502,21 @@ export function GLAudit() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="w-full flex flex-wrap items-center justify-between gap-2 text-sm">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-slate-400">
                 Page {glPage + 1} of {totalPages} &nbsp;·&nbsp; {filteredGL.length} entries
               </span>
               <div className="flex gap-1">
                 <button
                   disabled={glPage === 0}
-                  onClick={() => {
-                    setGlPage(p => p - 1);
-                    glTableRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  onClick={() => setGlPage(p => p - 1)}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white disabled:opacity-40 transition-colors text-xs"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" /> Prev
                 </button>
                 <button
                   disabled={glPage >= totalPages - 1}
-                  onClick={() => {
-                    setGlPage(p => p + 1);
-                    glTableRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  onClick={() => setGlPage(p => p + 1)}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white disabled:opacity-40 transition-colors text-xs"
                 >
                   Next <ChevronRight className="w-3.5 h-3.5" />
