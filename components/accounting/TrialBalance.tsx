@@ -132,7 +132,7 @@ export function TrialBalance() {
       ['Difference', '', difference.toFixed(2), '', '', ''],
       [],
       ['COGS Summary', '', '', '', '', ''],
-      ['Cost of Goods Sold (perpetual)', '', glEntries.filter(e => e.account === 'Cost of Goods Sold' && new Date(e.timestamp) <= new Date(asOf + 'T23:59:59')).reduce((s, e) => s + e.debit, 0).toFixed(2), '', '', 'Dr'],
+      ['Cost of Goods Sold (perpetual)', '', (glEntries || []).filter(e => e.account === 'Cost of Goods Sold' && new Date(e.timestamp) <= new Date(asOf + 'T23:59:59')).reduce((s, e) => s + e.debit, 0).toFixed(2), '', '', 'Dr'],
       [],
       ['GST Summary', '', '', '', '', ''],
       ['Net GST Payable to Govt', '', '', netGSTLiability.toFixed(2), '', 'Cr'],
