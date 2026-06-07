@@ -5,6 +5,7 @@ import {
   salesCRUD, purchaseCRUD, inventoryCRUD, partyCRUD,
   SaleRecord, PurchaseRecord, InventoryItem, PartyRecord,
 } from '@/lib/accounting-db';
+import { runFullMigration, MigrationStatus } from '@/lib/migrate-to-supabase';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import Link from 'next/link';
 import {
@@ -17,6 +18,8 @@ import {
   BarChart3,
   ArrowRight,
   Clock,
+  RefreshCw,
+  CheckCircle,
 } from 'lucide-react';
 
 function fmtDate(d: Date | string) {
@@ -51,6 +54,34 @@ export default function AccountingDashboard() {
   const [purchases,  setPurchases]  = useState<(PurchaseRecord & { id: number })[] | null>(null);
   const [inventory,  setInventory]  = useState<(InventoryItem & { id: number })[] | null>(null);
   const [parties,    setParties]    = useState<(PartyRecord & { id: number })[] | null>(null);
+
+  const [migrating,        setMigrating]        = useState(false);
+  const [migrationResults, setMigrationResults] = useState<MigrationStatus[] | null>(null);
+  const [migrationDone,    setMigrationDone]    = useState(false);
+
+  // Auto-run migration once on first load
+  useEffect(() => {
+    const key = 'dtt_supabase_migration_done';
+    if (typeof window !== 'undefined' && localStorage.getItem(key)) return;
+    setMigrating(true);
+    runFullMigration().then(results => {
+      setMigrationResults(results);
+      setMigrating(false);
+      const anyMigrated = results.some(r => r.migrated > 0);
+      if (anyMigrated) {
+        setMigrationDone(true);
+        // Reload all data after migration
+        Promise.all([
+          salesCRUD.getAll().then(setSales),
+          purchaseCRUD.getAll().then(setPurchases),
+          inventoryCRUD.getAll().then(setInventory),
+          partyCRUD.getAll().then(setParties),
+        ]);
+      }
+      if (typeof window !== 'undefined') localStorage.setItem(key, '1');
+    }).catch(() => setMigrating(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { salesCRUD.getAll().then(setSales); }, []);
   useEffect(() => { purchaseCRUD.getAll().then(setPurchases); }, []);
@@ -90,6 +121,29 @@ export default function AccountingDashboard() {
             Dawa Tshering Shop, Paro — {fmtDate(new Date())}
           </p>
         </div>
+
+        {/* Migration banner */}
+        {migrating && (
+          <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/30 rounded-xl px-4 py-3">
+            <RefreshCw className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
+            <p className="text-blue-300 text-sm">Migrating your local data to the cloud — please wait…</p>
+          </div>
+        )}
+        {migrationDone && migrationResults && (
+          <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 space-y-1">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+              <p className="text-green-300 text-sm font-semibold">Migration complete — all data synced to cloud</p>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {migrationResults.filter(r => r.migrated > 0).map(r => (
+                <span key={r.table} className="text-green-400 text-xs font-mono">
+                  {r.table}: {r.migrated} records
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
