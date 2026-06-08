@@ -55,6 +55,7 @@ export function ExpenseManager() {
   const [filterTo, setFilterTo] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const [expenses, setExpenses] = useState<(ExpenseRecord & { id: number })[] | null>(null);
   const loadExpenses = useCallback(() => expenseCRUD.getAll().then(setExpenses), []);
@@ -89,23 +90,34 @@ export function ExpenseManager() {
 
   async function saveForm() {
     if (!form.description.trim() || form.amount <= 0) return;
+    setSaveError('');
     setIsSaving(true);
-    if (modalMode === 'add') {
-      const id = await expenseCRUD.create({ ...form, date: new Date(form.date) }) as number;
-      await postExpenseToGL({ ...form, date: new Date(form.date), id });
-    } else if (selected?.id) {
-      await editExpenseWithCascade(selected.id, { ...form, date: new Date(form.date) });
+    try {
+      if (modalMode === 'add') {
+        const id = await expenseCRUD.create({ ...form, date: new Date(form.date) }) as number;
+        await postExpenseToGL({ ...form, date: new Date(form.date), id });
+      } else if (selected?.id) {
+        await editExpenseWithCascade(selected.id, { ...form, date: new Date(form.date) });
+      }
+      setModalMode(null);
+      await loadExpenses();
+    } catch (err) {
+      setSaveError((err as Error).message || 'Save failed — check Supabase tables are created');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
-    setModalMode(null);
-    loadExpenses();
   }
 
   async function confirmDelete() {
     if (deleteId == null) return;
-    await deleteExpenseWithCascade(deleteId);
-    setDeleteId(null);
-    loadExpenses();
+    try {
+      await deleteExpenseWithCascade(deleteId);
+      setDeleteId(null);
+      await loadExpenses();
+    } catch (err) {
+      alert((err as Error).message || 'Delete failed');
+      setDeleteId(null);
+    }
   }
 
   if (expenses === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading expenses…</div>;
@@ -290,7 +302,10 @@ export function ExpenseManager() {
                 <textarea className={inputCls} rows={2} value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
               </div>
             </div>
-            <div className="flex gap-3 mt-5">
+            {saveError && (
+              <p className="mt-3 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{saveError}</p>
+            )}
+            <div className="flex gap-3 mt-4">
               <button
                 onClick={saveForm}
                 disabled={isSaving || !form.description.trim() || form.amount <= 0}
@@ -298,7 +313,7 @@ export function ExpenseManager() {
               >
                 {isSaving ? 'Saving…' : modalMode === 'add' ? 'Save Expense' : 'Update'}
               </button>
-              <button onClick={() => setModalMode(null)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+              <button onClick={() => { setModalMode(null); setSaveError(''); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
             </div>
           </div>
         </div>

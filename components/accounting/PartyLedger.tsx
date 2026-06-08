@@ -43,6 +43,7 @@ export function PartyLedger() {
   const [balanceAdj, setBalanceAdj] = useState<{ id: number; amount: string } | null>(null);
 
   const [parties, setParties] = useState<(PartyRecord & { id: number })[] | null>(null);
+  const [saveError, setSaveError] = useState('');
   const loadParties = useCallback(() => partyCRUD.getAll().then(setParties), []);
   useEffect(() => { loadParties(); }, [loadParties]);
 
@@ -68,36 +69,51 @@ export function PartyLedger() {
   }
 
   async function saveForm() {
+    setSaveError('');
     setIsSaving(true);
-    if (modalMode === 'add') {
-      await partyCRUD.create({
-        ...form,
-        openingBalance: form.outstandingBalance,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    } else if (selected?.id) {
-      await partyCRUD.update(selected.id, { ...form, updatedAt: new Date() });
+    try {
+      if (modalMode === 'add') {
+        await partyCRUD.create({
+          ...form,
+          openingBalance: form.outstandingBalance,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else if (selected?.id) {
+        await partyCRUD.update(selected.id, { ...form, updatedAt: new Date() });
+      }
+      setModalMode(null);
+      await loadParties();
+    } catch (err) {
+      setSaveError((err as Error).message || 'Save failed — check Supabase tables are created');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
-    setModalMode(null);
-    loadParties();
   }
 
   async function applyBalanceAdj() {
     if (!balanceAdj) return;
     const delta = parseFloat(balanceAdj.amount);
     if (isNaN(delta)) return;
-    await partyCRUD.updateBalance(balanceAdj.id, delta);
-    setBalanceAdj(null);
-    loadParties();
+    try {
+      await partyCRUD.updateBalance(balanceAdj.id, delta);
+      setBalanceAdj(null);
+      await loadParties();
+    } catch (err) {
+      alert((err as Error).message || 'Balance update failed');
+    }
   }
 
   async function confirmDelete() {
     if (deleteId) {
-      await partyCRUD.delete(deleteId);
-      setDeleteId(null);
-      loadParties();
+      try {
+        await partyCRUD.delete(deleteId);
+        setDeleteId(null);
+        await loadParties();
+      } catch (err) {
+        alert((err as Error).message || 'Delete failed');
+        setDeleteId(null);
+      }
     }
   }
 
@@ -233,9 +249,12 @@ export function PartyLedger() {
               </div>
               <div><label className="block text-slate-400 text-xs mb-1">Notes</label><textarea className={inputCls} rows={2} value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
             </div>
-            <div className="flex gap-3 mt-5">
+            {saveError && (
+              <p className="mt-3 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{saveError}</p>
+            )}
+            <div className="flex gap-3 mt-4">
               <button onClick={saveForm} disabled={isSaving || !form.name.trim()} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">{isSaving ? 'Saving…' : 'Save'}</button>
-              <button onClick={() => setModalMode(null)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+              <button onClick={() => { setModalMode(null); setSaveError(''); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
             </div>
           </div>
         </div>

@@ -48,6 +48,7 @@ export function InventoryManager() {
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [adjusting, setAdjusting] = useState<{ id: number; name: string; qty: number; delta: string } | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedMsg, setSeedMsg] = useState('');
@@ -84,8 +85,10 @@ export function InventoryManager() {
   }
 
   async function saveForm() {
+    setSaveError('');
     setIsSaving(true);
     const data = { ...form, lastUpdated: new Date() };
+    try {
     if (modalMode === 'add') {
       await inventoryCRUD.create(data);
       try {
@@ -131,9 +134,13 @@ export function InventoryManager() {
         } catch { /* best-effort */ }
       }
     }
-    setIsSaving(false);
-    setModalMode(null);
-    loadInventory();
+      setModalMode(null);
+      await loadInventory();
+    } catch (err) {
+      setSaveError((err as Error).message || 'Save failed — check Supabase tables are created');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function applyAdjust() {
@@ -340,9 +347,12 @@ export function InventoryManager() {
               </div>
               <div><label className="block text-slate-400 text-xs mb-1">Notes</label><textarea className={inputCls} rows={2} value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
             </div>
-            <div className="flex gap-3 mt-5">
+            {saveError && (
+              <p className="mt-3 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{saveError}</p>
+            )}
+            <div className="flex gap-3 mt-4">
               <button onClick={saveForm} disabled={isSaving || !form.description.trim()} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">{isSaving ? 'Saving…' : 'Save Item'}</button>
-              <button onClick={() => setModalMode(null)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+              <button onClick={() => { setModalMode(null); setSaveError(''); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
             </div>
           </div>
         </div>

@@ -149,28 +149,35 @@ export function PurchaseLedger() {
     setModalMode('edit');
   }
 
+  const [saveError, setSaveError] = useState('');
+
   async function saveForm() {
+    setSaveError('');
     setIsSaving(true);
-    const totals = computeTotals(formItems, form.gstRate);
-    const record = { ...form, ...totals, items: formItems };
-    if (modalMode === 'add') {
-      const id = await purchaseCRUD.create(record) as number;
-      await autoIncrementStock(formItems);
-      await postPurchaseToGL({ ...record, id });
-      if (selectedPartyId) {
-        await partyCRUD.updateBalance(selectedPartyId, -totals.netAmount);
+    try {
+      const totals = computeTotals(formItems, form.gstRate);
+      const record = { ...form, ...totals, items: formItems };
+      if (modalMode === 'add') {
+        const id = await purchaseCRUD.create(record) as number;
+        await autoIncrementStock(formItems);
+        await postPurchaseToGL({ ...record, id });
+        if (selectedPartyId) {
+          await partyCRUD.updateBalance(selectedPartyId, -totals.netAmount);
+        }
+      } else if (selected?.id) {
+        const oldPartyId = (supplierParties || []).find(
+          p => p.name.toLowerCase() === (selected.supplierName || '').toLowerCase(),
+        )?.id;
+        const newPartyId = selectedPartyId ?? undefined;
+        await editPurchaseWithCascade(selected.id, record, oldPartyId, newPartyId);
       }
-    } else if (selected?.id) {
-      // Determine old/new party IDs for balance cascade
-      const oldPartyId = (supplierParties || []).find(
-        p => p.name.toLowerCase() === (selected.supplierName || '').toLowerCase(),
-      )?.id;
-      const newPartyId = selectedPartyId ?? undefined;
-      await editPurchaseWithCascade(selected.id, record, oldPartyId, newPartyId);
+      setModalMode(null);
+      await loadPurchases();
+    } catch (err) {
+      setSaveError((err as Error).message || 'Save failed — check Supabase tables are created');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
-    setModalMode(null);
-    loadPurchases();
   }
 
   async function confirmDelete() {
@@ -517,15 +524,20 @@ export function PurchaseLedger() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-700 shrink-0 flex gap-3">
-              <button
-                onClick={saveForm}
-                disabled={isSaving || !form.supplierName || formItems.length === 0}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
-              >
-                {isSaving ? 'Saving…' : modalMode === 'add' ? 'Save Purchase Order' : 'Save Changes'}
-              </button>
-              <button onClick={() => setModalMode(null)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+            <div className="px-6 py-4 border-t border-slate-700 shrink-0">
+              {saveError && (
+                <p className="mb-3 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{saveError}</p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={saveForm}
+                  disabled={isSaving || !form.supplierName || formItems.length === 0}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  {isSaving ? 'Saving…' : modalMode === 'add' ? 'Save Purchase Order' : 'Save Changes'}
+                </button>
+                <button onClick={() => { setModalMode(null); setSaveError(''); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+              </div>
             </div>
           </div>
         </div>
