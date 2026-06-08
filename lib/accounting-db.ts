@@ -272,7 +272,7 @@ export const salesCRUD = {
   },
   async getAll(): Promise<(SaleRecord & { id: number })[]> {
     try { return await apiFetch<(SaleRecord & { id: number })[]>('/api/accounting/sales'); }
-    catch { return db.sales.toArray() as Promise<(SaleRecord & { id: number })[]>; }
+    catch { return db.sales.orderBy('timestamp').reverse().toArray() as Promise<(SaleRecord & { id: number })[]>; }
   },
   async getById(id: number): Promise<(SaleRecord & { id: number }) | undefined> {
     try { return await apiFetch<SaleRecord & { id: number }>(`/api/accounting/sales/${id}`); }
@@ -317,7 +317,7 @@ export const purchaseCRUD = {
   },
   async getAll(): Promise<(PurchaseRecord & { id: number })[]> {
     try { return await apiFetch<(PurchaseRecord & { id: number })[]>('/api/accounting/purchases'); }
-    catch { return db.purchases.toArray() as Promise<(PurchaseRecord & { id: number })[]>; }
+    catch { return db.purchases.orderBy('timestamp').reverse().toArray() as Promise<(PurchaseRecord & { id: number })[]>; }
   },
   async getById(id: number): Promise<(PurchaseRecord & { id: number }) | undefined> {
     try { return await apiFetch<PurchaseRecord & { id: number }>(`/api/accounting/purchases/${id}`); }
@@ -424,7 +424,7 @@ export const expenseCRUD = {
   },
   async getAll(): Promise<(ExpenseRecord & { id: number })[]> {
     try { return await apiFetch<(ExpenseRecord & { id: number })[]>('/api/accounting/expenses'); }
-    catch { return db.expenses.toArray() as Promise<(ExpenseRecord & { id: number })[]>; }
+    catch { return db.expenses.orderBy('date').reverse().toArray() as Promise<(ExpenseRecord & { id: number })[]>; }
   },
   async getById(id: number): Promise<(ExpenseRecord & { id: number }) | undefined> {
     try { return await apiFetch<ExpenseRecord & { id: number }>(`/api/accounting/expenses/${id}`); }
@@ -459,7 +459,7 @@ export const paymentCRUD = {
   },
   async getAll(): Promise<(PaymentRecord & { id: number })[]> {
     try { return await apiFetch<(PaymentRecord & { id: number })[]>('/api/accounting/payments'); }
-    catch { return db.payments.toArray() as Promise<(PaymentRecord & { id: number })[]>; }
+    catch { return db.payments.orderBy('timestamp').reverse().toArray() as Promise<(PaymentRecord & { id: number })[]>; }
   },
   async getById(id: number): Promise<(PaymentRecord & { id: number }) | undefined> {
     try { return await apiFetch<PaymentRecord & { id: number }>(`/api/accounting/payments/${id}`); }
@@ -484,7 +484,7 @@ export const paymentCRUD = {
 export const glCRUD = {
   async getAll(): Promise<(GLEntry & { id: number })[]> {
     try { return await apiFetch<(GLEntry & { id: number })[]>('/api/accounting/general-ledger'); }
-    catch { return db.generalLedger.toArray() as Promise<(GLEntry & { id: number })[]>; }
+    catch { return db.generalLedger.orderBy('timestamp').reverse().toArray() as Promise<(GLEntry & { id: number })[]>; }
   },
   async bulkAdd(entries: Omit<GLEntry, 'id'>[]): Promise<void> {
     try {
@@ -539,7 +539,7 @@ export const cashBookCRUD = {
   },
   async getAll(): Promise<(CashBookEntry & { id: number })[]> {
     try { return await apiFetch<(CashBookEntry & { id: number })[]>('/api/accounting/cash-book'); }
-    catch { return db.cashBook.toArray() as Promise<(CashBookEntry & { id: number })[]>; }
+    catch { return db.cashBook.orderBy('timestamp').reverse().toArray() as Promise<(CashBookEntry & { id: number })[]>; }
   },
   async getById(id: number): Promise<(CashBookEntry & { id: number }) | undefined> {
     try { return await apiFetch<CashBookEntry & { id: number }>(`/api/accounting/cash-book/${id}`); }
@@ -580,7 +580,7 @@ export const creditNoteCRUD = {
   },
   async getAll(): Promise<(CreditNote & { id: number })[]> {
     try { return await apiFetch<(CreditNote & { id: number })[]>('/api/accounting/credit-notes'); }
-    catch { return db.creditNotes.toArray() as Promise<(CreditNote & { id: number })[]>; }
+    catch { return db.creditNotes.orderBy('timestamp').reverse().toArray() as Promise<(CreditNote & { id: number })[]>; }
   },
   async getById(id: number): Promise<(CreditNote & { id: number }) | undefined> {
     try { return await apiFetch<CreditNote & { id: number }>(`/api/accounting/credit-notes/${id}`); }
@@ -617,7 +617,7 @@ export const debitNoteCRUD = {
   },
   async getAll(): Promise<(DebitNote & { id: number })[]> {
     try { return await apiFetch<(DebitNote & { id: number })[]>('/api/accounting/debit-notes'); }
-    catch { return db.debitNotes.toArray() as Promise<(DebitNote & { id: number })[]>; }
+    catch { return db.debitNotes.orderBy('timestamp').reverse().toArray() as Promise<(DebitNote & { id: number })[]>; }
   },
   async getById(id: number): Promise<(DebitNote & { id: number }) | undefined> {
     try { return await apiFetch<DebitNote & { id: number }>(`/api/accounting/debit-notes/${id}`); }
