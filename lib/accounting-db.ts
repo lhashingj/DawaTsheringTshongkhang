@@ -242,7 +242,7 @@ export const salesCRUD = {
   async getNextInvoiceNo(): Promise<string> {
     const yr = new Date().getFullYear().toString().slice(-2);
     const all = await db.sales.toArray();
-    return nextSeqNo(all.map(s => s.invoiceNo), `INV-${yr}-`);
+    return nextSeqNo(all.map(s => s.invoiceNo), `${yr}-`);
   },
   async create(data: Omit<SaleRecord, 'id'>): Promise<number> {
     return db.sales.add(data as SaleRecord);

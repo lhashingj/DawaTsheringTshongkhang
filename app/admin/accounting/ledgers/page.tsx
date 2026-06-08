@@ -8,7 +8,7 @@ import { PurchaseLedger } from '@/components/accounting/PurchaseLedger';
 import { PartyLedger } from '@/components/accounting/PartyLedger';
 import { InventoryManager } from '@/components/accounting/InventoryManager';
 import { GLAudit } from '@/components/accounting/GLAudit';
-import { Receipt, ShoppingBag, Users, Package, ShieldAlert } from 'lucide-react';
+import { Receipt, ShoppingBag, Users, Package, Database } from 'lucide-react';
 
 type Tab = 'sales' | 'purchases' | 'parties' | 'inventory' | 'gl-audit';
 
@@ -17,7 +17,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'purchases', label: 'Purchase Ledger', icon: ShoppingBag  },
   { id: 'parties',   label: 'Party Directory', icon: Users        },
   { id: 'inventory', label: 'Inventory',       icon: Package      },
-  { id: 'gl-audit',  label: 'Admin Audit',     icon: ShieldAlert  },
+  { id: 'gl-audit',  label: 'GL Entries',      icon: Database     },
 ];
 
 function LedgersContent() {
@@ -67,7 +67,7 @@ export default function LedgersPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-white text-2xl font-bold">Ledgers</h1>
-          <p className="text-slate-400 text-sm mt-1">Full CRUD management for all accounting records. Use <span className="text-orange-400 font-medium">Admin Audit</span> to edit or delete any GL entry or party balance.</p>
+          <p className="text-slate-400 text-sm mt-1">Full CRUD management for all accounting records. Use <span className="text-orange-400 font-medium">GL Entries</span> to view, edit or delete any journal entry or party balance.</p>
         </div>
         <Suspense fallback={
           <div className="flex gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1 mb-6 animate-pulse">

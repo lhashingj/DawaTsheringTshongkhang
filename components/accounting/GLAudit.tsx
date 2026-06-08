@@ -305,18 +305,6 @@ export function GLAudit() {
   return (
     <div className="space-y-4">
 
-      {/* ── Admin warning banner ─────────────────────────────────────────────── */}
-      <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
-        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-        <p className="text-red-300 text-xs leading-relaxed">
-          <span className="font-semibold">Admin Override Panel.</span>{' '}
-          Edits here bypass double-entry validation and directly modify the source records.
-          Use only to correct test data or erroneous entries. All changes set{' '}
-          <code className="bg-red-500/20 px-1 rounded">syncStatus = pending</code> so
-          the cloud copy is overwritten on next sync.
-        </p>
-      </div>
-
       {/* ── Sub-tabs ─────────────────────────────────────────────────────────── */}
       <div className="flex gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1 w-fit">
         {([
@@ -680,14 +668,6 @@ export function GLAudit() {
               <button onClick={() => setEditingGL(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
-            </div>
-
-            <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-amber-300 text-xs">
-                Direct GL edits bypass double-entry validation. Incorrect changes will cause
-                the Trial Balance to become unbalanced.
-              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
