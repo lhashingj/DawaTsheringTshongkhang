@@ -145,7 +145,7 @@ export default function AccountingDashboard() {
                 <p className="text-green-300 text-sm font-semibold">Migration complete</p>
               </div>
               <button
-                onClick={() => runMigration(true)}
+                onClick={() => runMigration(false)}
                 className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
               >
                 <RefreshCw className="w-3 h-3" /> Re-Migrate All Data
@@ -163,7 +163,7 @@ export default function AccountingDashboard() {
         {!migrating && !migrationDone && (
           <div className="flex justify-end">
             <button
-              onClick={() => runMigration(true)}
+              onClick={() => runMigration(false)}
               disabled={migrating}
               className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
             >
