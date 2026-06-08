@@ -186,7 +186,7 @@ export interface DebitNote {
 
 export const LOW_STOCK_THRESHOLD = 5;
 
-// ── Dexie (kept only for one-time local migration reads) ──────────────────────
+// ── Dexie Database ────────────────────────────────────────────────────────────
 
 class AccountingDatabase extends Dexie {
   sales!: Table<SaleRecord, number>;
@@ -225,18 +225,7 @@ class AccountingDatabase extends Dexie {
 
 export const db = new AccountingDatabase();
 
-// ── Helper ────────────────────────────────────────────────────────────────────
-
-async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error: string }).error || res.statusText);
-  }
-  return res.json() as Promise<T>;
-}
-
-// ── local number-sequence fallback helper ─────────────────────────────────────
+// ── Sequence number helper ────────────────────────────────────────────────────
 
 function nextSeqNo(existing: string[], prefix: string): string {
   const nums = existing
@@ -251,33 +240,25 @@ function nextSeqNo(existing: string[], prefix: string): string {
 
 export const salesCRUD = {
   async getNextInvoiceNo(): Promise<string> {
-    try {
-      const { invoiceNo } = await apiFetch<{ invoiceNo: string }>('/api/accounting/sales?next=1');
-      return invoiceNo;
-    } catch {
-      const yr = new Date().getFullYear().toString().slice(-2);
-      const all = await db.sales.toArray();
-      return nextSeqNo(all.map(s => s.invoiceNo), `INV-${yr}-`);
-    }
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const all = await db.sales.toArray();
+    return nextSeqNo(all.map(s => s.invoiceNo), `INV-${yr}-`);
   },
   async create(data: Omit<SaleRecord, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/sales', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.sales.add(data as SaleRecord);
   },
   async getAll(): Promise<(SaleRecord & { id: number })[]> {
-    try { return await apiFetch<(SaleRecord & { id: number })[]>('/api/accounting/sales'); }
-    catch { return db.sales.orderBy('timestamp').reverse().toArray() as Promise<(SaleRecord & { id: number })[]>; }
+    return db.sales.orderBy('timestamp').reverse().toArray() as Promise<(SaleRecord & { id: number })[]>;
   },
   async getById(id: number): Promise<(SaleRecord & { id: number }) | undefined> {
-    try { return await apiFetch<SaleRecord & { id: number }>(`/api/accounting/sales/${id}`); }
-    catch { return db.sales.get(id) as Promise<(SaleRecord & { id: number }) | undefined>; }
+    return db.sales.get(id) as Promise<(SaleRecord & { id: number }) | undefined>;
   },
-  update: (id: number, data: Partial<SaleRecord>) =>
-    apiFetch<void>(`/api/accounting/sales/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/sales/${id}`, { method: 'DELETE' }),
+  async update(id: number, data: Partial<SaleRecord>): Promise<void> {
+    await db.sales.update(id, data);
+  },
+  async delete(id: number): Promise<void> {
+    await db.sales.delete(id);
+  },
   async getByDateRange(from: Date, to: Date): Promise<(SaleRecord & { id: number })[]> {
     const all = await this.getAll();
     return all.filter(s => { const t = new Date(s.timestamp); return t >= from && t <= to; });
@@ -288,33 +269,25 @@ export const salesCRUD = {
 
 export const purchaseCRUD = {
   async getNextPONo(): Promise<string> {
-    try {
-      const { purchaseOrderNo } = await apiFetch<{ purchaseOrderNo: string }>('/api/accounting/purchases?next=1');
-      return purchaseOrderNo;
-    } catch {
-      const yr = new Date().getFullYear().toString().slice(-2);
-      const all = await db.purchases.toArray();
-      return nextSeqNo(all.map(p => p.purchaseOrderNo), `PO-${yr}-`);
-    }
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const all = await db.purchases.toArray();
+    return nextSeqNo(all.map(p => p.purchaseOrderNo), `PO-${yr}-`);
   },
   async create(data: Omit<PurchaseRecord, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/purchases', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.purchases.add(data as PurchaseRecord);
   },
   async getAll(): Promise<(PurchaseRecord & { id: number })[]> {
-    try { return await apiFetch<(PurchaseRecord & { id: number })[]>('/api/accounting/purchases'); }
-    catch { return db.purchases.orderBy('timestamp').reverse().toArray() as Promise<(PurchaseRecord & { id: number })[]>; }
+    return db.purchases.orderBy('timestamp').reverse().toArray() as Promise<(PurchaseRecord & { id: number })[]>;
   },
   async getById(id: number): Promise<(PurchaseRecord & { id: number }) | undefined> {
-    try { return await apiFetch<PurchaseRecord & { id: number }>(`/api/accounting/purchases/${id}`); }
-    catch { return db.purchases.get(id) as Promise<(PurchaseRecord & { id: number }) | undefined>; }
+    return db.purchases.get(id) as Promise<(PurchaseRecord & { id: number }) | undefined>;
   },
-  update: (id: number, data: Partial<PurchaseRecord>) =>
-    apiFetch<void>(`/api/accounting/purchases/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/purchases/${id}`, { method: 'DELETE' }),
+  async update(id: number, data: Partial<PurchaseRecord>): Promise<void> {
+    await db.purchases.update(id, data);
+  },
+  async delete(id: number): Promise<void> {
+    await db.purchases.delete(id);
+  },
   async getByDateRange(from: Date, to: Date): Promise<(PurchaseRecord & { id: number })[]> {
     const all = await this.getAll();
     return all.filter(p => { const t = new Date(p.timestamp); return t >= from && t <= to; });
@@ -325,79 +298,72 @@ export const purchaseCRUD = {
 
 export const partyCRUD = {
   async create(data: Omit<PartyRecord, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/parties', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.parties.add(data as PartyRecord);
   },
   async getAll(): Promise<(PartyRecord & { id: number })[]> {
-    try { return await apiFetch<(PartyRecord & { id: number })[]>('/api/accounting/parties'); }
-    catch { return db.parties.toArray() as Promise<(PartyRecord & { id: number })[]>; }
+    return db.parties.toArray() as Promise<(PartyRecord & { id: number })[]>;
   },
   async getById(id: number): Promise<(PartyRecord & { id: number }) | undefined> {
-    try { return await apiFetch<PartyRecord & { id: number }>(`/api/accounting/parties/${id}`); }
-    catch { return db.parties.get(id) as Promise<(PartyRecord & { id: number }) | undefined>; }
+    return db.parties.get(id) as Promise<(PartyRecord & { id: number }) | undefined>;
   },
-  update: (id: number, data: Partial<PartyRecord>) =>
-    apiFetch<void>(`/api/accounting/parties/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/parties/${id}`, { method: 'DELETE' }),
-  updateBalance: (id: number, delta: number) =>
-    apiFetch<void>(`/api/accounting/parties/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ outstandingBalanceDelta: delta }),
-    }),
+  async update(id: number, data: Partial<PartyRecord>): Promise<void> {
+    await db.parties.update(id, data);
+  },
+  async delete(id: number): Promise<void> {
+    await db.parties.delete(id);
+  },
+  async updateBalance(id: number, delta: number): Promise<void> {
+    await db.parties.where('id').equals(id).modify((p: PartyRecord) => {
+      p.outstandingBalance = (p.outstandingBalance || 0) + delta;
+      p.updatedAt = new Date();
+    });
+  },
 };
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 
 export const inventoryCRUD = {
   async create(data: Omit<InventoryItem, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/inventory', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.inventory.add({ ...data, lastUpdated: new Date() } as InventoryItem);
   },
   async getAll(): Promise<(InventoryItem & { id: number })[]> {
-    try { return await apiFetch<(InventoryItem & { id: number })[]>('/api/accounting/inventory'); }
-    catch { return db.inventory.toArray() as Promise<(InventoryItem & { id: number })[]>; }
+    return db.inventory.toArray() as Promise<(InventoryItem & { id: number })[]>;
   },
   async getById(id: number): Promise<(InventoryItem & { id: number }) | undefined> {
-    try { return await apiFetch<InventoryItem & { id: number }>(`/api/accounting/inventory/${id}`); }
-    catch { return db.inventory.get(id) as Promise<(InventoryItem & { id: number }) | undefined>; }
+    return db.inventory.get(id) as Promise<(InventoryItem & { id: number }) | undefined>;
   },
-  update: (id: number, data: Partial<InventoryItem>) =>
-    apiFetch<void>(`/api/accounting/inventory/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/inventory/${id}`, { method: 'DELETE' }),
-  adjustStock: (id: number, delta: number) =>
-    apiFetch<void>(`/api/accounting/inventory/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stockDelta: delta }),
-    }),
+  async update(id: number, data: Partial<InventoryItem>): Promise<void> {
+    await db.inventory.update(id, { ...data, lastUpdated: new Date() });
+  },
+  async delete(id: number): Promise<void> {
+    await db.inventory.delete(id);
+  },
+  async adjustStock(id: number, delta: number): Promise<void> {
+    await db.inventory.where('id').equals(id).modify((item: InventoryItem) => {
+      item.stockQty = Math.max(0, (item.stockQty || 0) + delta);
+      item.lastUpdated = new Date();
+    });
+  },
 };
 
 // ── Expenses ──────────────────────────────────────────────────────────────────
 
 export const expenseCRUD = {
   async create(data: Omit<ExpenseRecord, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/expenses', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.expenses.add(data as ExpenseRecord);
   },
   async getAll(): Promise<(ExpenseRecord & { id: number })[]> {
-    try { return await apiFetch<(ExpenseRecord & { id: number })[]>('/api/accounting/expenses'); }
-    catch { return db.expenses.orderBy('date').reverse().toArray() as Promise<(ExpenseRecord & { id: number })[]>; }
+    return db.expenses.orderBy('date').reverse().toArray() as Promise<(ExpenseRecord & { id: number })[]>;
   },
   async getById(id: number): Promise<(ExpenseRecord & { id: number }) | undefined> {
-    try { return await apiFetch<ExpenseRecord & { id: number }>(`/api/accounting/expenses/${id}`); }
-    catch { return db.expenses.get(id) as Promise<(ExpenseRecord & { id: number }) | undefined>; }
+    return db.expenses.get(id) as Promise<(ExpenseRecord & { id: number }) | undefined>;
   },
-  update: (id: number, data: Partial<ExpenseRecord>) =>
-    apiFetch<void>(`/api/accounting/expenses/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/expenses/${id}`, { method: 'DELETE' }),
+  async update(id: number, data: Partial<ExpenseRecord>): Promise<void> {
+    await db.expenses.update(id, data);
+  },
+  async delete(id: number): Promise<void> {
+    await db.expenses.delete(id);
+  },
   async getByDateRange(from: Date, to: Date): Promise<(ExpenseRecord & { id: number })[]> {
     const all = await this.getAll();
     return all.filter(e => { const t = new Date(e.date); return t >= from && t <= to; });
@@ -408,26 +374,22 @@ export const expenseCRUD = {
 
 export const paymentCRUD = {
   async create(data: Omit<PaymentRecord, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/payments', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.payments.add(data as PaymentRecord);
   },
   async getAll(): Promise<(PaymentRecord & { id: number })[]> {
-    try { return await apiFetch<(PaymentRecord & { id: number })[]>('/api/accounting/payments'); }
-    catch { return db.payments.orderBy('timestamp').reverse().toArray() as Promise<(PaymentRecord & { id: number })[]>; }
+    return db.payments.orderBy('timestamp').reverse().toArray() as Promise<(PaymentRecord & { id: number })[]>;
   },
   async getById(id: number): Promise<(PaymentRecord & { id: number }) | undefined> {
-    try { return await apiFetch<PaymentRecord & { id: number }>(`/api/accounting/payments/${id}`); }
-    catch { return db.payments.get(id) as Promise<(PaymentRecord & { id: number }) | undefined>; }
+    return db.payments.get(id) as Promise<(PaymentRecord & { id: number }) | undefined>;
   },
-  update: (id: number, data: Partial<PaymentRecord>) =>
-    apiFetch<void>(`/api/accounting/payments/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/payments/${id}`, { method: 'DELETE' }),
+  async update(id: number, data: Partial<PaymentRecord>): Promise<void> {
+    await db.payments.update(id, data);
+  },
+  async delete(id: number): Promise<void> {
+    await db.payments.delete(id);
+  },
   async getByParty(partyId: number): Promise<(PaymentRecord & { id: number })[]> {
-    try { return await apiFetch<(PaymentRecord & { id: number })[]>(`/api/accounting/payments?partyId=${partyId}`); }
-    catch { return db.payments.where('partyId').equals(partyId).toArray() as Promise<(PaymentRecord & { id: number })[]>; }
+    return db.payments.where('partyId').equals(partyId).reverse().sortBy('timestamp') as Promise<(PaymentRecord & { id: number })[]>;
   },
 };
 
@@ -435,121 +397,96 @@ export const paymentCRUD = {
 
 export const glCRUD = {
   async getAll(): Promise<(GLEntry & { id: number })[]> {
-    try { return await apiFetch<(GLEntry & { id: number })[]>('/api/accounting/general-ledger'); }
-    catch { return db.generalLedger.orderBy('timestamp').reverse().toArray() as Promise<(GLEntry & { id: number })[]>; }
+    return db.generalLedger.orderBy('timestamp').reverse().toArray() as Promise<(GLEntry & { id: number })[]>;
   },
-  bulkAdd: (entries: Omit<GLEntry, 'id'>[]) =>
-    apiFetch<void>('/api/accounting/general-ledger', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entries),
-    }),
-  deleteByRef: (transactionRef: string) =>
-    apiFetch<void>(`/api/accounting/general-ledger?ref=${encodeURIComponent(transactionRef)}`, { method: 'DELETE' }),
+  async bulkAdd(entries: Omit<GLEntry, 'id'>[]): Promise<void> {
+    await db.generalLedger.bulkAdd(entries as GLEntry[]);
+  },
+  async deleteByRef(transactionRef: string): Promise<void> {
+    await db.generalLedger.where('transactionRef').equals(transactionRef).delete();
+  },
   async bulkDelete(ids: number[]): Promise<void> {
     if (ids.length === 0) return;
-    await apiFetch<void>(`/api/accounting/general-ledger?ids=${ids.join(',')}`, { method: 'DELETE' });
+    await db.generalLedger.bulkDelete(ids);
   },
-  update: (id: number, data: Partial<GLEntry>) =>
-    apiFetch<void>(`/api/accounting/general-ledger/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/general-ledger/${id}`, { method: 'DELETE' }),
+  async update(id: number, data: Partial<GLEntry>): Promise<void> {
+    await db.generalLedger.update(id, data);
+  },
+  async delete(id: number): Promise<void> {
+    await db.generalLedger.delete(id);
+  },
 };
 
 // ── Cash Book ─────────────────────────────────────────────────────────────────
 
 export const cashBookCRUD = {
   async getNextVoucherNo(): Promise<string> {
-    try {
-      const { voucherNo } = await apiFetch<{ voucherNo: string }>('/api/accounting/cash-book?next=1');
-      return voucherNo;
-    } catch {
-      const yr = new Date().getFullYear().toString().slice(-2);
-      const all = await db.cashBook.toArray();
-      return nextSeqNo(all.map(v => v.voucherNo), `VCH-${yr}-`);
-    }
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const all = await db.cashBook.toArray();
+    return nextSeqNo(all.map(v => v.voucherNo), `VCH-${yr}-`);
   },
   async create(data: Omit<CashBookEntry, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/cash-book', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.cashBook.add(data as CashBookEntry);
   },
   async getAll(): Promise<(CashBookEntry & { id: number })[]> {
-    try { return await apiFetch<(CashBookEntry & { id: number })[]>('/api/accounting/cash-book'); }
-    catch { return db.cashBook.orderBy('timestamp').reverse().toArray() as Promise<(CashBookEntry & { id: number })[]>; }
+    return db.cashBook.orderBy('timestamp').reverse().toArray() as Promise<(CashBookEntry & { id: number })[]>;
   },
   async getById(id: number): Promise<(CashBookEntry & { id: number }) | undefined> {
-    try { return await apiFetch<CashBookEntry & { id: number }>(`/api/accounting/cash-book/${id}`); }
-    catch { return db.cashBook.get(id) as Promise<(CashBookEntry & { id: number }) | undefined>; }
+    return db.cashBook.get(id) as Promise<(CashBookEntry & { id: number }) | undefined>;
   },
-  update: (id: number, data: Partial<CashBookEntry>) =>
-    apiFetch<void>(`/api/accounting/cash-book/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/cash-book/${id}`, { method: 'DELETE' }),
+  async update(id: number, data: Partial<CashBookEntry>): Promise<void> {
+    await db.cashBook.update(id, data);
+  },
+  async delete(id: number): Promise<void> {
+    await db.cashBook.delete(id);
+  },
 };
 
 // ── Credit Notes ─────────────────────────────────────────────────────────────
 
 export const creditNoteCRUD = {
   async getNextCNNo(): Promise<string> {
-    try {
-      const { creditNoteNo } = await apiFetch<{ creditNoteNo: string }>('/api/accounting/credit-notes?next=1');
-      return creditNoteNo;
-    } catch {
-      const yr = new Date().getFullYear().toString().slice(-2);
-      const all = await db.creditNotes.toArray();
-      return nextSeqNo(all.map(c => c.creditNoteNo), `CN-${yr}-`);
-    }
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const all = await db.creditNotes.toArray();
+    return nextSeqNo(all.map(c => c.creditNoteNo), `CN-${yr}-`);
   },
   async create(data: Omit<CreditNote, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/credit-notes', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.creditNotes.add(data as CreditNote);
   },
   async getAll(): Promise<(CreditNote & { id: number })[]> {
-    try { return await apiFetch<(CreditNote & { id: number })[]>('/api/accounting/credit-notes'); }
-    catch { return db.creditNotes.orderBy('timestamp').reverse().toArray() as Promise<(CreditNote & { id: number })[]>; }
+    return db.creditNotes.orderBy('timestamp').reverse().toArray() as Promise<(CreditNote & { id: number })[]>;
   },
   async getById(id: number): Promise<(CreditNote & { id: number }) | undefined> {
-    try { return await apiFetch<CreditNote & { id: number }>(`/api/accounting/credit-notes/${id}`); }
-    catch { return db.creditNotes.get(id) as Promise<(CreditNote & { id: number }) | undefined>; }
+    return db.creditNotes.get(id) as Promise<(CreditNote & { id: number }) | undefined>;
   },
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/credit-notes/${id}`, { method: 'DELETE' }),
+  async delete(id: number): Promise<void> {
+    await db.creditNotes.delete(id);
+  },
 };
 
 // ── Debit Notes ───────────────────────────────────────────────────────────────
 
 export const debitNoteCRUD = {
   async getNextDNNo(): Promise<string> {
-    try {
-      const { debitNoteNo } = await apiFetch<{ debitNoteNo: string }>('/api/accounting/debit-notes?next=1');
-      return debitNoteNo;
-    } catch {
-      const yr = new Date().getFullYear().toString().slice(-2);
-      const all = await db.debitNotes.toArray();
-      return nextSeqNo(all.map(d => d.debitNoteNo), `DN-${yr}-`);
-    }
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const all = await db.debitNotes.toArray();
+    return nextSeqNo(all.map(d => d.debitNoteNo), `DN-${yr}-`);
   },
   async create(data: Omit<DebitNote, 'id'>): Promise<number> {
-    const saved = await apiFetch<{ id: number }>('/api/accounting/debit-notes', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-    });
-    return saved.id;
+    return db.debitNotes.add(data as DebitNote);
   },
   async getAll(): Promise<(DebitNote & { id: number })[]> {
-    try { return await apiFetch<(DebitNote & { id: number })[]>('/api/accounting/debit-notes'); }
-    catch { return db.debitNotes.orderBy('timestamp').reverse().toArray() as Promise<(DebitNote & { id: number })[]>; }
+    return db.debitNotes.orderBy('timestamp').reverse().toArray() as Promise<(DebitNote & { id: number })[]>;
   },
   async getById(id: number): Promise<(DebitNote & { id: number }) | undefined> {
-    try { return await apiFetch<DebitNote & { id: number }>(`/api/accounting/debit-notes/${id}`); }
-    catch { return db.debitNotes.get(id) as Promise<(DebitNote & { id: number }) | undefined>; }
+    return db.debitNotes.get(id) as Promise<(DebitNote & { id: number }) | undefined>;
   },
-  delete: (id: number) =>
-    apiFetch<void>(`/api/accounting/debit-notes/${id}`, { method: 'DELETE' }),
+  async delete(id: number): Promise<void> {
+    await db.debitNotes.delete(id);
+  },
 };
 
-// ── Inventory fuzzy search (client-side, loads all from API) ──────────────────
+// ── Inventory fuzzy search ────────────────────────────────────────────────────
 
 async function findInventoryItem(description: string): Promise<(InventoryItem & { id: number }) | undefined> {
   const all = await inventoryCRUD.getAll();

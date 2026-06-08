@@ -5,7 +5,7 @@ import {
   salesCRUD, purchaseCRUD, inventoryCRUD, partyCRUD,
   SaleRecord, PurchaseRecord, InventoryItem, PartyRecord,
 } from '@/lib/accounting-db';
-import { runFullMigration, MigrationStatus } from '@/lib/migrate-to-supabase';
+import { backupToCloud, restoreFromCloud, SyncResult } from '@/lib/cloud-sync';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import Link from 'next/link';
 import {
@@ -20,6 +20,8 @@ import {
   Clock,
   RefreshCw,
   CheckCircle,
+  Upload,
+  Download,
 } from 'lucide-react';
 
 function fmtDate(d: Date | string) {
@@ -55,9 +57,8 @@ export default function AccountingDashboard() {
   const [inventory,  setInventory]  = useState<(InventoryItem & { id: number })[] | null>(null);
   const [parties,    setParties]    = useState<(PartyRecord & { id: number })[] | null>(null);
 
-  const [migrating,        setMigrating]        = useState(false);
-  const [migrationResults, setMigrationResults] = useState<MigrationStatus[] | null>(null);
-  const [migrationDone,    setMigrationDone]    = useState(false);
+  const [syncing,     setSyncing]     = useState(false);
+  const [syncResult,  setSyncResult]  = useState<(SyncResult & { action: 'backup' | 'restore' }) | null>(null);
 
   function reloadAll() {
     return Promise.all([
@@ -68,28 +69,32 @@ export default function AccountingDashboard() {
     ]);
   }
 
-  async function runMigration(force = false) {
-    setMigrating(true);
-    setMigrationResults(null);
-    setMigrationDone(false);
+  async function handleBackup() {
+    setSyncing(true);
+    setSyncResult(null);
     try {
-      const results = await runFullMigration(undefined, force);
-      setMigrationResults(results);
-      setMigrationDone(true);
-      await reloadAll();
-      if (typeof window !== 'undefined') localStorage.setItem('dtt_supabase_migration_done', '1');
+      const result = await backupToCloud();
+      setSyncResult({ ...result, action: 'backup' });
+      if (typeof window !== 'undefined') localStorage.setItem('dtt_last_backup', new Date().toISOString());
     } finally {
-      setMigrating(false);
+      setSyncing(false);
     }
   }
 
-  // Auto-run migration once on first load
-  useEffect(() => {
-    const key = 'dtt_supabase_migration_done';
-    if (typeof window !== 'undefined' && localStorage.getItem(key)) return;
-    runMigration(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  async function handleRestore() {
+    if (!confirm('This will replace ALL local data with the cloud backup. Continue?')) return;
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await restoreFromCloud();
+      setSyncResult({ ...result, action: 'restore' });
+      if (result.success) await reloadAll();
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const lastBackup = typeof window !== 'undefined' ? localStorage.getItem('dtt_last_backup') : null;
 
   useEffect(() => { salesCRUD.getAll().then(setSales); }, []);
   useEffect(() => { purchaseCRUD.getAll().then(setPurchases); }, []);
@@ -130,47 +135,58 @@ export default function AccountingDashboard() {
           </p>
         </div>
 
-        {/* Migration banner */}
-        {migrating && (
-          <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/30 rounded-xl px-4 py-3">
-            <RefreshCw className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
-            <p className="text-blue-300 text-sm">Migrating your local data to the cloud — please wait…</p>
-          </div>
-        )}
-        {!migrating && migrationDone && migrationResults && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                <p className="text-green-300 text-sm font-semibold">Migration complete</p>
-              </div>
+        {/* Cloud Sync — Backup / Restore */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-semibold">Cloud Backup</p>
+              <p className="text-slate-400 text-xs mt-0.5">
+                {lastBackup
+                  ? `Last backup: ${new Date(lastBackup).toLocaleString('en-GB')}`
+                  : 'No backup yet — click "Backup to Cloud" to save your data.'}
+              </p>
+            </div>
+            <div className="flex gap-2 shrink-0">
               <button
-                onClick={() => runMigration(false)}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
+                onClick={handleBackup}
+                disabled={syncing}
+                className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                <RefreshCw className="w-3 h-3" /> Re-Migrate All Data
+                {syncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Backup to Cloud
+              </button>
+              <button
+                onClick={handleRestore}
+                disabled={syncing}
+                className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                {syncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Restore from Cloud
               </button>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {migrationResults.map(r => (
-                <span key={r.table} className={`text-xs font-mono ${r.error ? 'text-red-400' : r.migrated > 0 ? 'text-green-400' : 'text-slate-500'}`}>
-                  {r.table}: {r.error ? `ERROR — ${r.error}` : r.skipped ? 'skipped' : `${r.migrated} ok${r.failed > 0 ? `, ${r.failed} failed` : ''}`}
-                </span>
-              ))}
+          </div>
+
+          {syncing && (
+            <div className="mt-3 flex items-center gap-2 text-blue-300 text-xs">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              {syncResult?.action === 'restore' ? 'Restoring from cloud…' : 'Backing up to cloud…'}
             </div>
-          </div>
-        )}
-        {!migrating && !migrationDone && (
-          <div className="flex justify-end">
-            <button
-              onClick={() => runMigration(false)}
-              disabled={migrating}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <RefreshCw className="w-3 h-3" /> Re-Migrate All Data
-            </button>
-          </div>
-        )}
+          )}
+
+          {!syncing && syncResult && (
+            <div className={`mt-3 rounded-lg px-3 py-2 text-xs ${syncResult.success ? 'bg-green-500/10 border border-green-500/20 text-green-300' : 'bg-red-500/10 border border-red-500/20 text-red-300'}`}>
+              {syncResult.success ? (
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                  {syncResult.action === 'backup' ? 'Backup complete — ' : 'Restore complete — '}
+                  {Object.entries(syncResult.counts).filter(([, v]) => v > 0).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                </span>
+              ) : (
+                <span>Error: {syncResult.error}</span>
+              )}
+            </div>
+          )}
+        </div>
 
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
