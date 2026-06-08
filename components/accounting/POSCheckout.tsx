@@ -174,6 +174,8 @@ export function POSCheckout() {
       const next = await salesCRUD.getNextInvoiceNo();
       setInvoiceNo(next);
       loadInventory();
+    } catch (err) {
+      setError((err as Error).message || 'Save failed — check Supabase tables are set up');
     } finally {
       setIsSaving(false);
     }
