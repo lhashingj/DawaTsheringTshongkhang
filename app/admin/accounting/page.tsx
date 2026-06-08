@@ -59,27 +59,35 @@ export default function AccountingDashboard() {
   const [migrationResults, setMigrationResults] = useState<MigrationStatus[] | null>(null);
   const [migrationDone,    setMigrationDone]    = useState(false);
 
+  function reloadAll() {
+    return Promise.all([
+      salesCRUD.getAll().then(setSales),
+      purchaseCRUD.getAll().then(setPurchases),
+      inventoryCRUD.getAll().then(setInventory),
+      partyCRUD.getAll().then(setParties),
+    ]);
+  }
+
+  async function runMigration(force = false) {
+    setMigrating(true);
+    setMigrationResults(null);
+    setMigrationDone(false);
+    try {
+      const results = await runFullMigration(undefined, force);
+      setMigrationResults(results);
+      setMigrationDone(true);
+      await reloadAll();
+      if (typeof window !== 'undefined') localStorage.setItem('dtt_supabase_migration_done', '1');
+    } finally {
+      setMigrating(false);
+    }
+  }
+
   // Auto-run migration once on first load
   useEffect(() => {
     const key = 'dtt_supabase_migration_done';
     if (typeof window !== 'undefined' && localStorage.getItem(key)) return;
-    setMigrating(true);
-    runFullMigration().then(results => {
-      setMigrationResults(results);
-      setMigrating(false);
-      const anyMigrated = results.some(r => r.migrated > 0);
-      if (anyMigrated) {
-        setMigrationDone(true);
-        // Reload all data after migration
-        Promise.all([
-          salesCRUD.getAll().then(setSales),
-          purchaseCRUD.getAll().then(setPurchases),
-          inventoryCRUD.getAll().then(setInventory),
-          partyCRUD.getAll().then(setParties),
-        ]);
-      }
-      if (typeof window !== 'undefined') localStorage.setItem(key, '1');
-    }).catch(() => setMigrating(false));
+    runMigration(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -129,19 +137,38 @@ export default function AccountingDashboard() {
             <p className="text-blue-300 text-sm">Migrating your local data to the cloud — please wait…</p>
           </div>
         )}
-        {migrationDone && migrationResults && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 space-y-1">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-              <p className="text-green-300 text-sm font-semibold">Migration complete — all data synced to cloud</p>
+        {!migrating && migrationDone && migrationResults && (
+          <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+                <p className="text-green-300 text-sm font-semibold">Migration complete</p>
+              </div>
+              <button
+                onClick={() => runMigration(true)}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" /> Re-Migrate All Data
+              </button>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {migrationResults.filter(r => r.migrated > 0).map(r => (
-                <span key={r.table} className="text-green-400 text-xs font-mono">
-                  {r.table}: {r.migrated} records
+              {migrationResults.map(r => (
+                <span key={r.table} className={`text-xs font-mono ${r.error ? 'text-red-400' : r.migrated > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                  {r.table}: {r.error ? `ERROR — ${r.error}` : r.skipped ? 'skipped' : `${r.migrated} ok${r.failed > 0 ? `, ${r.failed} failed` : ''}`}
                 </span>
               ))}
             </div>
+          </div>
+        )}
+        {!migrating && !migrationDone && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => runMigration(true)}
+              disabled={migrating}
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" /> Re-Migrate All Data
+            </button>
           </div>
         )}
 
