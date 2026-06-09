@@ -85,7 +85,7 @@ export function PartyLedger() {
       setModalMode(null);
       await loadParties();
     } catch (err) {
-      setSaveError((err as Error).message || 'Save failed — check Supabase tables are created');
+      setSaveError((err as Error).message || 'Failed to save party. Please try again.');
     } finally {
       setIsSaving(false);
     }

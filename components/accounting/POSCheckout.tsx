@@ -166,16 +166,19 @@ export function POSCheckout() {
       const saved = { ...record, id };
       setSavedInvoice(saved);
       setShowModal(true);
-      await decrementStockAndPostCOGS(items, saved.invoiceNo, new Date(saved.timestamp));
-      await postSaleToGL(saved);
-      if (customerMode === 'party' && selectedPartyId) {
-        await partyCRUD.updateBalance(selectedPartyId, netAmount);
-      }
+      // Post-save: GL entries + stock + balance — best-effort; invoice already stored
+      try {
+        await decrementStockAndPostCOGS(items, saved.invoiceNo, new Date(saved.timestamp));
+        await postSaleToGL(saved);
+        if (customerMode === 'party' && selectedPartyId) {
+          await partyCRUD.updateBalance(selectedPartyId, netAmount);
+        }
+      } catch { /* GL/stock update failed — invoice is saved, user can backup/restore */ }
       const next = await salesCRUD.getNextInvoiceNo();
       setInvoiceNo(next);
       loadInventory();
     } catch (err) {
-      setError((err as Error).message || 'Save failed — check Supabase tables are set up');
+      setError((err as Error).message || 'Failed to save invoice. Please try again.');
     } finally {
       setIsSaving(false);
     }

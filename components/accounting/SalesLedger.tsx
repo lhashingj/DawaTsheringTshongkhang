@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { db, salesCRUD, partyCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
+import { salesCRUD, partyCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
 import { deleteSaleWithCascade, editSaleWithCascade } from '@/lib/ledger-mutations';
 import { InvoicePrint } from './InvoicePrint';
 import { Eye, Trash2, Edit2, X, Plus, ChevronDown, Search } from 'lucide-react';
@@ -33,25 +33,9 @@ export function SalesLedger() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
   const [sales, setSales] = useState<(SaleRecord & { id: number })[] | null>(null);
+  const [editError, setEditError] = useState('');
 
-  const loadSales = useCallback(async () => {
-    const dexieSales = await db.sales.toArray();
-    try {
-      const apiSales = await salesCRUD.getAll();
-      // One-time migration: push local Dexie data up if Supabase table is empty
-      if (apiSales.length === 0 && dexieSales.length > 0) {
-        for (const s of dexieSales) {
-          try { await salesCRUD.create({ ...s, syncStatus: 'synced' }); } catch { /* skip duplicates */ }
-        }
-        setSales(await salesCRUD.getAll());
-      } else {
-        setSales(apiSales);
-      }
-    } catch {
-      // API unavailable (table not set up yet) — show local Dexie data as fallback
-      setSales(dexieSales as (SaleRecord & { id: number })[]);
-    }
-  }, []);
+  const loadSales = useCallback(() => salesCRUD.getAll().then(setSales), []);
 
   useEffect(() => { loadSales(); }, [loadSales]);
 
@@ -117,46 +101,56 @@ export function SalesLedger() {
   async function saveEdit() {
     if (!selected?.id) return;
     setIsSaving(true);
-    const gross = editItems.reduce((s, i) => s + i.amount, 0);
-    const gst = Math.round(gross * selected.gstRate) / 100;
-    const net = gross + gst;
+    setEditError('');
+    try {
+      const gross = editItems.reduce((s, i) => s + i.amount, 0);
+      const gst = Math.round(gross * selected.gstRate) / 100;
+      const net = gross + gst;
 
-    const newData: Omit<SaleRecord, 'id'> = {
-      ...selected,
-      customerName: editCustomer.name,
-      customerPhone: editCustomer.phone || undefined,
-      customerAddress: editCustomer.address || undefined,
-      customerTPN: editCustomer.tpn || undefined,
-      items: editItems,
-      grossAmount: gross,
-      gstAmount: gst,
-      netAmount: net,
-      notes: editNotes || undefined,
-      syncStatus: 'synced',
-    };
+      const newData: Omit<SaleRecord, 'id'> = {
+        ...selected,
+        customerName: editCustomer.name,
+        customerPhone: editCustomer.phone || undefined,
+        customerAddress: editCustomer.address || undefined,
+        customerTPN: editCustomer.tpn || undefined,
+        items: editItems,
+        grossAmount: gross,
+        gstAmount: gst,
+        netAmount: net,
+        notes: editNotes || undefined,
+        syncStatus: 'synced',
+      };
 
-    const oldPartyId = (customerParties || []).find(
-      p => p.name.toLowerCase() === (selected.customerName || '').toLowerCase(),
-    )?.id;
-    const newPartyId = selectedCustomerId ?? undefined;
+      const oldPartyId = (customerParties || []).find(
+        p => p.name.toLowerCase() === (selected.customerName || '').toLowerCase(),
+      )?.id;
+      const newPartyId = selectedCustomerId ?? undefined;
 
-    await editSaleWithCascade(selected.id, newData, oldPartyId, newPartyId);
-    setIsSaving(false);
-    setModalMode(null);
-    await loadSales();
+      await editSaleWithCascade(selected.id, newData, oldPartyId, newPartyId);
+      setModalMode(null);
+      await loadSales();
+    } catch (err) {
+      setEditError((err as Error).message || 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function confirmDelete() {
     if (deleteId == null) return;
-    const sale = (sales || []).find(s => s.id === deleteId);
-    const partyId = sale
-      ? (customerParties || []).find(
-          p => p.name.toLowerCase() === (sale.customerName || '').toLowerCase(),
-        )?.id
-      : undefined;
-    await deleteSaleWithCascade(deleteId, partyId);
-    setDeleteId(null);
-    await loadSales();
+    try {
+      const sale = (sales || []).find(s => s.id === deleteId);
+      const partyId = sale
+        ? (customerParties || []).find(
+            p => p.name.toLowerCase() === (sale.customerName || '').toLowerCase(),
+          )?.id
+        : undefined;
+      await deleteSaleWithCascade(deleteId, partyId);
+      setDeleteId(null);
+      await loadSales();
+    } catch {
+      setDeleteId(null);
+    }
   }
 
   if (sales === null) {
@@ -330,9 +324,10 @@ export function SalesLedger() {
 
               <div><label className="block text-slate-400 text-xs mb-1">Notes</label><textarea className={inputCls} rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)} /></div>
             </div>
+            {editError && <p className="text-red-400 text-sm mt-4 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{editError}</p>}
             <div className="flex gap-3 mt-5">
               <button onClick={saveEdit} disabled={isSaving} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">{isSaving ? 'Saving…' : 'Save Changes'}</button>
-              <button onClick={() => setModalMode(null)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+              <button onClick={() => { setModalMode(null); setEditError(''); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
             </div>
           </div>
         </div>

@@ -137,7 +137,7 @@ export function InventoryManager() {
       setModalMode(null);
       await loadInventory();
     } catch (err) {
-      setSaveError((err as Error).message || 'Save failed — check Supabase tables are created');
+      setSaveError((err as Error).message || 'Failed to save. Please try again.');
     } finally {
       setIsSaving(false);
     }

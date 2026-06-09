@@ -102,7 +102,7 @@ export function ExpenseManager() {
       setModalMode(null);
       await loadExpenses();
     } catch (err) {
-      setSaveError((err as Error).message || 'Save failed — check Supabase tables are created');
+      setSaveError((err as Error).message || 'Failed to save expense. Please try again.');
     } finally {
       setIsSaving(false);
     }

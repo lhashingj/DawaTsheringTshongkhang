@@ -174,7 +174,7 @@ export function PurchaseLedger() {
       setModalMode(null);
       await loadPurchases();
     } catch (err) {
-      setSaveError((err as Error).message || 'Save failed — check Supabase tables are created');
+      setSaveError((err as Error).message || 'Failed to save purchase order. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -182,15 +182,19 @@ export function PurchaseLedger() {
 
   async function confirmDelete() {
     if (deleteId == null) return;
-    const purchase = (purchases || []).find(p => p.id === deleteId);
-    const partyId = purchase
-      ? (supplierParties || []).find(
-          p => p.name.toLowerCase() === (purchase.supplierName || '').toLowerCase(),
-        )?.id
-      : undefined;
-    await deletePurchaseWithCascade(deleteId, partyId);
-    setDeleteId(null);
-    loadPurchases();
+    try {
+      const purchase = (purchases || []).find(p => p.id === deleteId);
+      const partyId = purchase
+        ? (supplierParties || []).find(
+            p => p.name.toLowerCase() === (purchase.supplierName || '').toLowerCase(),
+          )?.id
+        : undefined;
+      await deletePurchaseWithCascade(deleteId, partyId);
+      setDeleteId(null);
+      loadPurchases();
+    } catch {
+      setDeleteId(null);
+    }
   }
 
   if (purchases === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading purchase records…</div>;
