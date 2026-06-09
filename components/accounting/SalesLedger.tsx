@@ -5,7 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { salesCRUD, partyCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
 import { deleteSaleWithCascade, editSaleWithCascade } from '@/lib/ledger-mutations';
 import { InvoicePrint } from './InvoicePrint';
-import { Eye, Trash2, Edit2, X, Plus, ChevronDown, Search } from 'lucide-react';
+import { Eye, Trash2, Edit2, X, Plus, ChevronDown, ChevronUp, ChevronsUpDown, Search } from 'lucide-react';
 import type { PartyRecord } from '@/lib/accounting-db';
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS'];
@@ -34,6 +34,7 @@ export function SalesLedger() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
   const [editError, setEditError] = useState('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const sales = useLiveQuery(() => salesCRUD.getAll(), []);
   const customerParties = useLiveQuery(
@@ -42,15 +43,20 @@ export function SalesLedger() {
     [] as (PartyRecord & { id: number })[]
   );
 
-  const filtered = (sales || []).filter(s => {
-    const matchSearch =
-      !search ||
-      s.invoiceNo.includes(search) ||
-      s.customerName?.toLowerCase().includes(search.toLowerCase());
-    const matchFrom = !filterFrom || new Date(s.timestamp) >= new Date(filterFrom);
-    const matchTo = !filterTo || new Date(s.timestamp) <= new Date(filterTo + 'T23:59:59');
-    return matchSearch && matchFrom && matchTo;
-  });
+  const filtered = (sales || [])
+    .filter(s => {
+      const matchSearch =
+        !search ||
+        s.invoiceNo.includes(search) ||
+        s.customerName?.toLowerCase().includes(search.toLowerCase());
+      const matchFrom = !filterFrom || new Date(s.timestamp) >= new Date(filterFrom);
+      const matchTo = !filterTo || new Date(s.timestamp) <= new Date(filterTo + 'T23:59:59');
+      return matchSearch && matchFrom && matchTo;
+    })
+    .sort((a, b) => {
+      const diff = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      return sortDir === 'asc' ? diff : -diff;
+    });
 
   const totalNet = filtered.reduce((s, r) => s + r.netAmount, 0);
   const totalGst = filtered.reduce((s, r) => s + r.gstAmount, 0);
@@ -189,7 +195,15 @@ export function SalesLedger() {
           <thead className="bg-slate-700">
             <tr>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Invoice No.</th>
-              <th className="text-left px-4 py-3 text-slate-400 font-medium">Date</th>
+              <th className="text-left px-4 py-3 text-slate-400 font-medium">
+                <button
+                  onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                  className="flex items-center gap-1 hover:text-white transition-colors"
+                >
+                  Date
+                  {sortDir === 'desc' ? <ChevronDown className="w-3.5 h-3.5 text-orange-400" /> : sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-orange-400" /> : <ChevronsUpDown className="w-3.5 h-3.5" />}
+                </button>
+              </th>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Customer</th>
               <th className="text-center px-4 py-3 text-slate-400 font-medium">Items</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Gross</th>
