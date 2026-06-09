@@ -1,10 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  salesCRUD, purchaseCRUD, inventoryCRUD, partyCRUD,
-  SaleRecord, PurchaseRecord, InventoryItem, PartyRecord,
-} from '@/lib/accounting-db';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { salesCRUD, purchaseCRUD, inventoryCRUD, partyCRUD } from '@/lib/accounting-db';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import Link from 'next/link';
 import {
@@ -47,18 +44,12 @@ function StatCard({ label, value, sub, color, icon: Icon }: {
 }
 
 export default function AccountingDashboard() {
-  const [sales,      setSales]      = useState<(SaleRecord & { id: number })[] | null>(null);
-  const [purchases,  setPurchases]  = useState<(PurchaseRecord & { id: number })[] | null>(null);
-  const [inventory,  setInventory]  = useState<(InventoryItem & { id: number })[] | null>(null);
-  const [parties,    setParties]    = useState<(PartyRecord & { id: number })[] | null>(null);
+  const sales     = useLiveQuery(() => salesCRUD.getAll(), []);
+  const purchases = useLiveQuery(() => purchaseCRUD.getAll(), []);
+  const inventory = useLiveQuery(() => inventoryCRUD.getAll(), []);
+  const parties   = useLiveQuery(() => partyCRUD.getAll(), []);
 
-
-  useEffect(() => { salesCRUD.getAll().then(setSales); }, []);
-  useEffect(() => { purchaseCRUD.getAll().then(setPurchases); }, []);
-  useEffect(() => { inventoryCRUD.getAll().then(setInventory); }, []);
-  useEffect(() => { partyCRUD.getAll().then(setParties); }, []);
-
-  const isLoading = sales === null || purchases === null || inventory === null || parties === null;
+  const isLoading = sales === undefined || purchases === undefined || inventory === undefined || parties === undefined;
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];

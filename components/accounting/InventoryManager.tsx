@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { inventoryCRUD, InventoryItem, UnitType } from '@/lib/accounting-db';
 import { Plus, Trash2, Edit2, X, Search, Package, AlertTriangle, ChevronDown, Minus, Download } from 'lucide-react';
 import { seedInventoryFromProducts } from '@/lib/seed-inventory';
@@ -53,9 +54,7 @@ export function InventoryManager() {
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedMsg, setSeedMsg] = useState('');
 
-  const [inventory, setInventory] = useState<(InventoryItem & { id: number })[] | null>(null);
-  const loadInventory = useCallback(() => inventoryCRUD.getAll().then(setInventory), []);
-  useEffect(() => { loadInventory(); }, [loadInventory]);
+  const inventory = useLiveQuery(() => inventoryCRUD.getAll(), []);
 
   const filtered = (inventory || []).filter(item => {
     const matchSearch = !search || item.description.toLowerCase().includes(search.toLowerCase()) || item.itemCode?.toLowerCase().includes(search.toLowerCase());
@@ -135,7 +134,6 @@ export function InventoryManager() {
       }
     }
       setModalMode(null);
-      await loadInventory();
     } catch (err) {
       setSaveError((err as Error).message || 'Failed to save. Please try again.');
     } finally {
@@ -167,7 +165,6 @@ export function InventoryManager() {
       } catch { /* best-effort */ }
     }
     setAdjusting(null);
-    loadInventory();
   }
 
   async function handleSeedProducts() {
@@ -179,7 +176,6 @@ export function InventoryManager() {
         ? `Done! Added ${added} products (${skipped} already existed).`
         : `Done! Added ${added} products to inventory.`
       );
-      loadInventory();
     } catch {
       setSeedMsg('Import failed. Please try again.');
     } finally {
@@ -202,10 +198,9 @@ export function InventoryManager() {
       } catch { /* best-effort */ }
     }
     setDeleteId(null);
-    loadInventory();
   }
 
-  if (inventory === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading inventory…</div>;
+  if (inventory === undefined) return <div className="text-slate-400 text-sm p-8 text-center">Loading inventory…</div>;
 
   return (
     <div className="space-y-4">

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   expenseCRUD, postExpenseToGL,
   ExpenseRecord, ExpenseCategory,
@@ -57,9 +58,7 @@ export function ExpenseManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
-  const [expenses, setExpenses] = useState<(ExpenseRecord & { id: number })[] | null>(null);
-  const loadExpenses = useCallback(() => expenseCRUD.getAll().then(setExpenses), []);
-  useEffect(() => { loadExpenses(); }, [loadExpenses]);
+  const expenses = useLiveQuery(() => expenseCRUD.getAll(), []);
 
   const filtered = (expenses || []).filter(e => {
     const matchSearch = !search || e.description.toLowerCase().includes(search.toLowerCase()) || e.reference?.toLowerCase().includes(search.toLowerCase());
@@ -100,7 +99,6 @@ export function ExpenseManager() {
         await editExpenseWithCascade(selected.id, { ...form, date: new Date(form.date) });
       }
       setModalMode(null);
-      await loadExpenses();
     } catch (err) {
       setSaveError((err as Error).message || 'Failed to save expense. Please try again.');
     } finally {
@@ -113,14 +111,13 @@ export function ExpenseManager() {
     try {
       await deleteExpenseWithCascade(deleteId);
       setDeleteId(null);
-      await loadExpenses();
     } catch (err) {
       alert((err as Error).message || 'Delete failed');
       setDeleteId(null);
     }
   }
 
-  if (expenses === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading expenses…</div>;
+  if (expenses === undefined) return <div className="text-slate-400 text-sm p-8 text-center">Loading expenses…</div>;
 
   return (
     <div className="space-y-4">

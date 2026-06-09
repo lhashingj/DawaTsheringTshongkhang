@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   CashBookEntry,
   CashBookType,
@@ -257,18 +258,12 @@ export function CashBook() {
   const [toDate, setToDate]             = useState('');
   const [page, setPage]                 = useState(0);
 
-  const [entries, setEntries] = useState<(CashBookEntry & { id: number })[] | null>(null);
-  const [parties, setParties] = useState<(PartyRecord & { id: number })[] | null>(null);
-
-  const loadEntries = useCallback(() => cashBookCRUD.getAll().then(setEntries), []);
-  const loadParties = useCallback(() => partyCRUD.getAll().then(setParties), []);
-
-  useEffect(() => { loadEntries(); }, [loadEntries]);
-  useEffect(() => { loadParties(); }, [loadParties]);
+  const entries = useLiveQuery(() => cashBookCRUD.getAll(), []);
+  const parties = useLiveQuery(() => partyCRUD.getAll(), [], [] as (PartyRecord & { id: number })[]);
 
   // ── Filters ────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    if (entries === null) return [];
+    if (!entries) return [];
     return entries.filter(e => {
       const matchSearch =
         !search ||
@@ -325,7 +320,6 @@ export function CashBook() {
     setSaving(false);
     setShowModal(false);
     setForm(blankForm());
-    loadEntries();
   }
 
   // ── Delete with cascade ────────────────────────────────────────────────────
@@ -344,7 +338,6 @@ export function CashBook() {
       await cashBookCRUD.delete(deletingId);
     }
     setDeletingId(null);
-    loadEntries();
   }
 
   // ── Party selection helper ─────────────────────────────────────────────────
@@ -356,7 +349,7 @@ export function CashBook() {
     });
   }
 
-  if (entries === null || parties === null) {
+  if (entries === undefined) {
     return <div className="text-slate-400 text-sm p-8 text-center animate-pulse">Loading cash book…</div>;
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { salesCRUD, partyCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
 import { deleteSaleWithCascade, editSaleWithCascade } from '@/lib/ledger-mutations';
 import { InvoicePrint } from './InvoicePrint';
@@ -32,17 +33,14 @@ export function SalesLedger() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
-  const [sales, setSales] = useState<(SaleRecord & { id: number })[] | null>(null);
   const [editError, setEditError] = useState('');
 
-  const loadSales = useCallback(() => salesCRUD.getAll().then(setSales), []);
-
-  useEffect(() => { loadSales(); }, [loadSales]);
-
-  const [customerParties, setCustomerParties] = useState<(PartyRecord & { id: number })[]>([]);
-  useEffect(() => {
-    partyCRUD.getAll().then(all => setCustomerParties(all.filter(p => p.partyType === 'customer' || p.partyType === 'both')));
-  }, []);
+  const sales = useLiveQuery(() => salesCRUD.getAll(), []);
+  const customerParties = useLiveQuery(
+    () => partyCRUD.getAll().then(all => all.filter(p => p.partyType === 'customer' || p.partyType === 'both')),
+    [],
+    [] as (PartyRecord & { id: number })[]
+  );
 
   const filtered = (sales || []).filter(s => {
     const matchSearch =
@@ -128,7 +126,6 @@ export function SalesLedger() {
 
       await editSaleWithCascade(selected.id, newData, oldPartyId, newPartyId);
       setModalMode(null);
-      await loadSales();
     } catch (err) {
       setEditError((err as Error).message || 'Failed to save changes');
     } finally {
@@ -147,13 +144,12 @@ export function SalesLedger() {
         : undefined;
       await deleteSaleWithCascade(deleteId, partyId);
       setDeleteId(null);
-      await loadSales();
     } catch {
       setDeleteId(null);
     }
   }
 
-  if (sales === null) {
+  if (sales === undefined) {
     return <div className="text-slate-400 text-sm p-8 text-center">Loading sales records…</div>;
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   CreditNote,
   ReturnItem,
@@ -71,19 +72,13 @@ export function CustomerReturns() {
   const [date, setDate]                         = useState(new Date().toISOString().slice(0, 10));
   const [items, setItems]                       = useState<ItemRow[]>([blankItem()]);
 
-  const [creditNotes, setCreditNotes] = useState<(CreditNote & { id: number })[] | null>(null);
-  const [parties, setParties]         = useState<(PartyRecord & { id: number })[] | null>(null);
-  const [inventory, setInventory]     = useState<(InventoryItem & { id: number })[] | null>(null);
-
-  const loadCreditNotes = useCallback(() => creditNoteCRUD.getAll().then(setCreditNotes), []);
-  const loadParties     = useCallback(() =>
-    partyCRUD.getAll().then(all => setParties(all.filter(p => p.partyType === 'customer' || p.partyType === 'both'))),
-    []);
-  const loadInventory   = useCallback(() => inventoryCRUD.getAll().then(setInventory), []);
-
-  useEffect(() => { loadCreditNotes(); }, [loadCreditNotes]);
-  useEffect(() => { loadParties(); },    [loadParties]);
-  useEffect(() => { loadInventory(); },  [loadInventory]);
+  const creditNotes = useLiveQuery(() => creditNoteCRUD.getAll(), []);
+  const parties     = useLiveQuery(
+    () => partyCRUD.getAll().then(all => all.filter(p => p.partyType === 'customer' || p.partyType === 'both')),
+    [],
+    [] as (PartyRecord & { id: number })[]
+  );
+  const inventory = useLiveQuery(() => inventoryCRUD.getAll(), []);
 
   // ── Computed totals ────────────────────────────────────────────────────────
   const computedItems: ReturnItem[] = useMemo(() => items.map(i => ({
@@ -100,7 +95,7 @@ export function CustomerReturns() {
 
   // ── Filters ────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    if (creditNotes === null) return [];
+    if (!creditNotes) return [];
     return creditNotes.filter(cn => {
       const matchSearch =
         !search ||
@@ -191,8 +186,6 @@ export function CustomerReturns() {
     setSaving(false);
     resetForm();
     setShowModal(false);
-    loadCreditNotes();
-    loadInventory();
   }
 
   function resetForm() {
@@ -223,11 +216,9 @@ export function CustomerReturns() {
       await creditNoteCRUD.delete(deletingId);
     }
     setDeletingId(null);
-    loadCreditNotes();
-    loadInventory();
   }
 
-  if (creditNotes === null || parties === null) {
+  if (creditNotes === undefined) {
     return <div className="text-slate-400 text-sm p-8 text-center animate-pulse">Loading…</div>;
   }
 

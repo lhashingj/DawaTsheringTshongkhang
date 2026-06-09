@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   glCRUD,
   partyCRUD,
@@ -127,13 +128,11 @@ export function GLAudit() {
   const [partyBulkDeleting, setPartyBulkDeleting]   = useState(false);
 
   // ── Live data ───────────────────────────────────────────────────────────────
-  const [glEntries, setGlEntries] = useState<(GLEntry & { id: number })[] | undefined>(undefined);
-  const [parties, setParties]     = useState<(PartyRecord & { id: number })[] | undefined>(undefined);
-
-  const loadGL      = useCallback(() => glCRUD.getAll().then(d => setGlEntries(d.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))), []);
-  const loadParties = useCallback(() => partyCRUD.getAll().then(setParties), []);
-
-  useEffect(() => { loadGL(); loadParties(); }, [loadGL, loadParties]);
+  const glEntries = useLiveQuery(
+    () => glCRUD.getAll().then(d => d.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())),
+    []
+  );
+  const parties = useLiveQuery(() => partyCRUD.getAll(), []);
 
   // ── GL filtered + paginated ─────────────────────────────────────────────────
   const filteredGL = useMemo(() => {
@@ -240,14 +239,12 @@ export function GLAudit() {
     setGlSaving(false);
     setEditingGL(null);
     setGlForm(null);
-    await loadGL();
   }
 
   async function confirmDeleteGL() {
     if (deletingGLId == null) return;
     await deleteGLEntryById(deletingGLId);
     setDeletingGLId(null);
-    await loadGL();
   }
 
   async function executeBulkDeleteGL() {
@@ -256,7 +253,6 @@ export function GLAudit() {
     setGlSelectedIds(new Set());
     setGlBulkConfirm(false);
     setGlBulkDeleting(false);
-    await loadGL();
   }
 
   // ── Party handlers ──────────────────────────────────────────────────────────
@@ -275,14 +271,12 @@ export function GLAudit() {
     }
     setPartySaving(false);
     setEditingParty(null);
-    await loadParties();
   }
 
   async function confirmDeleteParty() {
     if (deletingPartyId == null) return;
     await partyCRUD.delete(deletingPartyId);
     setDeletingPartyId(null);
-    await loadParties();
   }
 
   async function executeBulkDeleteParties() {
@@ -291,7 +285,6 @@ export function GLAudit() {
     setPartySelectedIds(new Set());
     setPartyBulkConfirm(false);
     setPartyBulkDeleting(false);
-    await loadParties();
   }
 
   if (!glEntries || !parties) {

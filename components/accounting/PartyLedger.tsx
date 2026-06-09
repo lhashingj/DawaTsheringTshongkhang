@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { partyCRUD, PartyRecord, PartyType } from '@/lib/accounting-db';
 import { Plus, Trash2, Edit2, X, Search, ChevronDown, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
@@ -42,10 +43,8 @@ export function PartyLedger() {
   const [isSaving, setIsSaving] = useState(false);
   const [balanceAdj, setBalanceAdj] = useState<{ id: number; amount: string } | null>(null);
 
-  const [parties, setParties] = useState<(PartyRecord & { id: number })[] | null>(null);
+  const parties = useLiveQuery(() => partyCRUD.getAll(), []);
   const [saveError, setSaveError] = useState('');
-  const loadParties = useCallback(() => partyCRUD.getAll().then(setParties), []);
-  useEffect(() => { loadParties(); }, [loadParties]);
 
   const filtered = (parties || []).filter(p => {
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search) || p.tpn?.includes(search);
@@ -83,7 +82,6 @@ export function PartyLedger() {
         await partyCRUD.update(selected.id, { ...form, updatedAt: new Date() });
       }
       setModalMode(null);
-      await loadParties();
     } catch (err) {
       setSaveError((err as Error).message || 'Failed to save party. Please try again.');
     } finally {
@@ -98,7 +96,6 @@ export function PartyLedger() {
     try {
       await partyCRUD.updateBalance(balanceAdj.id, delta);
       setBalanceAdj(null);
-      await loadParties();
     } catch (err) {
       alert((err as Error).message || 'Balance update failed');
     }
@@ -109,7 +106,6 @@ export function PartyLedger() {
       try {
         await partyCRUD.delete(deleteId);
         setDeleteId(null);
-        await loadParties();
       } catch (err) {
         alert((err as Error).message || 'Delete failed');
         setDeleteId(null);
@@ -117,7 +113,7 @@ export function PartyLedger() {
     }
   }
 
-  if (parties === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading party records…</div>;
+  if (parties === undefined) return <div className="text-slate-400 text-sm p-8 text-center">Loading party records…</div>;
 
   return (
     <div className="space-y-4">

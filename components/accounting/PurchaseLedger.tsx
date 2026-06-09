@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   purchaseCRUD, partyCRUD, inventoryCRUD,
   PurchaseRecord, PurchaseItem, InventoryItem, UnitType, PartyRecord,
@@ -52,20 +53,13 @@ export function PurchaseLedger() {
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const descRef = useRef<HTMLInputElement>(null);
 
-  const [purchases, setPurchases] = useState<(PurchaseRecord & { id: number })[] | null>(null);
-  const [supplierParties, setSupplierParties] = useState<(PartyRecord & { id: number })[] | null>(null);
-  const [inventory, setInventory] = useState<(InventoryItem & { id: number })[] | null>(null);
-
-  const loadPurchases = useCallback(() => purchaseCRUD.getAll().then(setPurchases), []);
-  const loadParties = useCallback(() =>
-    partyCRUD.getAll().then(all =>
-      setSupplierParties(all.filter(p => p.partyType === 'supplier' || p.partyType === 'both'))
-    ), []);
-  const loadInventory = useCallback(() => inventoryCRUD.getAll().then(setInventory), []);
-
-  useEffect(() => { loadPurchases(); }, [loadPurchases]);
-  useEffect(() => { loadParties(); }, [loadParties]);
-  useEffect(() => { loadInventory(); }, [loadInventory]);
+  const purchases = useLiveQuery(() => purchaseCRUD.getAll(), []);
+  const supplierParties = useLiveQuery(
+    () => partyCRUD.getAll().then(all => all.filter(p => p.partyType === 'supplier' || p.partyType === 'both')),
+    [],
+    [] as (PartyRecord & { id: number })[]
+  );
+  const inventory = useLiveQuery(() => inventoryCRUD.getAll(), []);
 
   // Compute suggestions when description changes
   useEffect(() => {
@@ -172,7 +166,6 @@ export function PurchaseLedger() {
         await editPurchaseWithCascade(selected.id, record, oldPartyId, newPartyId);
       }
       setModalMode(null);
-      await loadPurchases();
     } catch (err) {
       setSaveError((err as Error).message || 'Failed to save purchase order. Please try again.');
     } finally {
@@ -191,13 +184,12 @@ export function PurchaseLedger() {
         : undefined;
       await deletePurchaseWithCascade(deleteId, partyId);
       setDeleteId(null);
-      loadPurchases();
     } catch {
       setDeleteId(null);
     }
   }
 
-  if (purchases === null) return <div className="text-slate-400 text-sm p-8 text-center">Loading purchase records…</div>;
+  if (purchases === undefined) return <div className="text-slate-400 text-sm p-8 text-center">Loading purchase records…</div>;
 
   const newItemAmount = newItem.qty && newItem.rate
     ? parseFloat(newItem.qty) * parseFloat(newItem.rate)
