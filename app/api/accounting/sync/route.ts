@@ -93,7 +93,10 @@ export async function POST(request: Request) {
     }
   }
 
+  // Include the local Dexie `id` in every row so IDs are preserved after restore.
+  // References like party_id in payments will remain valid across backup/restore cycles.
   const sales = (body.sales || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     invoice_no: r.invoiceNo, sale_at: r.timestamp, customer_name: r.customerName,
     customer_phone: r.customerPhone ?? null, customer_address: r.customerAddress ?? null,
     customer_tpn: r.customerTPN ?? null, items: r.items,
@@ -102,6 +105,7 @@ export async function POST(request: Request) {
   }));
 
   const purchases = (body.purchases || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     purchase_order_no: r.purchaseOrderNo, purchased_at: r.timestamp, supplier_name: r.supplierName,
     supplier_phone: r.supplierPhone ?? null, supplier_address: r.supplierAddress ?? null,
     supplier_tpn: r.supplierTPN ?? null, items: r.items,
@@ -110,6 +114,7 @@ export async function POST(request: Request) {
   }));
 
   const parties = (body.parties || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     party_type: r.partyType, name: r.name, phone: r.phone ?? null,
     address: r.address ?? null, email: r.email ?? null, tpn: r.tpn ?? null,
     license_no: r.licenseNo ?? null, gst_no: r.gstNo ?? null,
@@ -119,12 +124,14 @@ export async function POST(request: Request) {
   }));
 
   const inventory = (body.inventory || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     item_code: r.itemCode ?? null, description: r.description, unit: r.unit,
     base_rate: r.baseRate, stock_qty: r.stockQty, reorder_level: r.reorderLevel,
     last_updated: r.lastUpdated, notes: r.notes ?? null,
   }));
 
   const expenses = (body.expenses || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     expense_date: typeof r.date === 'string' ? r.date.split('T')[0] : new Date(r.date as string).toISOString().split('T')[0],
     category: r.category, description: r.description, amount: r.amount,
     input_tax_rate: r.inputTaxRate ?? null, input_tax_amount: r.inputTaxAmount ?? null,
@@ -132,23 +139,27 @@ export async function POST(request: Request) {
   }));
 
   const payments = (body.payments || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     party_id: r.partyId, paid_at: r.timestamp, amount: r.amount,
     direction: r.direction, mode: r.mode,
     reference: r.reference ?? null, notes: r.notes ?? null,
   }));
 
   const gl = (body.generalLedger || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     entry_at: r.timestamp, transaction_ref: r.transactionRef, transaction_type: r.transactionType,
     account: r.account, account_type: r.accountType, debit: r.debit, credit: r.credit, description: r.description,
   }));
 
   const cashBook = (body.cashBook || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     voucher_no: r.voucherNo, entry_at: r.timestamp, type: r.type,
     party_id: r.partyId ?? null, party_name: r.partyName, amount: r.amount,
     description: r.description, reference: r.reference ?? null, sync_status: 'synced',
   }));
 
   const creditNotes = (body.creditNotes || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     credit_note_no: r.creditNoteNo, noted_at: r.timestamp,
     original_invoice_no: r.originalInvoiceNo ?? null, party_id: r.partyId ?? null,
     party_name: r.partyName, items: r.items,
@@ -157,6 +168,7 @@ export async function POST(request: Request) {
   }));
 
   const debitNotes = (body.debitNotes || []).map((r: Record<string, unknown>) => ({
+    id: r.id,
     debit_note_no: r.debitNoteNo, noted_at: r.timestamp,
     original_po_no: r.originalPONo ?? null, party_id: r.partyId ?? null,
     party_name: r.partyName, items: r.items,
