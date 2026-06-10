@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -29,8 +28,7 @@ const fieldVariants = {
 const inputCls = "w-full h-11 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400 transition-colors";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { refreshUser } = useAuth();
+  useAuth(); // keep provider mounted
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -55,10 +53,9 @@ export default function LoginPage() {
       if (profile) {
         try { sessionStorage.setItem(`dtt-profile-${data.user.id}`, JSON.stringify(profile)); } catch {}
       }
-      // Populate auth context BEFORE navigating so the admin guard doesn't
-      // see stale null-user state and immediately bounce back to /login.
-      await refreshUser();
-      router.push(profile?.role === "admin" ? "/admin" : "/");
+      // Use a hard navigation so React's startTransition cannot render the
+      // admin page with the pre-login (user=null) state and bounce us back.
+      window.location.href = profile?.role === "admin" ? "/admin" : "/";
     } catch (err: unknown) {
       const msg = (err as { message?: string }).message ?? "";
       if (msg.includes("Invalid login credentials") || msg.includes("invalid_credentials")) {

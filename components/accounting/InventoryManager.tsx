@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { inventoryCRUD, InventoryItem, UnitType } from '@/lib/accounting-db';
-import { Plus, Trash2, Edit2, X, Search, Package, AlertTriangle, ChevronDown, Minus, Download } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Search, Package, AlertTriangle, ChevronDown, ChevronUp, ChevronsUpDown, Minus, Download } from 'lucide-react';
 import { seedInventoryFromProducts } from '@/lib/seed-inventory';
 import type { ProductCategory } from '@/types';
 
@@ -53,6 +53,8 @@ export function InventoryManager() {
   const [adjusting, setAdjusting] = useState<{ id: number; name: string; qty: number; delta: string } | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedMsg, setSeedMsg] = useState('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc' | null>(null);
+  const [isDeduping, setIsDeduping] = useState(false);
 
   const inventory = useLiveQuery(() => inventoryCRUD.getAll(), []);
 
@@ -60,6 +62,10 @@ export function InventoryManager() {
     const matchSearch = !search || item.description.toLowerCase().includes(search.toLowerCase()) || item.itemCode?.toLowerCase().includes(search.toLowerCase());
     const matchLow = !lowStockOnly || item.stockQty <= item.reorderLevel;
     return matchSearch && matchLow;
+  }).sort((a, b) => {
+    if (!sortDir) return 0;
+    const cmp = a.description.localeCompare(b.description, undefined, { sensitivity: 'base' });
+    return sortDir === 'asc' ? cmp : -cmp;
   });
 
   const lowStockCount = (inventory || []).filter(i => i.stockQty <= i.reorderLevel).length;
@@ -183,6 +189,42 @@ export function InventoryManager() {
     }
   }
 
+  async function handleDedup() {
+    setIsDeduping(true);
+    setSeedMsg('');
+    try {
+      const all = await inventoryCRUD.getAll();
+      // Group by normalised description
+      const groups = new Map<string, InventoryItem[]>();
+      for (const item of all) {
+        const key = item.description.toLowerCase().trim();
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(item);
+      }
+      let removed = 0;
+      for (const group of groups.values()) {
+        if (group.length <= 1) continue;
+        // Keep: prefer item with a code; among ties, keep highest id (most recent)
+        group.sort((a, b) => {
+          const aHasCode = a.itemCode ? 1 : 0;
+          const bHasCode = b.itemCode ? 1 : 0;
+          if (bHasCode !== aHasCode) return bHasCode - aHasCode;
+          return (b.id ?? 0) - (a.id ?? 0);
+        });
+        const toDelete = group.slice(1);
+        for (const item of toDelete) {
+          await inventoryCRUD.delete(item.id!);
+          removed++;
+        }
+      }
+      setSeedMsg(removed > 0 ? `Done! Removed ${removed} duplicate item${removed !== 1 ? 's' : ''}.` : 'No duplicates found.');
+    } catch {
+      setSeedMsg('Deduplication failed. Please try again.');
+    } finally {
+      setIsDeduping(false);
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteId) return;
     const item = (inventory || []).find(i => i.id === deleteId);
@@ -235,6 +277,14 @@ export function InventoryManager() {
             <Download className="w-4 h-4" />
             {isSeeding ? 'Importing…' : 'Import Store Products'}
           </button>
+          <button
+            onClick={handleDedup}
+            disabled={isDeduping}
+            className="flex items-center gap-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            title="Remove duplicate items (same description). Keeps the record with an item code."
+          >
+            {isDeduping ? 'Removing…' : 'Remove Duplicates'}
+          </button>
           <button onClick={openAdd} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" /> Add Item
           </button>
@@ -263,7 +313,15 @@ export function InventoryManager() {
           <thead className="bg-slate-700">
             <tr>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Code</th>
-              <th className="text-left px-4 py-3 text-slate-400 font-medium">Description</th>
+              <th className="text-left px-4 py-3 text-slate-400 font-medium">
+                <button
+                  onClick={() => setSortDir(d => d === null ? 'asc' : d === 'asc' ? 'desc' : null)}
+                  className="flex items-center gap-1 hover:text-white transition-colors"
+                >
+                  Description
+                  {sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-orange-400" /> : sortDir === 'desc' ? <ChevronDown className="w-3.5 h-3.5 text-orange-400" /> : <ChevronsUpDown className="w-3.5 h-3.5" />}
+                </button>
+              </th>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Unit</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Base Rate</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Stock</th>
