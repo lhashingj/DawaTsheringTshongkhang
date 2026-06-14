@@ -32,6 +32,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
@@ -53,6 +54,16 @@ export default function LoginPage() {
       if (profile) {
         try { sessionStorage.setItem(`dtt-profile-${data.user.id}`, JSON.stringify(profile)); } catch {}
       }
+      // Persist remember-me preference so AuthContext knows whether to keep
+      // the session alive after the browser is closed and reopened.
+      try {
+        if (rememberMe) {
+          localStorage.setItem("dtt-remember-me", "true");
+        } else {
+          localStorage.removeItem("dtt-remember-me");
+          sessionStorage.setItem("dtt-session-active", "true");
+        }
+      } catch {}
       // Use a hard navigation so React's startTransition cannot render the
       // admin page with the pre-login (user=null) state and bounce us back.
       window.location.href = profile?.role === "admin" ? "/admin" : "/";
@@ -340,6 +351,19 @@ export default function LoginPage() {
                     </div>
                   </motion.div>
 
+                  <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="flex items-center gap-2.5">
+                    <input
+                      id="remember-me"
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-500 bg-slate-700 accent-orange-500 cursor-pointer"
+                    />
+                    <label htmlFor="remember-me" className="text-sm text-slate-400 cursor-pointer select-none hover:text-slate-300 transition-colors">
+                      Remember me
+                    </label>
+                  </motion.div>
+
                   <AnimatePresence mode="wait">
                     {error && (
                       <motion.p
@@ -354,7 +378,7 @@ export default function LoginPage() {
                     )}
                   </AnimatePresence>
 
-                  <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible">
+                  <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible">
                     <Button
                       type="submit"
                       className="w-full h-11 gap-2 shadow-lg shadow-orange-500/20 cursor-pointer"
@@ -376,7 +400,7 @@ export default function LoginPage() {
                 </form>
 
                 <motion.p
-                  custom={4}
+                  custom={5}
                   variants={fieldVariants}
                   initial="hidden"
                   animate="visible"

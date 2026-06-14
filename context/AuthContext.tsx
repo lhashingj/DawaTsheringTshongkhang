@@ -101,7 +101,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // On first load: if the user didn't tick "Remember me" and has no active
+      // session flag (i.e. they closed and reopened the browser), sign them out.
+      if (event === "INITIAL_SESSION" && session?.user) {
+        const remembered = typeof window !== "undefined" && localStorage.getItem("dtt-remember-me") === "true";
+        const sessionActive = typeof window !== "undefined" && sessionStorage.getItem("dtt-session-active") === "true";
+        if (!remembered && !sessionActive) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+      }
+
       if (session?.user) {
         setLoading(true); // block auth guards while profile is fetched
         const u = await buildAuthUser(session.user);
@@ -116,6 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signOut() {
+    try {
+      localStorage.removeItem("dtt-remember-me");
+      sessionStorage.removeItem("dtt-session-active");
+    } catch {}
     await supabase.auth.signOut();
     setUser(null);
   }
