@@ -59,9 +59,13 @@ export default function LoginPage() {
       try {
         if (rememberMe) {
           localStorage.setItem("dtt-remember-me", "true");
+          localStorage.removeItem("dtt-login-ts");
         } else {
           localStorage.removeItem("dtt-remember-me");
           sessionStorage.setItem("dtt-session-active", "true");
+          // Backup timestamp in localStorage: AuthContext uses this as a
+          // 2-minute fallback in case sessionStorage is unavailable.
+          localStorage.setItem("dtt-login-ts", Date.now().toString());
         }
       } catch {}
       // Use a hard navigation so React's startTransition cannot render the

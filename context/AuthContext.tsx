@@ -101,36 +101,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // On first load: if the user didn't tick "Remember me" and has no active
-      // session flag (i.e. they closed and reopened the browser), sign them out.
-      if (event === "INITIAL_SESSION" && session?.user) {
-        const remembered = typeof window !== "undefined" && localStorage.getItem("dtt-remember-me") === "true";
-        const sessionActive = typeof window !== "undefined" && sessionStorage.getItem("dtt-session-active") === "true";
-        if (!remembered && !sessionActive) {
-          await supabase.auth.signOut();
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-      }
+    let mounted = true;
+
+    // Resolve the initial session via getSession() rather than waiting for
+    // onAuthStateChange to fire INITIAL_SESSION.  This avoids a re-entrant
+    // callback bug: calling supabase.auth.signOut() *inside* onAuthStateChange
+    // fires SIGNED_OUT which re-enters the same handler and sets loading=false
+    // with user=null before the original handler finishes, causing the admin
+    // guard to bounce the user back to /login on their first successful login.
+    async function initAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
 
       if (session?.user) {
-        setLoading(true); // block auth guards while profile is fetched
+        const remembered = localStorage.getItem("dtt-remember-me") === "true";
+        const sessionActive =
+          sessionStorage.getItem("dtt-session-active") === "true" ||
+          (() => {
+            // Fallback: localStorage timestamp set at login time, valid for 2 min.
+            // Guards against sessionStorage being unavailable in some browsers.
+            const ts = Number(localStorage.getItem("dtt-login-ts") ?? 0);
+            return ts > 0 && Date.now() - ts < 120_000;
+          })();
+
+        if (!remembered && !sessionActive) {
+          // Session should not survive a browser restart — clear it now.
+          // We do this outside onAuthStateChange so there is no re-entrant
+          // SIGNED_OUT callback that can race with the guard effects.
+          await supabase.auth.signOut();
+          if (mounted) { setUser(null); setLoading(false); }
+          return;
+        }
+
         const u = await buildAuthUser(session.user);
-        setUser(u);
+        if (mounted) setUser(u);
+      }
+
+      if (mounted) setLoading(false);
+    }
+
+    initAuth();
+
+    // Handle subsequent auth changes (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED).
+    // Skip INITIAL_SESSION — it is handled by initAuth() above.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      if (event === "INITIAL_SESSION") return;
+
+      if (session?.user) {
+        setLoading(true);
+        const u = await buildAuthUser(session.user);
+        if (mounted) { setUser(u); setLoading(false); }
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function signOut() {
     try {
       localStorage.removeItem("dtt-remember-me");
+      localStorage.removeItem("dtt-login-ts");
       sessionStorage.removeItem("dtt-session-active");
     } catch {}
     await supabase.auth.signOut();
