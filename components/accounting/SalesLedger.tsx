@@ -33,6 +33,7 @@ export function SalesLedger() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
+  const [editGstRate, setEditGstRate] = useState(0);
   const [editError, setEditError] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -88,10 +89,23 @@ export function SalesLedger() {
       tpn: sale.customerTPN || '',
     });
     setEditNotes(sale.notes || '');
+    setEditGstRate(sale.gstRate);
     // Try to match existing party by name
     const match = (customerParties || []).find(p => p.name.toLowerCase() === (sale.customerName || '').toLowerCase());
     setSelectedCustomerId(match?.id ?? null);
     setModalMode('edit');
+  }
+
+  function updateEditItem(i: number, field: 'qty' | 'rate' | 'unit' | 'description', raw: string) {
+    setEditItems(prev => prev.map((item, j) => {
+      if (j !== i) return item;
+      if (field === 'description') return { ...item, description: raw };
+      if (field === 'unit') return { ...item, unit: raw as UnitType };
+      const num = parseFloat(raw);
+      const qty = field === 'qty' ? (isNaN(num) ? item.qty : num) : item.qty;
+      const rate = field === 'rate' ? (isNaN(num) ? item.rate : num) : item.rate;
+      return { ...item, qty, rate, amount: qty * rate };
+    }));
   }
 
   function addEditItem() {
@@ -108,11 +122,12 @@ export function SalesLedger() {
     setEditError('');
     try {
       const gross = editItems.reduce((s, i) => s + i.amount, 0);
-      const gst = Math.round(gross * selected.gstRate) / 100;
+      const gst = Math.round(gross * editGstRate) / 100;
       const net = gross + gst;
 
       const newData: Omit<SaleRecord, 'id'> = {
         ...selected,
+        gstRate: editGstRate,
         customerName: editCustomer.name,
         customerPhone: editCustomer.phone || undefined,
         customerAddress: editCustomer.address || undefined,
@@ -306,11 +321,21 @@ export function SalesLedger() {
                   <tbody>
                     {editItems.map((item, i) => (
                       <tr key={i} className="border-t border-slate-700">
-                        <td className="px-3 py-2 text-white">{item.description}</td>
-                        <td className="px-3 py-2 text-right text-slate-300">{item.qty}</td>
-                        <td className="px-3 py-2 text-slate-400">{item.unit}</td>
-                        <td className="px-3 py-2 text-right text-slate-300">{fmtNum(item.rate)}</td>
-                        <td className="px-3 py-2 text-right text-orange-400">{fmtNum(item.amount)}</td>
+                        <td className="px-2 py-1.5">
+                          <input className="w-full bg-slate-700 border border-slate-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500" value={item.description} onChange={e => updateEditItem(i, 'description', e.target.value)} />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input type="number" className="w-14 bg-slate-700 border border-slate-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500 text-right" value={item.qty} onChange={e => updateEditItem(i, 'qty', e.target.value)} />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <select className="w-full bg-slate-700 border border-slate-600 text-white rounded px-1 py-1 text-xs focus:outline-none appearance-none cursor-pointer" value={item.unit} onChange={e => updateEditItem(i, 'unit', e.target.value)}>
+                            {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input type="number" className="w-20 bg-slate-700 border border-slate-600 text-white rounded px-2 py-1 text-xs focus:outline-none focus:border-orange-500 text-right" value={item.rate} onChange={e => updateEditItem(i, 'rate', e.target.value)} />
+                        </td>
+                        <td className="px-3 py-2 text-right text-orange-400 font-mono text-xs">{fmtNum(item.amount)}</td>
                         <td className="px-2 py-2"><button onClick={() => setEditItems(p => p.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button></td>
                       </tr>
                     ))}
@@ -331,6 +356,45 @@ export function SalesLedger() {
                   </tbody>
                 </table>
               </div>
+
+              {/* GST toggle + live totals */}
+              {(() => {
+                const gross = editItems.reduce((s, it) => s + it.amount, 0);
+                const gstAmt = Math.round(gross * editGstRate) / 100;
+                const net = gross + gstAmt;
+                return (
+                  <div className="bg-slate-700/50 rounded-lg px-4 py-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-slate-400 text-sm">GST</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditGstRate(r => r > 0 ? 0 : (selected.gstRate > 0 ? selected.gstRate : 5))}
+                        className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${editGstRate > 0 ? 'bg-orange-500' : 'bg-slate-600'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${editGstRate > 0 ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </button>
+                      {editGstRate > 0 && <span className="text-orange-400 text-sm font-medium">{editGstRate}%</span>}
+                      {editGstRate === 0 && <span className="text-slate-500 text-sm">Off</span>}
+                    </div>
+                    <div className="border-t border-slate-600 pt-2 space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Gross Amount</span>
+                        <span className="text-white font-mono">Nu. {fmtNum(gross)}</span>
+                      </div>
+                      {editGstRate > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">GST ({editGstRate}%)</span>
+                          <span className="text-yellow-400 font-mono">Nu. {fmtNum(gstAmt)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between border-t border-slate-600 pt-1">
+                        <span className="text-white font-semibold">Net Total</span>
+                        <span className="text-orange-400 font-mono font-bold">Nu. {fmtNum(net)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div><label className="block text-slate-400 text-xs mb-1">Notes</label><textarea className={inputCls} rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)} /></div>
             </div>
