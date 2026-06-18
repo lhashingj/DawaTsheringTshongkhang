@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { SaleRecord } from '@/lib/accounting-db';
 import { numberToWords } from '@/lib/number-to-words';
-import { Printer, X } from 'lucide-react';
+import { Printer, X, Pencil, Check } from 'lucide-react';
 
 const BIZ = {
   name: 'DAWA TSHERING SHOP',
@@ -13,9 +14,10 @@ const BIZ = {
   tpn: 'JAB09739',
   licNo: 'R1005542',
   phone: '17716895 / 17711469',
-  bank: 'BOB: 225667231',
   website: 'www.dawatsheringshop.com',
 };
+
+const DEFAULT_BOB = '225667231';
 
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', {
@@ -36,14 +38,103 @@ interface Props {
 }
 
 export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
+  const [bobAccount, setBobAccount] = useState(DEFAULT_BOB);
+  const [editingBank, setEditingBank] = useState(false);
+  const [bankInput, setBankInput] = useState(DEFAULT_BOB);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dtt-bob-account');
+    if (saved) { setBobAccount(saved); setBankInput(saved); }
+  }, []);
+
+  function saveBank() {
+    const trimmed = bankInput.trim();
+    if (trimmed) {
+      localStorage.setItem('dtt-bob-account', trimmed);
+      setBobAccount(trimmed);
+    }
+    setEditingBank(false);
+  }
+
   const handlePrint = () => window.print();
+
+  const controls = (
+    <div className="no-print flex items-center gap-2 flex-wrap">
+      <button
+        onClick={handlePrint}
+        className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+      >
+        <Printer className="w-4 h-4" />
+        Print Invoice
+      </button>
+
+      {/* BOB account editor */}
+      {editingBank ? (
+        <div className="flex items-center gap-1">
+          <span className="text-slate-400 text-sm">BOB:</span>
+          <input
+            type="text"
+            value={bankInput}
+            onChange={e => setBankInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') saveBank(); if (e.key === 'Escape') setEditingBank(false); }}
+            autoFocus
+            className="bg-slate-700 border border-slate-500 text-white text-sm rounded px-2 py-1 w-36 focus:outline-none focus:border-orange-500"
+            placeholder="Account number"
+          />
+          <button
+            onClick={saveBank}
+            className="flex items-center gap-1 bg-green-600 hover:bg-green-500 text-white px-2 py-1.5 rounded text-xs font-medium transition-colors"
+          >
+            <Check className="w-3.5 h-3.5" /> Save
+          </button>
+          <button
+            onClick={() => setEditingBank(false)}
+            className="text-slate-400 hover:text-white px-2 py-1.5 rounded text-xs transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setEditingBank(true)}
+          className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+          title="Change BOB account number shown on invoices"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          BOB: {bobAccount}
+        </button>
+      )}
+
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          <X className="w-4 h-4" />
+          Close
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <>
       <style>{`
         @media print {
-          body > * { visibility: hidden !important; }
-          #dtt-invoice-print, #dtt-invoice-print * {
+          /*
+           * Collapse hidden elements to zero height so the browser does not
+           * generate extra blank pages for the rest of the accounting UI.
+           * position:fixed removes the invoice from normal flow, so overflow:hidden
+           * on ancestors does NOT clip it.
+           */
+          body > * {
+            visibility: hidden !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+          }
+          #dtt-invoice-print,
+          #dtt-invoice-print * {
             visibility: visible !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -51,6 +142,8 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
           #dtt-invoice-print {
             position: fixed !important;
             inset: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
             width: 100% !important;
             padding: 14px 20px !important;
             background: white !important;
@@ -72,9 +165,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
             font-weight: 800 !important;
             font-size: 11px !important;
           }
-          #dtt-invoice-print .inv-label {
-            font-weight: 700 !important;
-          }
+          #dtt-invoice-print .inv-label { font-weight: 700 !important; }
           #dtt-invoice-print .inv-total-row td {
             font-weight: 700 !important;
             font-size: 12px !important;
@@ -85,26 +176,9 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
       `}</style>
 
       {!embedded && (
-        <div className="no-print flex items-center justify-between mb-4 px-4 pt-4">
+        <div className="no-print flex items-center justify-between mb-4 px-4 pt-4 flex-wrap gap-2">
           <h2 className="text-lg font-bold text-white">Invoice #{invoice.invoiceNo}</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              <Printer className="w-4 h-4" />
-              Print Invoice
-            </button>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                <X className="w-4 h-4" />
-                Close
-              </button>
-            )}
-          </div>
+          {controls}
         </div>
       )}
 
@@ -121,23 +195,13 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
       >
         {/* ── Header ── */}
         <div className="relative text-center pb-2 mb-1" style={{ borderBottom: '2px solid #000' }}>
-          {/* Logo top-left */}
           <div className="absolute top-0 left-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="DTT Logo" style={{ width: '72px', height: '72px', objectFit: 'contain' }} />
           </div>
 
-          {/* INVOICE badge + date top-right */}
           <div className="absolute top-0 right-0" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <div
-              style={{
-                border: '2px solid #000',
-                padding: '3px 10px',
-                fontWeight: 900,
-                fontSize: '13px',
-                letterSpacing: '0.05em',
-              }}
-            >
+            <div style={{ border: '2px solid #000', padding: '3px 10px', fontWeight: 900, fontSize: '13px', letterSpacing: '0.05em' }}>
               INVOICE
             </div>
             <div style={{ fontSize: '11px', fontWeight: 600, textAlign: 'right', lineHeight: 1.6 }}>
@@ -258,14 +322,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
         {/* ── Terms & Footer ── */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            <span
-              style={{
-                border: '1px dashed #000',
-                padding: '2px 8px',
-                fontWeight: 800,
-                fontSize: '11px',
-              }}
-            >
+            <span style={{ border: '1px dashed #000', padding: '2px 8px', fontWeight: 800, fontSize: '11px' }}>
               Terms &amp; Conditions:
             </span>
             <span style={{ fontStyle: 'italic', fontSize: '11px', fontWeight: 600 }}>E. &amp; O. E.</span>
@@ -282,7 +339,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
                 Subject to Paro Court of Justice.
               </p>
               <p style={{ marginTop: '4px', fontWeight: 700 }}>
-                Bank Details:&nbsp;{BIZ.bank}&nbsp;— Please include invoice number in payment reference.
+                Bank Details:&nbsp;BOB:&nbsp;{bobAccount}&nbsp;— Please include invoice number in payment reference.
               </p>
             </div>
             <div style={{ fontWeight: 800, fontSize: '12px', whiteSpace: 'nowrap', paddingTop: '4px' }}>
@@ -293,22 +350,8 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
       </div>
 
       {embedded && (
-        <div className="no-print flex gap-2 mt-4 px-4 pb-4">
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Printer className="w-4 h-4" />
-            Print Invoice
-          </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Close
-            </button>
-          )}
+        <div className="no-print flex gap-2 mt-4 px-4 pb-4 flex-wrap items-center">
+          {controls}
         </div>
       )}
     </>
