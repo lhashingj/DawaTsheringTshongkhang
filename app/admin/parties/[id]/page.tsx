@@ -13,7 +13,7 @@ import { AccountingNav } from '@/components/accounting/AccountingNav';
 import { InvoicePrint } from '@/components/accounting/InvoicePrint';
 import {
   ArrowLeft, Plus, Download, CreditCard, FileText,
-  TrendingUp, TrendingDown, X, ChevronDown,
+  TrendingUp, TrendingDown, X, ChevronDown, Edit2,
 } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -68,6 +68,8 @@ export default function PartyProfilePage() {
   const [payForm,      setPayForm]      = useState(emptyPayment('in'));
   const [isSaving,     setIsSaving]     = useState(false);
   const [deletePayId,  setDeletePayId]  = useState<number | null>(null);
+  const [editPayId,    setEditPayId]    = useState<number | null>(null);
+  const [editPayForm,  setEditPayForm]  = useState<Omit<PaymentRecord, 'id' | 'partyId'>>(emptyPayment('in'));
 
   // Live data
   const party     = useLiveQuery(() => db.parties.get(partyId), [partyId]);
@@ -182,6 +184,22 @@ export default function PartyProfilePage() {
     setIsSaving(false);
     setPayModal(false);
     setPayForm(emptyPayment(payForm.direction));
+  }
+
+  async function updatePayment(payId: number, oldPay: PaymentRecord) {
+    if (editPayForm.amount <= 0) return;
+    setIsSaving(true);
+    // Reverse old balance effect, apply new one
+    const reverseDelta = oldPay.direction === 'in' ? oldPay.amount : -oldPay.amount;
+    const newDelta     = editPayForm.direction === 'in' ? -editPayForm.amount : editPayForm.amount;
+    await partyCRUD.updateBalance(partyId, reverseDelta + newDelta);
+    await paymentCRUD.update(payId, {
+      ...editPayForm,
+      partyId,
+      timestamp: new Date(editPayForm.timestamp),
+    });
+    setIsSaving(false);
+    setEditPayId(null);
   }
 
   async function deletePayment(payId: number, pay: PaymentRecord) {
@@ -430,7 +448,7 @@ export default function PartyProfilePage() {
                     <th className="text-left px-4 py-3 text-slate-400 font-medium">Reference</th>
                     <th className="text-right px-4 py-3 text-slate-400 font-medium">Amount (Nu.)</th>
                     <th className="text-left px-4 py-3 text-slate-400 font-medium">Notes</th>
-                    <th className="text-center px-4 py-3 text-slate-400 font-medium">Del</th>
+                    <th className="text-center px-4 py-3 text-slate-400 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -451,7 +469,16 @@ export default function PartyProfilePage() {
                       </td>
                       <td className="px-4 py-3 text-slate-500 text-xs">{p.notes || '—'}</td>
                       <td className="px-4 py-3 text-center">
-                        <button onClick={() => setDeletePayId(p.id!)} className="text-slate-500 hover:text-red-400 transition-colors text-xs">✕</button>
+                        <div className="flex items-center justify-center gap-3">
+                          <button
+                            onClick={() => { setEditPayId(p.id!); setEditPayForm({ direction: p.direction, mode: p.mode, amount: p.amount, timestamp: p.timestamp, reference: p.reference || '', notes: p.notes || '' }); }}
+                            title="Edit payment"
+                            className="text-slate-500 hover:text-orange-400 transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => setDeletePayId(p.id!)} title="Delete payment" className="text-slate-500 hover:text-red-400 transition-colors text-xs">✕</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -632,6 +659,100 @@ export default function PartyProfilePage() {
           </div>
         </div>
       )}
+
+      {/* ── Edit Payment Modal ───────────────────────────────────────────────── */}
+      {editPayId !== null && (() => {
+        const oldPay = (payments || []).find(p => p.id === editPayId);
+        if (!oldPay) return null;
+        return (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setEditPayId(null)}>
+            <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-white font-semibold">Edit Payment — {party.name}</h3>
+                <button onClick={() => setEditPayId(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Direction</label>
+                  <div className="relative">
+                    <select
+                      className={inputCls + ' appearance-none pr-8'}
+                      value={editPayForm.direction}
+                      onChange={e => setEditPayForm(p => ({ ...p, direction: e.target.value as PaymentDirection }))}
+                    >
+                      <option value="in">Payment Received (Customer pays us)</option>
+                      <option value="out">Payment Made (We pay Supplier)</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">Date *</label>
+                    <input type="date" className={inputCls}
+                      value={fmtDateInput(new Date(editPayForm.timestamp))}
+                      onChange={e => setEditPayForm(p => ({ ...p, timestamp: new Date(e.target.value) }))} />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">Mode *</label>
+                    <div className="relative">
+                      <select className={inputCls + ' appearance-none pr-8'}
+                        value={editPayForm.mode}
+                        onChange={e => setEditPayForm(p => ({ ...p, mode: e.target.value as PaymentMode }))}>
+                        {PAYMENT_MODES.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Amount (Nu.) *</label>
+                  <input type="number" min="0.01" step="0.01" className={inputCls}
+                    placeholder="0.00"
+                    value={editPayForm.amount || ''}
+                    onChange={e => setEditPayForm(p => ({ ...p, amount: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Reference (cheque/deposit no.)</label>
+                  <input className={inputCls} placeholder="Optional"
+                    value={editPayForm.reference || ''}
+                    onChange={e => setEditPayForm(p => ({ ...p, reference: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Notes</label>
+                  <textarea className={inputCls} rows={2}
+                    value={editPayForm.notes || ''}
+                    onChange={e => setEditPayForm(p => ({ ...p, notes: e.target.value }))} />
+                </div>
+              </div>
+
+              {editPayForm.direction === 'in' && editPayForm.amount > 0 && (
+                <div className="mt-3 bg-green-500/10 border border-green-700/40 rounded-lg p-3 text-xs text-green-300">
+                  DR Cash/Bank +Nu. {fmt(editPayForm.amount)} &nbsp;|&nbsp; CR Accounts Receivable −Nu. {fmt(editPayForm.amount)}
+                </div>
+              )}
+              {editPayForm.direction === 'out' && editPayForm.amount > 0 && (
+                <div className="mt-3 bg-red-500/10 border border-red-700/40 rounded-lg p-3 text-xs text-red-300">
+                  DR Accounts Payable −Nu. {fmt(editPayForm.amount)} &nbsp;|&nbsp; CR Cash/Bank −Nu. {fmt(editPayForm.amount)}
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={() => updatePayment(editPayId, oldPay)}
+                  disabled={isSaving || editPayForm.amount <= 0}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  {isSaving ? 'Saving…' : 'Update Payment'}
+                </button>
+                <button onClick={() => setEditPayId(null)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Delete Payment Confirmation ───────────────────────────────────────── */}
       {deletePayId !== null && (() => {
