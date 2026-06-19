@@ -1,9 +1,10 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { salesCRUD, purchaseCRUD, inventoryCRUD, partyCRUD } from '@/lib/accounting-db';
+import { salesCRUD, purchaseCRUD, partyCRUD } from '@/lib/accounting-db';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import {
   ShoppingCart,
   Package,
@@ -15,6 +16,12 @@ import {
   ArrowRight,
   Clock,
 } from 'lucide-react';
+
+type Product = { id: string; name: string; sku: string; stock: number; unit: string; price: number; category: string };
+
+function getReorder(sku: string): number {
+  try { return Number(localStorage.getItem(`dtt-inv-reorder-${sku}`)) || 5; } catch { return 5; }
+}
 
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -46,10 +53,22 @@ function StatCard({ label, value, sub, color, icon: Icon }: {
 export default function AccountingDashboard() {
   const sales     = useLiveQuery(() => salesCRUD.getAll(), []);
   const purchases = useLiveQuery(() => purchaseCRUD.getAll(), []);
-  const inventory = useLiveQuery(() => inventoryCRUD.getAll(), []);
   const parties   = useLiveQuery(() => partyCRUD.getAll(), []);
 
-  const isLoading = sales === undefined || purchases === undefined || inventory === undefined || parties === undefined;
+  const [products, setProducts] = useState<Product[] | null>(null);
+  useEffect(() => {
+    fetch('/api/products').then(r => r.ok ? r.json() : []).then(setProducts).catch(() => setProducts([]));
+  }, []);
+
+  const inventory = products?.map(p => ({
+    id: p.id,
+    description: p.name,
+    unit: p.unit,
+    stockQty: p.stock,
+    reorderLevel: getReorder(p.sku),
+  })) ?? null;
+
+  const isLoading = sales === undefined || purchases === undefined || inventory === null || parties === undefined;
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
