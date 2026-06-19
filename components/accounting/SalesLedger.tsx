@@ -220,6 +220,7 @@ export function SalesLedger() {
                 </button>
               </th>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Customer</th>
+              <th className="text-left px-4 py-3 text-slate-400 font-medium">Phone</th>
               <th className="text-center px-4 py-3 text-slate-400 font-medium">Items</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Gross</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">GST</th>
@@ -230,7 +231,7 @@ export function SalesLedger() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-12 text-slate-500">
+                <td colSpan={9} className="text-center py-12 text-slate-500">
                   No sales records found.
                 </td>
               </tr>
@@ -240,6 +241,7 @@ export function SalesLedger() {
                   <td className="px-4 py-3 text-orange-400 font-mono font-medium">{sale.invoiceNo}</td>
                   <td className="px-4 py-3 text-slate-300">{fmtDate(sale.timestamp)}</td>
                   <td className="px-4 py-3 text-white">{sale.customerName || <span className="text-slate-500 italic">Cash sale</span>}</td>
+                  <td className="px-4 py-3 text-slate-400 font-mono text-sm">{sale.customerPhone || <span className="text-slate-600">—</span>}</td>
                   <td className="px-4 py-3 text-center">
                     <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full">{sale.items.length}</span>
                   </td>
