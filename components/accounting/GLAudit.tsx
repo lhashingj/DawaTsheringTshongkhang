@@ -298,26 +298,6 @@ export function GLAudit() {
   return (
     <div className="space-y-4">
 
-      {/* ── Sub-tabs ─────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1 w-fit">
-        {([
-          { id: 'gl'      as AuditTab, label: 'General Ledger',   icon: Database },
-          { id: 'parties' as AuditTab, label: 'Party Balances',   icon: Users    },
-        ] as const).map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              tab === id
-                ? 'bg-orange-500 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
-        ))}
-      </div>
 
       {/* ════════════════════════════════════════════════════════════════════════
           GENERAL LEDGER TAB
