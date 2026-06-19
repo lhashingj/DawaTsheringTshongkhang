@@ -70,6 +70,8 @@ export default function PartyProfilePage() {
   const [deletePayId,  setDeletePayId]  = useState<number | null>(null);
   const [editPayId,    setEditPayId]    = useState<number | null>(null);
   const [editPayForm,  setEditPayForm]  = useState<Omit<PaymentRecord, 'id' | 'partyId'>>(emptyPayment('in'));
+  const [editSelInvIds,  setEditSelInvIds]  = useState<Set<number>>(new Set());
+  const [paySelInvIds,   setPaySelInvIds]   = useState<Set<number>>(new Set());
 
   // Live data
   const party     = useLiveQuery(() => db.parties.get(partyId), [partyId]);
@@ -301,7 +303,7 @@ export default function PartyProfilePage() {
               {party.notes && <p className="text-slate-500 text-xs italic">{party.notes}</p>}
             </div>
             <button
-              onClick={() => { setPayForm(emptyPayment(defaultDirection)); setPayModal(true); }}
+              onClick={() => { setPayForm(emptyPayment(defaultDirection)); setPaySelInvIds(new Set()); setPayModal(true); }}
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
             >
               <CreditCard className="w-4 h-4" /> Record Payment
@@ -432,7 +434,7 @@ export default function PartyProfilePage() {
           <div className="space-y-4">
             <div className="flex justify-end">
               <button
-                onClick={() => { setPayForm(emptyPayment(defaultDirection)); setPayModal(true); }}
+                onClick={() => { setPayForm(emptyPayment(defaultDirection)); setPaySelInvIds(new Set()); setPayModal(true); }}
                 className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 <Plus className="w-4 h-4" /> Record Payment
@@ -471,7 +473,7 @@ export default function PartyProfilePage() {
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-3">
                           <button
-                            onClick={() => { setEditPayId(p.id!); setEditPayForm({ direction: p.direction, mode: p.mode, amount: p.amount, timestamp: p.timestamp, reference: p.reference || '', notes: p.notes || '' }); }}
+                            onClick={() => { setEditPayId(p.id!); setEditPayForm({ direction: p.direction, mode: p.mode, amount: p.amount, timestamp: p.timestamp, reference: p.reference || '', notes: p.notes || '' }); setEditSelInvIds(new Set()); }}
                             title="Edit payment"
                             className="text-slate-500 hover:text-orange-400 transition-colors"
                           >
@@ -571,107 +573,252 @@ export default function PartyProfilePage() {
       )}
 
       {/* ── Record Payment Modal ──────────────────────────────────────────────── */}
-      {payModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setPayModal(false)}>
-          <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-white font-semibold">Record Payment — {party.name}</h3>
-              <button onClick={() => setPayModal(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-slate-400 text-xs mb-1">Direction</label>
-                <div className="relative">
-                  <select
-                    className={inputCls + ' appearance-none pr-8'}
-                    value={payForm.direction}
-                    onChange={e => setPayForm(p => ({ ...p, direction: e.target.value as PaymentDirection }))}
-                  >
-                    <option value="in">Payment Received (Customer pays us)</option>
-                    <option value="out">Payment Made (We pay Supplier)</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
-                </div>
+      {payModal && (() => {
+        const selInvs    = partySales.filter(s => paySelInvIds.has(s.id!));
+        const selGross   = selInvs.reduce((s, i) => s + i.grossAmount, 0);
+        const selGST     = selInvs.reduce((s, i) => s + i.gstAmount,   0);
+        const selNet     = selInvs.reduce((s, i) => s + i.netAmount,    0);
+        const tds        = Math.round(selGross * 2) / 100;
+        const netPayable = Math.round((selNet - tds) * 100) / 100;
+
+        function togglePayInv(id: number) {
+          setPaySelInvIds(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+          });
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setPayModal(false)}>
+            <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-white font-semibold">Record Payment — {party.name}</h3>
+                <button onClick={() => setPayModal(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
+
+                {/* Invoice selector */}
+                {partySales.length > 0 && (
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">Select Invoice(s) this payment covers</label>
+                    <div className="max-h-36 overflow-y-auto space-y-0.5 bg-slate-900/60 rounded-lg border border-slate-600 divide-y divide-slate-700/50">
+                      {partySales.map(inv => {
+                        const checked = paySelInvIds.has(inv.id!);
+                        return (
+                          <label key={inv.id} className={`flex items-center gap-2 cursor-pointer px-3 py-2 transition-colors ${checked ? 'bg-orange-500/10' : 'hover:bg-slate-700/40'}`}>
+                            <input type="checkbox" checked={checked} onChange={() => togglePayInv(inv.id!)} className="accent-orange-500 shrink-0" />
+                            <span className="text-orange-400 font-mono text-xs w-16 shrink-0">#{inv.invoiceNo}</span>
+                            <span className="text-slate-400 text-xs w-20 shrink-0">{fmtDate(inv.timestamp)}</span>
+                            <span className="text-slate-300 text-xs flex-1">Gross: {fmt(inv.grossAmount)}</span>
+                            <span className="text-white text-xs font-mono font-semibold">Nu. {fmt(inv.netAmount)}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* TDS Breakdown */}
+                {paySelInvIds.size > 0 && (
+                  <div className="bg-slate-900/60 border border-slate-600 rounded-lg p-3 text-xs space-y-1.5">
+                    <p className="text-slate-400 font-medium mb-1">Payment Calculation</p>
+                    <div className="flex justify-between text-slate-300">
+                      <span>Invoice Gross ({paySelInvIds.size} inv.)</span>
+                      <span className="font-mono">Nu. {fmt(selGross)}</span>
+                    </div>
+                    <div className="flex justify-between text-yellow-400">
+                      <span>GST Collected</span>
+                      <span className="font-mono">Nu. {fmt(selGST)}</span>
+                    </div>
+                    <div className="flex justify-between text-white border-t border-slate-600 pt-1">
+                      <span>Invoice Net Total</span>
+                      <span className="font-mono font-semibold">Nu. {fmt(selNet)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-400">
+                      <span>Less: TDS (2% of gross)</span>
+                      <span className="font-mono">− Nu. {fmt(tds)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-400 border-t border-slate-600 pt-1 font-semibold">
+                      <span>Net Payable to you</span>
+                      <span className="font-mono">Nu. {fmt(netPayable)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPayForm(p => ({ ...p, amount: netPayable }))}
+                      className="w-full mt-1 py-1.5 rounded bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors font-medium"
+                    >
+                      Apply Nu. {fmt(netPayable)} to Amount
+                    </button>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-slate-400 text-xs mb-1">Date *</label>
-                  <input type="date" className={inputCls}
-                    value={fmtDateInput(new Date(payForm.timestamp))}
-                    onChange={e => setPayForm(p => ({ ...p, timestamp: new Date(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className="block text-slate-400 text-xs mb-1">Mode *</label>
+                  <label className="block text-slate-400 text-xs mb-1">Direction</label>
                   <div className="relative">
-                    <select className={inputCls + ' appearance-none pr-8'}
-                      value={payForm.mode}
-                      onChange={e => setPayForm(p => ({ ...p, mode: e.target.value as PaymentMode }))}>
-                      {PAYMENT_MODES.map(m => <option key={m} value={m}>{m}</option>)}
+                    <select
+                      className={inputCls + ' appearance-none pr-8'}
+                      value={payForm.direction}
+                      onChange={e => setPayForm(p => ({ ...p, direction: e.target.value as PaymentDirection }))}
+                    >
+                      <option value="in">Payment Received (Customer pays us)</option>
+                      <option value="out">Payment Made (We pay Supplier)</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">Date *</label>
+                    <input type="date" className={inputCls}
+                      value={fmtDateInput(new Date(payForm.timestamp))}
+                      onChange={e => setPayForm(p => ({ ...p, timestamp: new Date(e.target.value) }))} />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">Mode *</label>
+                    <div className="relative">
+                      <select className={inputCls + ' appearance-none pr-8'}
+                        value={payForm.mode}
+                        onChange={e => setPayForm(p => ({ ...p, mode: e.target.value as PaymentMode }))}>
+                        {PAYMENT_MODES.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Amount (Nu.) *</label>
+                  <input type="number" min="0.01" step="0.01" className={inputCls}
+                    placeholder="0.00"
+                    value={payForm.amount || ''}
+                    onChange={e => setPayForm(p => ({ ...p, amount: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Reference (cheque/deposit no.)</label>
+                  <input className={inputCls} placeholder="Optional"
+                    value={payForm.reference || ''}
+                    onChange={e => setPayForm(p => ({ ...p, reference: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Notes</label>
+                  <textarea className={inputCls} rows={2}
+                    value={payForm.notes || ''}
+                    onChange={e => setPayForm(p => ({ ...p, notes: e.target.value }))} />
+                </div>
               </div>
-              <div>
-                <label className="block text-slate-400 text-xs mb-1">Amount (Nu.) *</label>
-                <input type="number" min="0.01" step="0.01" className={inputCls}
-                  placeholder="0.00"
-                  value={payForm.amount || ''}
-                  onChange={e => setPayForm(p => ({ ...p, amount: parseFloat(e.target.value) || 0 }))} />
-              </div>
-              <div>
-                <label className="block text-slate-400 text-xs mb-1">Reference (cheque/deposit no.)</label>
-                <input className={inputCls} placeholder="Optional"
-                  value={payForm.reference || ''}
-                  onChange={e => setPayForm(p => ({ ...p, reference: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-slate-400 text-xs mb-1">Notes</label>
-                <textarea className={inputCls} rows={2}
-                  value={payForm.notes || ''}
-                  onChange={e => setPayForm(p => ({ ...p, notes: e.target.value }))} />
-              </div>
-            </div>
 
-            {payForm.direction === 'in' && payForm.amount > 0 && (
-              <div className="mt-3 bg-green-500/10 border border-green-700/40 rounded-lg p-3 text-xs text-green-300">
-                DR Cash/Bank +Nu. {fmt(payForm.amount)} &nbsp;|&nbsp; CR Accounts Receivable −Nu. {fmt(payForm.amount)}
-              </div>
-            )}
-            {payForm.direction === 'out' && payForm.amount > 0 && (
-              <div className="mt-3 bg-red-500/10 border border-red-700/40 rounded-lg p-3 text-xs text-red-300">
-                DR Accounts Payable −Nu. {fmt(payForm.amount)} &nbsp;|&nbsp; CR Cash/Bank −Nu. {fmt(payForm.amount)}
-              </div>
-            )}
+              {payForm.direction === 'in' && payForm.amount > 0 && (
+                <div className="mt-3 bg-green-500/10 border border-green-700/40 rounded-lg p-3 text-xs text-green-300">
+                  DR Cash/Bank +Nu. {fmt(payForm.amount)} &nbsp;|&nbsp; CR Accounts Receivable −Nu. {fmt(payForm.amount)}
+                </div>
+              )}
+              {payForm.direction === 'out' && payForm.amount > 0 && (
+                <div className="mt-3 bg-red-500/10 border border-red-700/40 rounded-lg p-3 text-xs text-red-300">
+                  DR Accounts Payable −Nu. {fmt(payForm.amount)} &nbsp;|&nbsp; CR Cash/Bank −Nu. {fmt(payForm.amount)}
+                </div>
+              )}
 
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={savePayment}
-                disabled={isSaving || payForm.amount <= 0}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
-              >
-                {isSaving ? 'Saving…' : 'Save Payment'}
-              </button>
-              <button onClick={() => setPayModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                Cancel
-              </button>
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={savePayment}
+                  disabled={isSaving || payForm.amount <= 0}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  {isSaving ? 'Saving…' : 'Save Payment'}
+                </button>
+                <button onClick={() => setPayModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Edit Payment Modal ───────────────────────────────────────────────── */}
       {editPayId !== null && (() => {
         const oldPay = (payments || []).find(p => p.id === editPayId);
         if (!oldPay) return null;
+
+        const selInvs = partySales.filter(s => editSelInvIds.has(s.id!));
+        const selGross = selInvs.reduce((s, i) => s + i.grossAmount, 0);
+        const selGST   = selInvs.reduce((s, i) => s + i.gstAmount,   0);
+        const selNet   = selInvs.reduce((s, i) => s + i.netAmount,    0);
+        const tds      = Math.round(selGross * 2) / 100;
+        const netPayable = Math.round((selNet - tds) * 100) / 100;
+
+        function toggleEditInv(id: number) {
+          setEditSelInvIds(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+          });
+        }
+
         return (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setEditPayId(null)}>
-            <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full p-6">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-white font-semibold">Edit Payment — {party.name}</h3>
                 <button onClick={() => setEditPayId(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-3">
+
+                {/* Invoice selector */}
+                {partySales.length > 0 && (
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">Select Invoice(s) this payment covers</label>
+                    <div className="max-h-36 overflow-y-auto space-y-0.5 bg-slate-900/60 rounded-lg border border-slate-600 divide-y divide-slate-700/50">
+                      {partySales.map(inv => {
+                        const checked = editSelInvIds.has(inv.id!);
+                        return (
+                          <label key={inv.id} className={`flex items-center gap-2 cursor-pointer px-3 py-2 transition-colors ${checked ? 'bg-orange-500/10' : 'hover:bg-slate-700/40'}`}>
+                            <input type="checkbox" checked={checked} onChange={() => toggleEditInv(inv.id!)} className="accent-orange-500 shrink-0" />
+                            <span className="text-orange-400 font-mono text-xs w-16 shrink-0">#{inv.invoiceNo}</span>
+                            <span className="text-slate-400 text-xs w-20 shrink-0">{fmtDate(inv.timestamp)}</span>
+                            <span className="text-slate-300 text-xs flex-1">Gross: {fmt(inv.grossAmount)}</span>
+                            <span className="text-white text-xs font-mono font-semibold">Nu. {fmt(inv.netAmount)}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* TDS Breakdown */}
+                {editSelInvIds.size > 0 && (
+                  <div className="bg-slate-900/60 border border-slate-600 rounded-lg p-3 text-xs space-y-1.5">
+                    <p className="text-slate-400 font-medium mb-1">Payment Calculation</p>
+                    <div className="flex justify-between text-slate-300">
+                      <span>Invoice Gross ({editSelInvIds.size} inv.)</span>
+                      <span className="font-mono">Nu. {fmt(selGross)}</span>
+                    </div>
+                    <div className="flex justify-between text-yellow-400">
+                      <span>GST Collected</span>
+                      <span className="font-mono">Nu. {fmt(selGST)}</span>
+                    </div>
+                    <div className="flex justify-between text-white border-t border-slate-600 pt-1">
+                      <span>Invoice Net Total</span>
+                      <span className="font-mono font-semibold">Nu. {fmt(selNet)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-400">
+                      <span>Less: TDS (2% of gross)</span>
+                      <span className="font-mono">− Nu. {fmt(tds)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-400 border-t border-slate-600 pt-1 font-semibold">
+                      <span>Net Payable to you</span>
+                      <span className="font-mono">Nu. {fmt(netPayable)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditPayForm(p => ({ ...p, amount: netPayable }))}
+                      className="w-full mt-1 py-1.5 rounded bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors font-medium"
+                    >
+                      Apply Nu. {fmt(netPayable)} to Amount
+                    </button>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-slate-400 text-xs mb-1">Direction</label>
                   <div className="relative">
