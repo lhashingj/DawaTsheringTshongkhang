@@ -317,7 +317,7 @@ export default function AdminPage() {
               </button>
             </Link>
             <Link href="/admin/accounting">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-slate-400 hover:text-orange-400 hover:bg-orange-500/10 border border-slate-700 hover:border-orange-500/40 text-xs transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-white bg-orange-500 hover:bg-orange-600 border border-orange-500 text-xs transition-colors">
                 <Calculator className="h-3.5 w-3.5" />
                 <span className="hidden sm:block">Accounting</span>
               </button>
