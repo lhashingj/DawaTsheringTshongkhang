@@ -679,28 +679,21 @@ export default function AdminPage() {
       {/* Logout confirm */}
       <AnimatePresence>
         {logoutConfirm && (
-          <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+            onClick={() => setLogoutConfirm(false)}
+          >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-              onClick={() => setLogoutConfirm(false)}
-            />
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 350 }}
-              className={[
-                "fixed z-50 bg-slate-800 border border-slate-700 shadow-2xl",
-                "inset-x-0 bottom-0 rounded-t-2xl p-6 pb-10",
-                "sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2",
-                "sm:w-full sm:max-w-sm sm:-translate-x-1/2 sm:-translate-y-1/2",
-                "sm:rounded-2xl sm:pb-6",
-              ].join(" ")}
+              className="bg-slate-800 border border-slate-700 shadow-2xl rounded-2xl p-6 w-full max-w-sm"
+              onClick={e => e.stopPropagation()}
             >
-              <div className="w-12 h-1.5 rounded-full bg-slate-600 mx-auto mb-5 sm:hidden" aria-hidden="true" />
               <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
                 <LogOut className="h-7 w-7 text-red-400" />
               </div>
@@ -708,7 +701,7 @@ export default function AdminPage() {
               <p className="text-center text-slate-400 text-sm mb-6 leading-relaxed">
                 You will be signed out and returned to the home page.
               </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex gap-3">
                 <button
                   className="flex-1 h-12 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors text-sm font-medium"
                   onClick={() => setLogoutConfirm(false)}
@@ -723,7 +716,7 @@ export default function AdminPage() {
                 </button>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
