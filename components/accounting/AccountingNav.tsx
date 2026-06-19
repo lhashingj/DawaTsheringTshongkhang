@@ -28,10 +28,6 @@ export function AccountingNav() {
             Admin
           </Link>
           <div className="w-px h-6 bg-slate-700 mx-1 shrink-0" />
-          <span className="text-orange-400 font-semibold text-sm px-3 py-4 whitespace-nowrap shrink-0">
-            Accounting
-          </span>
-          <div className="w-px h-6 bg-slate-700 mx-1 shrink-0" />
           {navItems.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
