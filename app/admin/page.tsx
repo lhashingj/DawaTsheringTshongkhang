@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Pencil, Trash2, Search, X, LogOut, Wrench,
+  Pencil, Trash2, Search, X, LogOut, Wrench,
   Package, TrendingUp, AlertTriangle, CheckCircle,
   ChevronUp, ChevronDown, ChevronsUpDown, MessageCircle, Loader2,
   Bell, ShoppingCart, Users, Home,
@@ -322,13 +322,6 @@ export default function AdminPage() {
                 <span className="hidden sm:block">Accounting</span>
               </button>
             </Link>
-            <button
-              onClick={() => { setEditTarget(null); setModalOpen(true); }}
-              className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span className="hidden sm:block">Add Product</span>
-            </button>
             <Link href="/">
               <button
                 className="w-9 h-9 flex items-center justify-center rounded-md text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
