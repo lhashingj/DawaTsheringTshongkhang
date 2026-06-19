@@ -15,6 +15,7 @@ import {
   BarChart3,
   ArrowRight,
   Clock,
+  Wallet,
 } from 'lucide-react';
 
 type Product = { id: string; name: string; sku: string; stock: number; unit: string; price: number; category: string };
@@ -178,7 +179,7 @@ export default function AccountingDashboard() {
             {/* Quick Actions */}
             <div>
               <h2 className="text-white font-semibold mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   {
                     href: '/admin/accounting/pos',
@@ -192,6 +193,13 @@ export default function AccountingDashboard() {
                     icon: BookOpen,
                     title: 'Manage Ledgers',
                     desc: 'Sales, Purchases, Parties, Inventory',
+                    color: 'bg-slate-700 hover:bg-slate-600',
+                  },
+                  {
+                    href: '/admin/accounting/cash',
+                    icon: Wallet,
+                    title: 'Cash & Returns',
+                    desc: 'Cash book, credit & debit notes',
                     color: 'bg-slate-700 hover:bg-slate-600',
                   },
                   {
