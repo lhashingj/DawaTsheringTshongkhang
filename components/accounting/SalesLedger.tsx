@@ -49,7 +49,8 @@ export function SalesLedger() {
       const matchSearch =
         !search ||
         s.invoiceNo.includes(search) ||
-        s.customerName?.toLowerCase().includes(search.toLowerCase());
+        s.customerName?.toLowerCase().includes(search.toLowerCase()) ||
+        s.customerPhone?.includes(search);
       const matchFrom = !filterFrom || new Date(s.timestamp) >= new Date(filterFrom);
       const matchTo = !filterTo || new Date(s.timestamp) <= new Date(filterTo + 'T23:59:59');
       return matchSearch && matchFrom && matchTo;
