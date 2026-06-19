@@ -6,7 +6,7 @@ import {
   Pencil, Trash2, Search, X, LogOut, Wrench,
   Package, TrendingUp, AlertTriangle, CheckCircle,
   ChevronUp, ChevronDown, ChevronsUpDown, MessageCircle, Loader2,
-  Bell, ShoppingCart, Users, Home,
+  Bell, ShoppingCart, Users,
   Star, Zap, Tractor, Hammer, Shield, Droplets, Settings, Scissors,
   BarChart3, Calculator,
 } from "lucide-react";
@@ -85,6 +85,7 @@ export default function AdminPage() {
   }
   const [notifications, setNotifications] = useState<CartNotif[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -235,14 +236,14 @@ export default function AdminPage() {
       {/* Top nav */}
       <header className="bg-slate-950 border-b border-slate-700/60 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-white shrink-0">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-white shrink-0 group-hover:ring-2 group-hover:ring-orange-500 transition-all">
               <img src="/logo.png" alt="DTT Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="font-black text-white text-sm">DTT Admin</span>
+            <span className="font-black text-white text-sm group-hover:text-orange-400 transition-colors">DTT Admin</span>
             <span className="hidden sm:block text-slate-600 text-xs">|</span>
             <span className="hidden sm:block text-slate-500 text-xs">Product Dashboard</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-2">
             {/* Notification bell */}
             <div className="relative" ref={notifRef}>
@@ -322,17 +323,10 @@ export default function AdminPage() {
                 <span className="hidden sm:block">Accounting</span>
               </button>
             </Link>
-            <Link href="/">
-              <button
-                className="w-9 h-9 flex items-center justify-center rounded-md text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
-                title="Back to Home"
-              >
-                <Home className="h-4 w-4" />
-              </button>
-            </Link>
             <button
-              onClick={handleLogout}
-              className="w-9 h-9 flex items-center justify-center rounded-md text-slate-500 hover:text-white hover:bg-slate-700 transition-colors"
+              onClick={() => setLogoutConfirm(true)}
+              className="w-9 h-9 flex items-center justify-center rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Logout"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -675,6 +669,57 @@ export default function AdminPage() {
                   onClick={() => handleDelete(deleteId)}
                 >
                   Delete
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Logout confirm */}
+      <AnimatePresence>
+        {logoutConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+              onClick={() => setLogoutConfirm(false)}
+            />
+            <motion.div
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className={[
+                "fixed z-50 bg-slate-800 border border-slate-700 shadow-2xl",
+                "inset-x-0 bottom-0 rounded-t-2xl p-6 pb-10",
+                "sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2",
+                "sm:w-full sm:max-w-sm sm:-translate-x-1/2 sm:-translate-y-1/2",
+                "sm:rounded-2xl sm:pb-6",
+              ].join(" ")}
+            >
+              <div className="w-12 h-1.5 rounded-full bg-slate-600 mx-auto mb-5 sm:hidden" aria-hidden="true" />
+              <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                <LogOut className="h-7 w-7 text-red-400" />
+              </div>
+              <h3 className="text-center font-black text-white text-xl mb-2">Log Out?</h3>
+              <p className="text-center text-slate-400 text-sm mb-6 leading-relaxed">
+                You will be signed out and returned to the home page.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  className="flex-1 h-12 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors text-sm font-medium"
+                  onClick={() => setLogoutConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white transition-colors text-sm font-medium"
+                  onClick={handleLogout}
+                >
+                  Log Out
                 </button>
               </div>
             </motion.div>
