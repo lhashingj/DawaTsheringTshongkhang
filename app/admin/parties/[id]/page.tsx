@@ -72,6 +72,8 @@ export default function PartyProfilePage() {
   const [editPayForm,  setEditPayForm]  = useState<Omit<PaymentRecord, 'id' | 'partyId'>>(emptyPayment('in'));
   const [editSelInvIds,  setEditSelInvIds]  = useState<Set<number>>(new Set());
   const [paySelInvIds,   setPaySelInvIds]   = useState<Set<number>>(new Set());
+  const [editTdsAmt,     setEditTdsAmt]     = useState(0);
+  const [payTdsAmt,      setPayTdsAmt]      = useState(0);
 
   // Live data
   const party     = useLiveQuery(() => db.parties.get(partyId), [partyId]);
@@ -178,30 +180,67 @@ export default function PartyProfilePage() {
       timestamp: new Date(payForm.timestamp),
     };
     const id = await paymentCRUD.create(record) as number;
-    // Update party outstanding balance
-    const delta = payForm.direction === 'in' ? -payForm.amount : payForm.amount;
-    await partyCRUD.updateBalance(partyId, delta);
-    // Post to GL
+    let delta = payForm.direction === 'in' ? -payForm.amount : payForm.amount;
     await postPaymentToGL({ ...record, id }, party.name);
+
+    // Post TDS entry if applied — clears remaining balance
+    if (payTdsAmt > 0 && payForm.direction === 'in') {
+      const tdsRecord: Omit<PaymentRecord, 'id'> = {
+        partyId,
+        timestamp: new Date(payForm.timestamp),
+        amount: payTdsAmt,
+        direction: 'in',
+        mode: payForm.mode,
+        reference: payForm.reference ? `TDS-${payForm.reference}` : 'TDS',
+        notes: `TDS withheld at source — 2% of gross (government deduction)`,
+      };
+      const tdsId = await paymentCRUD.create(tdsRecord) as number;
+      await postPaymentToGL({ ...tdsRecord, id: tdsId }, party.name);
+      delta -= payTdsAmt;
+    }
+
+    await partyCRUD.updateBalance(partyId, delta);
     setIsSaving(false);
     setPayModal(false);
+    setPayTdsAmt(0);
+    setPaySelInvIds(new Set());
     setPayForm(emptyPayment(payForm.direction));
   }
 
   async function updatePayment(payId: number, oldPay: PaymentRecord) {
     if (editPayForm.amount <= 0) return;
     setIsSaving(true);
-    // Reverse old balance effect, apply new one
     const reverseDelta = oldPay.direction === 'in' ? oldPay.amount : -oldPay.amount;
     const newDelta     = editPayForm.direction === 'in' ? -editPayForm.amount : editPayForm.amount;
-    await partyCRUD.updateBalance(partyId, reverseDelta + newDelta);
+    let totalDelta = reverseDelta + newDelta;
+
     await paymentCRUD.update(payId, {
       ...editPayForm,
       partyId,
       timestamp: new Date(editPayForm.timestamp),
     });
+
+    // Post TDS entry if applied — clears remaining balance
+    if (editTdsAmt > 0 && editPayForm.direction === 'in') {
+      const tdsRecord: Omit<PaymentRecord, 'id'> = {
+        partyId,
+        timestamp: new Date(editPayForm.timestamp),
+        amount: editTdsAmt,
+        direction: 'in',
+        mode: editPayForm.mode,
+        reference: editPayForm.reference ? `TDS-${editPayForm.reference}` : 'TDS',
+        notes: `TDS withheld at source — 2% of gross (government deduction)`,
+      };
+      const tdsId = await paymentCRUD.create(tdsRecord) as number;
+      await postPaymentToGL({ ...tdsRecord, id: tdsId }, party!.name);
+      totalDelta -= editTdsAmt;
+    }
+
+    await partyCRUD.updateBalance(partyId, totalDelta);
     setIsSaving(false);
     setEditPayId(null);
+    setEditTdsAmt(0);
+    setEditSelInvIds(new Set());
   }
 
   async function deletePayment(payId: number, pay: PaymentRecord) {
@@ -303,7 +342,7 @@ export default function PartyProfilePage() {
               {party.notes && <p className="text-slate-500 text-xs italic">{party.notes}</p>}
             </div>
             <button
-              onClick={() => { setPayForm(emptyPayment(defaultDirection)); setPaySelInvIds(new Set()); setPayModal(true); }}
+              onClick={() => { setPayForm(emptyPayment(defaultDirection)); setPaySelInvIds(new Set()); setPayTdsAmt(0); setPayModal(true); }}
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
             >
               <CreditCard className="w-4 h-4" /> Record Payment
@@ -434,7 +473,7 @@ export default function PartyProfilePage() {
           <div className="space-y-4">
             <div className="flex justify-end">
               <button
-                onClick={() => { setPayForm(emptyPayment(defaultDirection)); setPaySelInvIds(new Set()); setPayModal(true); }}
+                onClick={() => { setPayForm(emptyPayment(defaultDirection)); setPaySelInvIds(new Set()); setPayTdsAmt(0); setPayModal(true); }}
                 className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 <Plus className="w-4 h-4" /> Record Payment
@@ -473,7 +512,7 @@ export default function PartyProfilePage() {
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-3">
                           <button
-                            onClick={() => { setEditPayId(p.id!); setEditPayForm({ direction: p.direction, mode: p.mode, amount: p.amount, timestamp: p.timestamp, reference: p.reference || '', notes: p.notes || '' }); setEditSelInvIds(new Set()); }}
+                            onClick={() => { setEditPayId(p.id!); setEditPayForm({ direction: p.direction, mode: p.mode, amount: p.amount, timestamp: p.timestamp, reference: p.reference || '', notes: p.notes || '' }); setEditSelInvIds(new Set()); setEditTdsAmt(0); }}
                             title="Edit payment"
                             className="text-slate-500 hover:text-orange-400 transition-colors"
                           >
@@ -645,11 +684,17 @@ export default function PartyProfilePage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setPayForm(p => ({ ...p, amount: netPayable }))}
+                      onClick={() => { setPayForm(p => ({ ...p, amount: netPayable })); setPayTdsAmt(tds); }}
                       className="w-full mt-1 py-1.5 rounded bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors font-medium"
                     >
                       Apply Nu. {fmt(netPayable)} to Amount
                     </button>
+                  </div>
+                )}
+
+                {payTdsAmt > 0 && (
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2.5 text-xs text-blue-300">
+                    A TDS entry of <span className="font-mono font-semibold">Nu. {fmt(payTdsAmt)}</span> will be auto-recorded on save to zero the outstanding balance.
                   </div>
                 )}
 
@@ -811,11 +856,17 @@ export default function PartyProfilePage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setEditPayForm(p => ({ ...p, amount: netPayable }))}
+                      onClick={() => { setEditPayForm(p => ({ ...p, amount: netPayable })); setEditTdsAmt(tds); }}
                       className="w-full mt-1 py-1.5 rounded bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors font-medium"
                     >
                       Apply Nu. {fmt(netPayable)} to Amount
                     </button>
+                  </div>
+                )}
+
+                {editTdsAmt > 0 && (
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2.5 text-xs text-blue-300">
+                    A TDS entry of <span className="font-mono font-semibold">Nu. {fmt(editTdsAmt)}</span> will be auto-recorded on save to zero the outstanding balance.
                   </div>
                 )}
 
