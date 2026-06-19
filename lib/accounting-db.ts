@@ -343,6 +343,26 @@ export const inventoryCRUD = {
       item.stockQty = Math.max(0, (item.stockQty || 0) + delta);
       item.lastUpdated = new Date();
     });
+    // Best-effort: mirror stock change to the store products catalog so both views stay in sync
+    if (typeof window !== 'undefined') {
+      const updated = await db.inventory.get(id) as (InventoryItem & { id: number }) | undefined;
+      if (updated?.itemCode) {
+        const sku = updated.itemCode;
+        const newStock = updated.stockQty;
+        fetch('/api/products')
+          .then(r => r.ok ? r.json() : [])
+          .then((prods: Array<{ id: string; sku: string }>) => {
+            const match = prods.find(p => p.sku === sku);
+            if (!match) return;
+            return fetch(`/api/products/${match.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ stock: newStock }),
+            });
+          })
+          .catch(() => {});
+      }
+    }
   },
 };
 

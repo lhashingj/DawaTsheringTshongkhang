@@ -1,147 +1,198 @@
 'use client';
 
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { inventoryCRUD, InventoryItem, UnitType } from '@/lib/accounting-db';
-import { Plus, Trash2, Edit2, X, Search, Package, AlertTriangle, ChevronDown, ChevronUp, ChevronsUpDown, Minus, Download } from 'lucide-react';
-import { seedInventoryFromProducts } from '@/lib/seed-inventory';
-import type { ProductCategory } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
+import { db } from '@/lib/accounting-db';
+import {
+  Plus, Trash2, Edit2, X, Search, AlertTriangle,
+  ChevronDown, ChevronUp, ChevronsUpDown, Minus, RefreshCw,
+} from 'lucide-react';
+import type { Product, ProductCategory } from '@/types';
 
-const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS', 'PAIR'];
+const UNITS = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS', 'PAIR'] as const;
+type UnitDisplay = typeof UNITS[number];
 
 const PRODUCT_CATEGORIES: ProductCategory[] = [
   'Power Tools', 'Agricultural Machinery', 'Hand Tools', 'Safety Equipment',
   'Irrigation & Water', 'Spare Parts', 'Garden & Landscaping', 'Welding Equipment', 'Measuring Tools',
 ];
 
-function unitTypeToStr(u: UnitType): string {
+function unitToApi(u: UnitDisplay): string {
   switch (u) {
-    case 'MTR': return 'metre';
-    case 'KG': return 'kg';
-    case 'LTR': return 'litre';
-    case 'SET': return 'set';
-    case 'BOX': return 'box';
+    case 'KG':   return 'kg';
+    case 'MTR':  return 'metre';
+    case 'SET':  return 'set';
+    case 'BOX':  return 'box';
+    case 'LTR':  return 'litre';
     case 'PAIR': return 'pair';
-    default: return 'piece';
+    case 'NOS':  return 'nos';
+    case 'PCS':  return 'pcs';
+    default:     return 'piece';
   }
 }
-const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
-function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-const emptyForm = (): Omit<InventoryItem, 'id'> => ({
-  itemCode: '',
-  description: '',
-  unit: 'EACH',
-  baseRate: 0,
-  stockQty: 0,
-  reorderLevel: 10,
-  lastUpdated: new Date(),
-  notes: '',
+function unitFromApi(u: string): UnitDisplay {
+  switch ((u ?? '').toLowerCase()) {
+    case 'kg': case 'kilogram': return 'KG';
+    case 'metre': case 'meter': return 'MTR';
+    case 'set':  return 'SET';
+    case 'box':  return 'BOX';
+    case 'litre': case 'liter': return 'LTR';
+    case 'pair': return 'PAIR';
+    case 'nos':  return 'NOS';
+    case 'pcs':  return 'PCS';
+    default:     return 'EACH';
+  }
+}
+
+function getReorder(sku: string): number {
+  try { return Number(localStorage.getItem(`dtt-inv-reorder-${sku}`)) || 5; } catch { return 5; }
+}
+function saveReorder(sku: string, level: number): void {
+  try { localStorage.setItem(`dtt-inv-reorder-${sku}`, String(level)); } catch {}
+}
+
+function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+const inputCls = 'w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400';
+
+type InvProduct = Product & { reorderLevel: number };
+
+type FormState = {
+  sku: string; name: string; category: ProductCategory;
+  unit: UnitDisplay; price: number; stock: number; reorderLevel: number; notes: string;
+};
+
+const emptyForm = (): FormState => ({
+  sku: '', name: '', category: 'Spare Parts',
+  unit: 'EACH', price: 0, stock: 0, reorderLevel: 5, notes: '',
 });
 
-type ModalMode = 'add' | 'edit' | null;
+// Background-sync Supabase products → Dexie so POS search stays fresh
+async function syncToDexie(products: Product[]): Promise<void> {
+  for (const p of products) {
+    try {
+      // Try to find existing Dexie record by SKU
+      const bySku = await db.inventory.where('itemCode').equals(p.sku).first();
+      if (bySku?.id) {
+        await db.inventory.update(bySku.id, {
+          description: p.name, baseRate: p.price,
+          stockQty: p.stock, unit: unitFromApi(p.unit), lastUpdated: new Date(),
+        });
+        continue;
+      }
+      // Fallback: match by description (items imported before SKUs were tracked)
+      const byDesc = await db.inventory
+        .filter(i => i.description.toLowerCase().trim() === p.name.toLowerCase().trim())
+        .first();
+      if (byDesc?.id) {
+        await db.inventory.update(byDesc.id, {
+          itemCode: p.sku, baseRate: p.price,
+          stockQty: p.stock, lastUpdated: new Date(),
+        });
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await db.inventory.add({
+          itemCode: p.sku, description: p.name, unit: unitFromApi(p.unit),
+          baseRate: p.price, stockQty: p.stock, reorderLevel: 5,
+          lastUpdated: new Date(), notes: p.category,
+        } as any);
+      }
+    } catch { /* ignore individual errors */ }
+  }
+}
 
 export function InventoryManager() {
-  const [modalMode, setModalMode] = useState<ModalMode>(null);
-  const [selected, setSelected] = useState<InventoryItem | null>(null);
-  const [form, setForm] = useState(emptyForm());
-  const [search, setSearch] = useState('');
-  const [lowStockOnly, setLowStockOnly] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState('');
-  const [adjusting, setAdjusting] = useState<{ id: number; name: string; qty: number; delta: string } | null>(null);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [seedMsg, setSeedMsg] = useState('');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc' | null>(null);
-  const [isDeduping, setIsDeduping] = useState(false);
+  const [products,    setProducts]    = useState<InvProduct[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [search,      setSearch]      = useState('');
+  const [lowStockOnly,setLowStockOnly]= useState(false);
+  const [sortDir,     setSortDir]     = useState<'asc' | 'desc' | null>(null);
+  const [modalMode,   setModalMode]   = useState<'add' | 'edit' | null>(null);
+  const [editTarget,  setEditTarget]  = useState<InvProduct | null>(null);
+  const [form,        setForm]        = useState<FormState>(emptyForm());
+  const [isSaving,    setIsSaving]    = useState(false);
+  const [saveError,   setSaveError]   = useState('');
+  const [deleteId,    setDeleteId]    = useState<string | null>(null);
+  const [adjusting,   setAdjusting]   = useState<{ id: string; name: string; stock: number; delta: string } | null>(null);
+  const [statusMsg,   setStatusMsg]   = useState('');
 
-  const inventory = useLiveQuery(() => inventoryCRUD.getAll(), []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/products');
+      if (!res.ok) throw new Error('Failed to load');
+      const data: Product[] = await res.json();
+      setProducts(data.map(p => ({ ...p, reorderLevel: getReorder(p.sku) })));
+      // Keep Dexie in sync for POS search (non-blocking)
+      syncToDexie(data).catch(() => {});
+    } catch {
+      setStatusMsg('Failed to load products. Check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const filtered = (inventory || []).filter(item => {
-    const matchSearch = !search || item.description.toLowerCase().includes(search.toLowerCase()) || item.itemCode?.toLowerCase().includes(search.toLowerCase());
-    const matchLow = !lowStockOnly || item.stockQty <= item.reorderLevel;
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = products.filter(p => {
+    const q = search.toLowerCase();
+    const matchSearch = !search || p.name.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q);
+    const matchLow = !lowStockOnly || p.stock <= p.reorderLevel;
     return matchSearch && matchLow;
   }).sort((a, b) => {
     if (!sortDir) return 0;
-    const cmp = a.description.localeCompare(b.description, undefined, { sensitivity: 'base' });
-    return sortDir === 'asc' ? cmp : -cmp;
+    return sortDir === 'asc'
+      ? a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      : b.name.localeCompare(a.name, undefined, { sensitivity: 'base' });
   });
 
-  const lowStockCount = (inventory || []).filter(i => i.stockQty <= i.reorderLevel).length;
-  const totalValue = filtered.reduce((s, i) => s + i.stockQty * i.baseRate, 0);
+  const lowStockCount = products.filter(p => p.stock <= p.reorderLevel).length;
+  const totalValue    = filtered.reduce((s, p) => s + p.stock * p.price, 0);
 
-  function stockStatus(item: InventoryItem): { label: string; cls: string } {
-    if (item.stockQty === 0) return { label: 'Out of Stock', cls: 'text-red-400' };
-    if (item.stockQty <= item.reorderLevel) return { label: 'Low Stock', cls: 'text-yellow-400' };
-    return { label: 'In Stock', cls: 'text-green-400' };
+  function stockStatus(p: InvProduct) {
+    if (p.stock === 0)               return { label: 'Out of Stock', cls: 'text-red-400' };
+    if (p.stock <= p.reorderLevel)   return { label: 'Low Stock',    cls: 'text-yellow-400' };
+    return                                  { label: 'In Stock',     cls: 'text-green-400' };
   }
 
-  function openAdd() {
-    setForm(emptyForm());
-    setSelected(null);
-    setModalMode('add');
-  }
-
-  function openEdit(item: InventoryItem) {
-    setSelected(item);
-    setForm({ ...item });
+  function openEdit(p: InvProduct) {
+    setEditTarget(p);
+    setForm({
+      sku: p.sku || '', name: p.name, category: p.category,
+      unit: unitFromApi(p.unit), price: p.price, stock: p.stock,
+      reorderLevel: p.reorderLevel, notes: p.description || '',
+    });
     setModalMode('edit');
   }
 
   async function saveForm() {
     setSaveError('');
     setIsSaving(true);
-    const data = { ...form, lastUpdated: new Date() };
     try {
-    if (modalMode === 'add') {
-      await inventoryCRUD.create(data);
-      try {
-        const category = PRODUCT_CATEGORIES.find(c => c === form.notes) ?? 'Spare Parts';
-        const sku = form.itemCode || form.description.replace(/\s+/g, '-').toUpperCase().slice(0, 20);
-        await fetch('/api/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: form.description,
-            category,
-            price: form.baseRate,
-            stock: form.stockQty,
-            unit: unitTypeToStr(form.unit),
-            sku,
-            description: form.notes || '',
-            featured: false,
-            image: null,
-          }),
+      const sku = form.sku.trim() || form.name.trim().replace(/\s+/g, '-').toUpperCase().slice(0, 20);
+      const payload = {
+        name: form.name.trim(), category: form.category,
+        price: form.price, stock: form.stock,
+        unit: unitToApi(form.unit), sku,
+        description: form.notes.trim(), featured: false,
+      };
+      if (modalMode === 'add') {
+        const res = await fetch('/api/products', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
-      } catch { /* best-effort */ }
-    } else if (selected?.id) {
-      await inventoryCRUD.update(selected.id, data);
-      if (selected.itemCode) {
-        try {
-          const res = await fetch('/api/products');
-          if (res.ok) {
-            const allProducts: Array<{ id: string; sku: string }> = await res.json();
-            const match = allProducts.find(p => p.sku === selected.itemCode);
-            if (match) {
-              await fetch(`/api/products/${match.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  name: form.description,
-                  price: form.baseRate,
-                  stock: form.stockQty,
-                  unit: unitTypeToStr(form.unit),
-                }),
-              });
-            }
-          }
-        } catch { /* best-effort */ }
+        if (!res.ok) throw new Error(await res.text());
+      } else if (editTarget) {
+        const res = await fetch(`/api/products/${editTarget.id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(await res.text());
       }
-    }
+      saveReorder(sku, form.reorderLevel);
+      await load();
       setModalMode(null);
     } catch (err) {
-      setSaveError((err as Error).message || 'Failed to save. Please try again.');
+      setSaveError((err as Error).message || 'Failed to save.');
     } finally {
       setIsSaving(false);
     }
@@ -151,98 +202,39 @@ export function InventoryManager() {
     if (!adjusting) return;
     const delta = parseFloat(adjusting.delta);
     if (isNaN(delta)) return;
-    await inventoryCRUD.adjustStock(adjusting.id, delta);
-    const item = (inventory || []).find(i => i.id === adjusting.id);
-    if (item?.itemCode) {
-      try {
-        const newStock = Math.max(0, adjusting.qty + delta);
-        const res = await fetch('/api/products');
-        if (res.ok) {
-          const allProducts: Array<{ id: string; sku: string }> = await res.json();
-          const match = allProducts.find(p => p.sku === item.itemCode);
-          if (match) {
-            await fetch(`/api/products/${match.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ stock: newStock }),
-            });
-          }
-        }
-      } catch { /* best-effort */ }
-    }
+    const newStock = Math.max(0, adjusting.stock + delta);
+    try {
+      await fetch(`/api/products/${adjusting.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock: newStock }),
+      });
+      // Also update Dexie so POS reflects the change
+      const p = products.find(x => x.id === adjusting.id);
+      if (p?.sku) {
+        const inv = await db.inventory.where('itemCode').equals(p.sku).first();
+        if (inv?.id) await db.inventory.update(inv.id, { stockQty: newStock, lastUpdated: new Date() });
+      }
+    } catch {}
+    await load();
     setAdjusting(null);
-  }
-
-  async function handleSeedProducts() {
-    setIsSeeding(true);
-    setSeedMsg('');
-    try {
-      const { added, skipped } = await seedInventoryFromProducts();
-      setSeedMsg(skipped > 0
-        ? `Done! Added ${added} products (${skipped} already existed).`
-        : `Done! Added ${added} products to inventory.`
-      );
-    } catch {
-      setSeedMsg('Import failed. Please try again.');
-    } finally {
-      setIsSeeding(false);
-    }
-  }
-
-  async function handleDedup() {
-    setIsDeduping(true);
-    setSeedMsg('');
-    try {
-      const all = await inventoryCRUD.getAll();
-      // Group by normalised description
-      const groups = new Map<string, InventoryItem[]>();
-      for (const item of all) {
-        const key = item.description.toLowerCase().trim();
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)!.push(item);
-      }
-      let removed = 0;
-      for (const group of groups.values()) {
-        if (group.length <= 1) continue;
-        // Keep: prefer item with a code; among ties, keep highest id (most recent)
-        group.sort((a, b) => {
-          const aHasCode = a.itemCode ? 1 : 0;
-          const bHasCode = b.itemCode ? 1 : 0;
-          if (bHasCode !== aHasCode) return bHasCode - aHasCode;
-          return (b.id ?? 0) - (a.id ?? 0);
-        });
-        const toDelete = group.slice(1);
-        for (const item of toDelete) {
-          await inventoryCRUD.delete(item.id!);
-          removed++;
-        }
-      }
-      setSeedMsg(removed > 0 ? `Done! Removed ${removed} duplicate item${removed !== 1 ? 's' : ''}.` : 'No duplicates found.');
-    } catch {
-      setSeedMsg('Deduplication failed. Please try again.');
-    } finally {
-      setIsDeduping(false);
-    }
   }
 
   async function confirmDelete() {
     if (!deleteId) return;
-    const item = (inventory || []).find(i => i.id === deleteId);
-    await inventoryCRUD.delete(deleteId);
-    if (item?.itemCode) {
-      try {
-        const res = await fetch('/api/products');
-        if (res.ok) {
-          const allProducts: Array<{ id: string; sku: string }> = await res.json();
-          const match = allProducts.find(p => p.sku === item.itemCode);
-          if (match) await fetch(`/api/products/${match.id}`, { method: 'DELETE' });
-        }
-      } catch { /* best-effort */ }
-    }
+    try {
+      await fetch(`/api/products/${deleteId}`, { method: 'DELETE' });
+      const p = products.find(x => x.id === deleteId);
+      if (p?.sku) {
+        const inv = await db.inventory.where('itemCode').equals(p.sku).first();
+        if (inv?.id) await db.inventory.delete(inv.id);
+        try { localStorage.removeItem(`dtt-inv-reorder-${p.sku}`); } catch {}
+      }
+    } catch {}
+    await load();
     setDeleteId(null);
   }
 
-  if (inventory === undefined) return <div className="text-slate-400 text-sm p-8 text-center">Loading inventory…</div>;
+  if (loading) return <div className="text-slate-400 text-sm p-8 text-center">Loading inventory…</div>;
 
   return (
     <div className="space-y-4">
@@ -258,7 +250,7 @@ export function InventoryManager() {
           </div>
           <label className="flex items-center gap-2 cursor-pointer text-sm pb-2">
             <div
-              onClick={() => setLowStockOnly(p => !p)}
+              onClick={() => setLowStockOnly(v => !v)}
               className={`w-9 h-5 rounded-full transition-colors relative ${lowStockOnly ? 'bg-orange-500' : 'bg-slate-600'}`}
             >
               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${lowStockOnly ? 'translate-x-4' : 'translate-x-0.5'}`} />
@@ -269,32 +261,25 @@ export function InventoryManager() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={handleSeedProducts}
-            disabled={isSeeding}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            title="Import all products from the store catalog into inventory"
+            onClick={load}
+            className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            title="Reload from Product Dashboard"
           >
-            <Download className="w-4 h-4" />
-            {isSeeding ? 'Importing…' : 'Import Store Products'}
+            <RefreshCw className="w-4 h-4" /> Refresh
           </button>
           <button
-            onClick={handleDedup}
-            disabled={isDeduping}
-            className="flex items-center gap-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            title="Remove duplicate items (same description). Keeps the record with an item code."
+            onClick={() => { setForm(emptyForm()); setEditTarget(null); setModalMode('add'); }}
+            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            {isDeduping ? 'Removing…' : 'Remove Duplicates'}
-          </button>
-          <button onClick={openAdd} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" /> Add Item
           </button>
         </div>
       </div>
 
-      {seedMsg && (
-        <div className="flex items-center justify-between bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-2.5 text-sm">
-          <span>{seedMsg}</span>
-          <button onClick={() => setSeedMsg('')} className="text-green-500 hover:text-green-300 ml-4"><X className="w-4 h-4" /></button>
+      {statusMsg && (
+        <div className="flex items-center justify-between bg-slate-700 border border-slate-600 text-slate-300 rounded-lg px-4 py-2.5 text-sm">
+          <span>{statusMsg}</span>
+          <button onClick={() => setStatusMsg('')} className="text-slate-400 hover:text-white ml-4"><X className="w-4 h-4" /></button>
         </div>
       )}
 
@@ -319,49 +304,58 @@ export function InventoryManager() {
                   className="flex items-center gap-1 hover:text-white transition-colors"
                 >
                   Description
-                  {sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-orange-400" /> : sortDir === 'desc' ? <ChevronDown className="w-3.5 h-3.5 text-orange-400" /> : <ChevronsUpDown className="w-3.5 h-3.5" />}
+                  {sortDir === 'asc'  ? <ChevronUp   className="w-3.5 h-3.5 text-orange-400" />
+                   : sortDir === 'desc' ? <ChevronDown className="w-3.5 h-3.5 text-orange-400" />
+                   : <ChevronsUpDown className="w-3.5 h-3.5" />}
                 </button>
               </th>
-              <th className="text-left px-4 py-3 text-slate-400 font-medium">Unit</th>
+              <th className="text-left  px-4 py-3 text-slate-400 font-medium">Unit</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Base Rate</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Stock</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Reorder</th>
-              <th className="text-left px-4 py-3 text-slate-400 font-medium">Status</th>
+              <th className="text-left  px-4 py-3 text-slate-400 font-medium">Status</th>
               <th className="text-center px-4 py-3 text-slate-400 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-12 text-slate-500">
-                {lowStockOnly ? 'No low-stock items.' : 'No inventory items. Add your first product.'}
-              </td></tr>
-            ) : filtered.map(item => {
-              const status = stockStatus(item);
+              <tr>
+                <td colSpan={8} className="text-center py-12 text-slate-500">
+                  {lowStockOnly ? 'No low-stock items.' : 'No products found.'}
+                </td>
+              </tr>
+            ) : filtered.map(p => {
+              const status = stockStatus(p);
               return (
-                <tr key={item.id} className={`border-t border-slate-700 hover:bg-slate-700/30 transition-colors ${item.stockQty === 0 ? 'bg-red-500/5' : item.stockQty <= item.reorderLevel ? 'bg-yellow-500/5' : ''}`}>
-                  <td className="px-4 py-3 text-slate-400 font-mono text-xs">{item.itemCode || <span className="text-slate-600">—</span>}</td>
-                  <td className="px-4 py-3 text-white">{item.description}</td>
-                  <td className="px-4 py-3 text-slate-400">{item.unit}</td>
-                  <td className="px-4 py-3 text-right text-slate-300 font-mono">{fmtNum(item.baseRate)}</td>
+                <tr
+                  key={p.id}
+                  className={`border-t border-slate-700 hover:bg-slate-700/30 transition-colors ${p.stock === 0 ? 'bg-red-500/5' : p.stock <= p.reorderLevel ? 'bg-yellow-500/5' : ''}`}
+                >
+                  <td className="px-4 py-3 text-slate-400 font-mono text-xs">{p.sku || <span className="text-slate-600">—</span>}</td>
+                  <td className="px-4 py-3 text-white">{p.name}</td>
+                  <td className="px-4 py-3 text-slate-400">{unitFromApi(p.unit)}</td>
+                  <td className="px-4 py-3 text-right text-slate-300 font-mono">{fmtNum(p.price)}</td>
                   <td className="px-4 py-3 text-right font-mono font-semibold">
-                    <span className={item.stockQty === 0 ? 'text-red-400' : item.stockQty <= item.reorderLevel ? 'text-yellow-400' : 'text-white'}>{item.stockQty}</span>
+                    <span className={p.stock === 0 ? 'text-red-400' : p.stock <= p.reorderLevel ? 'text-yellow-400' : 'text-white'}>
+                      {p.stock}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-slate-500 font-mono">{item.reorderLevel}</td>
+                  <td className="px-4 py-3 text-right text-slate-500 font-mono">{p.reorderLevel}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-medium ${status.cls}`}>
-                      {item.stockQty <= item.reorderLevel && item.stockQty > 0 && <AlertTriangle className="inline w-3 h-3 mr-1" />}
+                      {p.stock <= p.reorderLevel && p.stock > 0 && <AlertTriangle className="inline w-3 h-3 mr-1" />}
                       {status.label}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        onClick={() => setAdjusting({ id: item.id!, name: item.description, qty: item.stockQty, delta: '' })}
+                        onClick={() => setAdjusting({ id: p.id, name: p.name, stock: p.stock, delta: '' })}
                         title="Adjust Stock"
                         className="text-slate-400 hover:text-blue-400 transition-colors text-xs font-medium"
                       >±Qty</button>
-                      <button onClick={() => openEdit(item)} title="Edit" className="text-slate-400 hover:text-orange-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => setDeleteId(item.id!)} title="Delete" className="text-slate-400 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(p)} title="Edit" className="text-slate-400 hover:text-orange-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteId(p.id)} title="Delete" className="text-slate-400 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -376,36 +370,74 @@ export function InventoryManager() {
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setModalMode(null)}>
           <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-lg w-full p-6">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-white font-semibold">{modalMode === 'add' ? 'Add Inventory Item' : 'Edit Item'}</h3>
+              <h3 className="text-white font-semibold">{modalMode === 'add' ? 'Add Product' : 'Edit Product'}</h3>
               <button onClick={() => setModalMode(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-slate-400 text-xs mb-1">Item Code (optional)</label><input className={inputCls} placeholder="e.g. BLD-001" value={form.itemCode || ''} onChange={e => setForm(p => ({ ...p, itemCode: e.target.value }))} /></div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Item Code / SKU (optional)</label>
+                  <input className={inputCls} placeholder="e.g. BLD-001" value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} />
+                </div>
                 <div>
                   <label className="block text-slate-400 text-xs mb-1">Unit</label>
                   <div className="relative">
-                    <select className={inputCls + ' appearance-none pr-8 cursor-pointer'} value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value as UnitType }))}>
+                    <select className={inputCls + ' appearance-none pr-8 cursor-pointer'} value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value as UnitDisplay }))}>
                       {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                     <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
               </div>
-              <div><label className="block text-slate-400 text-xs mb-1">Description *</label><input className={inputCls} placeholder="e.g. BLADE 12″×3.5×2.5 MM" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
-              <div className="grid grid-cols-3 gap-3">
-                <div><label className="block text-slate-400 text-xs mb-1">Base Rate (Nu.)</label><input type="number" min="0" step="0.01" className={inputCls} value={form.baseRate} onChange={e => setForm(p => ({ ...p, baseRate: parseFloat(e.target.value) || 0 }))} /></div>
-                <div><label className="block text-slate-400 text-xs mb-1">Stock Qty</label><input type="number" min="0" step="1" className={inputCls} value={form.stockQty} onChange={e => setForm(p => ({ ...p, stockQty: parseFloat(e.target.value) || 0 }))} /></div>
-                <div><label className="block text-slate-400 text-xs mb-1">Reorder Level</label><input type="number" min="0" step="1" className={inputCls} value={form.reorderLevel} onChange={e => setForm(p => ({ ...p, reorderLevel: parseFloat(e.target.value) || 0 }))} /></div>
+              <div>
+                <label className="block text-slate-400 text-xs mb-1">Name / Description *</label>
+                <input className={inputCls} placeholder="e.g. HEDGE TRIMMER CORDLESS" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
               </div>
-              <div><label className="block text-slate-400 text-xs mb-1">Notes</label><textarea className={inputCls} rows={2} value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} /></div>
+              <div>
+                <label className="block text-slate-400 text-xs mb-1">Category *</label>
+                <div className="relative">
+                  <select className={inputCls + ' appearance-none pr-8 cursor-pointer'} value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value as ProductCategory }))}>
+                    {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Base Rate (Nu.)</label>
+                  <input type="number" min="0" step="0.01" className={inputCls} value={form.price} onChange={e => setForm(p => ({ ...p, price: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Stock Qty</label>
+                  <input type="number" min="0" step="1" className={inputCls} value={form.stock} onChange={e => setForm(p => ({ ...p, stock: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1">Reorder Level</label>
+                  <input type="number" min="0" step="1" className={inputCls} value={form.reorderLevel} onChange={e => setForm(p => ({ ...p, reorderLevel: parseFloat(e.target.value) || 0 }))} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-slate-400 text-xs mb-1">Notes</label>
+                <textarea className={inputCls} rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+              </div>
             </div>
             {saveError && (
               <p className="mt-3 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{saveError}</p>
             )}
             <div className="flex gap-3 mt-4">
-              <button onClick={saveForm} disabled={isSaving || !form.description.trim()} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">{isSaving ? 'Saving…' : 'Save Item'}</button>
-              <button onClick={() => { setModalMode(null); setSaveError(''); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+              <button
+                onClick={saveForm}
+                disabled={isSaving || !form.name.trim()}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-600 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
+              >
+                {isSaving ? 'Saving…' : 'Save Item'}
+              </button>
+              <button
+                onClick={() => { setModalMode(null); setSaveError(''); }}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -417,15 +449,31 @@ export function InventoryManager() {
           <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-1">Adjust Stock</h3>
             <p className="text-slate-400 text-sm mb-1 truncate">{adjusting.name}</p>
-            <p className="text-slate-400 text-xs mb-4">Current qty: <span className="text-white font-semibold">{adjusting.qty}</span></p>
+            <p className="text-slate-400 text-xs mb-4">Current qty: <span className="text-white font-semibold">{adjusting.stock}</span></p>
             <div className="flex items-center gap-2 mb-4">
-              <button onClick={() => setAdjusting(p => p ? { ...p, delta: String((parseFloat(p.delta) || 0) - 1) } : null)} className="bg-slate-700 hover:bg-slate-600 text-white w-9 h-9 rounded-lg flex items-center justify-center"><Minus className="w-4 h-4" /></button>
-              <input type="number" step="1" className={inputCls + ' text-center flex-1'} placeholder="Enter +/- quantity" value={adjusting.delta} onChange={e => setAdjusting(p => p ? { ...p, delta: e.target.value } : null)} />
-              <button onClick={() => setAdjusting(p => p ? { ...p, delta: String((parseFloat(p.delta) || 0) + 1) } : null)} className="bg-slate-700 hover:bg-slate-600 text-white w-9 h-9 rounded-lg flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+              <button
+                onClick={() => setAdjusting(a => a ? { ...a, delta: String((parseFloat(a.delta) || 0) - 1) } : null)}
+                className="bg-slate-700 hover:bg-slate-600 text-white w-9 h-9 rounded-lg flex items-center justify-center"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <input
+                type="number" step="1"
+                className={inputCls + ' text-center flex-1'}
+                placeholder="Enter +/- quantity"
+                value={adjusting.delta}
+                onChange={e => setAdjusting(a => a ? { ...a, delta: e.target.value } : null)}
+              />
+              <button
+                onClick={() => setAdjusting(a => a ? { ...a, delta: String((parseFloat(a.delta) || 0) + 1) } : null)}
+                className="bg-slate-700 hover:bg-slate-600 text-white w-9 h-9 rounded-lg flex items-center justify-center"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
             {adjusting.delta && !isNaN(parseFloat(adjusting.delta)) && (
               <p className="text-xs text-slate-400 mb-3 text-center">
-                New qty: <span className="text-orange-400 font-semibold">{Math.max(0, adjusting.qty + parseFloat(adjusting.delta))}</span>
+                New qty: <span className="text-orange-400 font-semibold">{Math.max(0, adjusting.stock + parseFloat(adjusting.delta))}</span>
               </p>
             )}
             <div className="flex gap-3">
@@ -440,8 +488,8 @@ export function InventoryManager() {
       {deleteId && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Delete Item?</h3>
-            <p className="text-slate-400 text-sm mb-5">This removes the item from inventory. Historical records are unaffected.</p>
+            <h3 className="text-white font-semibold mb-2">Delete Product?</h3>
+            <p className="text-slate-400 text-sm mb-5">Removes from the store catalog and accounting inventory. Historical sale/purchase records are unaffected.</p>
             <div className="flex gap-3">
               <button onClick={confirmDelete} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">Delete</button>
               <button onClick={() => setDeleteId(null)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">Cancel</button>
