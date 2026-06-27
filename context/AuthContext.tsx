@@ -114,25 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       if (session?.user) {
-        const remembered = localStorage.getItem("dtt-remember-me") === "true";
-        const sessionActive =
-          sessionStorage.getItem("dtt-session-active") === "true" ||
-          (() => {
-            // Fallback: localStorage timestamp set at login time, valid for 2 min.
-            // Guards against sessionStorage being unavailable in some browsers.
-            const ts = Number(localStorage.getItem("dtt-login-ts") ?? 0);
-            return ts > 0 && Date.now() - ts < 120_000;
-          })();
-
-        if (!remembered && !sessionActive) {
-          // Session should not survive a browser restart — clear it now.
-          // We do this outside onAuthStateChange so there is no re-entrant
-          // SIGNED_OUT callback that can race with the guard effects.
-          await supabase.auth.signOut();
-          if (mounted) { setUser(null); setLoading(false); }
-          return;
-        }
-
         const u = await buildAuthUser(session.user);
         if (mounted) setUser(u);
       }
@@ -165,11 +146,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signOut() {
-    try {
-      localStorage.removeItem("dtt-remember-me");
-      localStorage.removeItem("dtt-login-ts");
-      sessionStorage.removeItem("dtt-session-active");
-    } catch {}
     await supabase.auth.signOut();
     setUser(null);
   }
