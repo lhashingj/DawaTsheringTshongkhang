@@ -44,18 +44,10 @@ export default function LoginPage() {
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name, role")
-        .eq("id", data.user.id)
-        .single();
-      // Pre-fill the AuthContext cache so the SIGNED_IN handler skips the DB call
-      if (profile) {
-        try { sessionStorage.setItem(`dtt-profile-${data.user.id}`, JSON.stringify(profile)); } catch {}
-      }
-      // Use a hard navigation so React's startTransition cannot render the
-      // admin page with the pre-login (user=null) state and bounce us back.
-      window.location.href = profile?.role === "admin" ? "/admin" : "/";
+      // Determine redirect without an extra network call that could hang.
+      // The AuthContext will fetch the full profile once on the destination page.
+      const isAdmin = data.user.email?.toLowerCase() === "tsheringdemajlw@gmail.com";
+      window.location.href = isAdmin ? "/admin" : "/";
     } catch (err: unknown) {
       const msg = (err as { message?: string }).message ?? "";
       if (msg.includes("Invalid login credentials") || msg.includes("invalid_credentials")) {

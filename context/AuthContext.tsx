@@ -42,13 +42,24 @@ function setCachedProfile(id: string, data: { name: string; role: string }) {
   try { sessionStorage.setItem(PROFILE_CACHE_KEY(id), JSON.stringify(data)); } catch {}
 }
 
+const ADMIN_EMAIL = "tsheringdemajlw@gmail.com";
+
+function profileFetchWithTimeout(userId: string) {
+  return Promise.race([
+    supabase.from("profiles").select("name, role").eq("id", userId).single(),
+    new Promise<{ data: null; error: Error }>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: new Error("timeout") }), 5000)
+    ),
+  ]);
+}
+
 async function buildAuthUser(sbUser: SupabaseUser): Promise<AuthUser> {
   // Use cached profile for instant load; refresh in background
   const cached = typeof window !== "undefined" ? getCachedProfile(sbUser.id) : null;
 
   if (cached) {
     // Background refresh — don't await
-    supabase.from("profiles").select("name, role").eq("id", sbUser.id).single()
+    profileFetchWithTimeout(sbUser.id)
       .then(({ data }) => { if (data) setCachedProfile(sbUser.id, data); });
     return {
       id: sbUser.id,
@@ -61,29 +72,28 @@ async function buildAuthUser(sbUser: SupabaseUser): Promise<AuthUser> {
   }
 
   try {
-    const { data } = await supabase
-      .from("profiles")
-      .select("name, role")
-      .eq("id", sbUser.id)
-      .single();
+    const { data } = await profileFetchWithTimeout(sbUser.id);
     const name = data?.name ?? sbUser.user_metadata?.name ?? "User";
     if (data) setCachedProfile(sbUser.id, data);
+    // Fallback: treat known admin email as admin even if profile row is missing
+    const role = data?.role ?? (sbUser.email?.toLowerCase() === ADMIN_EMAIL ? "admin" : "user");
     return {
       id: sbUser.id,
       name,
       email: sbUser.email ?? "",
       verified: sbUser.email_confirmed_at != null,
-      role: data?.role ?? "user",
+      role,
       user_metadata: { name },
     };
   } catch {
     const name = sbUser.user_metadata?.name ?? "User";
+    const role = sbUser.email?.toLowerCase() === ADMIN_EMAIL ? "admin" : "user";
     return {
       id: sbUser.id,
       name,
       email: sbUser.email ?? "",
       verified: sbUser.email_confirmed_at != null,
-      role: "user",
+      role,
       user_metadata: { name },
     };
   }
