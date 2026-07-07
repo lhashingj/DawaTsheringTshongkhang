@@ -226,13 +226,14 @@ export function SalesLedger() {
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Gross</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">GST</th>
               <th className="text-right px-4 py-3 text-slate-400 font-medium">Net</th>
+              <th className="text-left px-4 py-3 text-slate-400 font-medium">Notes</th>
               <th className="text-center px-4 py-3 text-slate-400 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-12 text-slate-500">
+                <td colSpan={10} className="text-center py-12 text-slate-500">
                   No sales records found.
                 </td>
               </tr>
@@ -249,6 +250,13 @@ export function SalesLedger() {
                   <td className="px-4 py-3 text-right text-slate-300 font-mono">{fmtNum(sale.grossAmount)}</td>
                   <td className="px-4 py-3 text-right text-yellow-400 font-mono">{fmtNum(sale.gstAmount)}</td>
                   <td className="px-4 py-3 text-right text-orange-400 font-mono font-semibold">{fmtNum(sale.netAmount)}</td>
+                  <td className="px-4 py-3 text-slate-400 text-xs max-w-[180px]">
+                    {sale.notes ? (
+                      <span className="block truncate" title={sale.notes}>{sale.notes}</span>
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
                       <button onClick={() => openView(sale)} title="View Invoice" className="text-slate-400 hover:text-blue-400 transition-colors"><Eye className="w-4 h-4" /></button>

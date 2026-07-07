@@ -20,7 +20,6 @@ import {
   Plus,
   Trash2,
   Save,
-  RefreshCw,
   Search,
   ChevronDown,
   Receipt,
@@ -189,18 +188,6 @@ export function POSCheckout() {
     } finally {
       setIsSaving(false);
     }
-  }
-
-  function clearForm() {
-    setCustomerMode('cash');
-    setSelectedPartyId(null);
-    setCustomer(defaultCustomer);
-    setItems([]);
-    setItemForm(defaultItem);
-    setError('');
-    setSavedInvoice(null);
-    setShowModal(false);
-    salesCRUD.getNextInvoiceNo().then(setInvoiceNo);
   }
 
   const inputCls =
@@ -506,13 +493,6 @@ export function POSCheckout() {
         >
           <Save className="w-4 h-4" />
           {isSaving ? 'Saving…' : 'Save & Print Invoice'}
-        </button>
-        <button
-          onClick={clearForm}
-          className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          New Invoice
         </button>
         {savedInvoice && (
           <button
