@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { salesCRUD, partyCRUD, SaleRecord, SaleItem, UnitType } from '@/lib/accounting-db';
 import { deleteSaleWithCascade, editSaleWithCascade } from '@/lib/ledger-mutations';
@@ -12,6 +12,13 @@ const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS
 
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+function dayKey(d: Date | string) {
+  const dt = new Date(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+function dayLabel(d: Date | string) {
+  return new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
 }
 function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -36,6 +43,7 @@ export function SalesLedger() {
   const [editGstRate, setEditGstRate] = useState(0);
   const [editError, setEditError] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [dayToggles, setDayToggles] = useState<Record<string, boolean>>({});
 
   const sales = useLiveQuery(() => salesCRUD.getAll(), []);
   const customerParties = useLiveQuery(
@@ -62,6 +70,24 @@ export function SalesLedger() {
 
   const totalNet = filtered.reduce((s, r) => s + r.netAmount, 0);
   const totalGst = filtered.reduce((s, r) => s + r.gstAmount, 0);
+
+  // Group the (already sorted) records into one section per day
+  const dayGroups: { key: string; label: string; rows: typeof filtered }[] = [];
+  for (const sale of filtered) {
+    const key = dayKey(sale.timestamp);
+    const last = dayGroups[dayGroups.length - 1];
+    if (last && last.key === key) last.rows.push(sale);
+    else dayGroups.push({ key, label: dayLabel(sale.timestamp), rows: [sale] });
+  }
+
+  // Only the most recent day is expanded by default; searching expands everything
+  function isDayOpen(key: string, idx: number) {
+    if (search) return true;
+    return dayToggles[key] ?? idx === 0;
+  }
+  function toggleDay(key: string, idx: number) {
+    setDayToggles(prev => ({ ...prev, [key]: !(prev[key] ?? idx === 0) }));
+  }
 
   function openView(sale: SaleRecord) {
     setSelected(sale);
@@ -238,7 +264,32 @@ export function SalesLedger() {
                 </td>
               </tr>
             ) : (
-              filtered.map(sale => (
+              dayGroups.map((group, gi) => {
+                const open = isDayOpen(group.key, gi);
+                const dayNet = group.rows.reduce((s, r) => s + r.netAmount, 0);
+                return (
+                  <Fragment key={group.key}>
+                    {/* Day header */}
+                    <tr
+                      onClick={() => toggleDay(group.key, gi)}
+                      className="border-t border-slate-600 bg-slate-700/50 hover:bg-slate-700/70 cursor-pointer transition-colors select-none"
+                    >
+                      <td colSpan={10} className="px-4 py-2.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-2 text-white font-semibold">
+                            {open
+                              ? <ChevronUp className="w-4 h-4 text-orange-400" />
+                              : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                            {group.label}
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {group.rows.length} invoice{group.rows.length !== 1 ? 's' : ''} · Net{' '}
+                            <span className="text-orange-400 font-mono font-semibold">Nu. {fmtNum(dayNet)}</span>
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                    {open && group.rows.map(sale => (
                 <tr key={sale.id} className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors">
                   <td className="px-4 py-3 text-orange-400 font-mono font-medium">{sale.invoiceNo}</td>
                   <td className="px-4 py-3 text-slate-300">{fmtDate(sale.timestamp)}</td>
@@ -265,7 +316,10 @@ export function SalesLedger() {
                     </div>
                   </td>
                 </tr>
-              ))
+                    ))}
+                  </Fragment>
+                );
+              })
             )}
           </tbody>
         </table>
