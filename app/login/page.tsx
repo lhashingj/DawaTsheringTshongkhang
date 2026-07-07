@@ -7,6 +7,7 @@ import {
   LogIn, Eye, EyeOff, ShieldCheck, Truck, Globe, ArrowLeft, Mail, CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/layout/Logo";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -90,9 +91,7 @@ export default function LoginPage() {
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-sm border-b border-slate-700 shrink-0 lg:hidden">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-white shadow group-hover:scale-105 transition-transform shrink-0">
-              <img src="/logo.png" alt="DTT Logo" className="w-full h-full object-cover" />
-            </div>
+            <LogoMark size={32} className="shadow group-hover:scale-105 transition-transform" />
             <span className="font-black text-white text-sm">DTT Hardware</span>
           </Link>
           <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors font-medium">
@@ -113,9 +112,7 @@ export default function LoginPage() {
           className="relative z-10"
         >
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-full overflow-hidden bg-white shadow-lg group-hover:scale-105 transition-transform shrink-0">
-              <img src="/logo.png" alt="DTT Logo" className="w-full h-full object-cover" />
-            </div>
+            <LogoMark size={44} className="shadow-lg group-hover:scale-105 transition-transform" />
             <div>
               <p className="text-white font-black text-lg leading-none">DTT Hardware</p>
               <p className="text-white/40 text-[10px] font-medium tracking-widest uppercase">Paro, Bhutan</p>

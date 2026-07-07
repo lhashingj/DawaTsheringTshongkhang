@@ -6,9 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingCart, Menu, X, Phone, MapPin, Mail, LogIn, LogOut, UserCircle, User, LayoutDashboard,
 } from "lucide-react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { CartDrawer } from "./CartDrawer";
+import { LogoMark } from "./Logo";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -45,8 +45,8 @@ export function Header() {
         )}
       >
         {/* Top bar */}
-        <div className="hidden md:block bg-brand-blue/20 border-b border-brand-blue/30">
-          <div className="container flex items-center justify-between py-1.5 text-xs text-white/60">
+        <div className="hidden md:block bg-slate-950/70 border-b border-white/5">
+          <div className="container flex items-center justify-between py-1.5 text-xs text-slate-400">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
@@ -61,7 +61,7 @@ export function Header() {
                 tsheringdemajlw@gmail.com
               </span>
             </div>
-            <span className="font-medium text-white/40 tracking-wider uppercase text-[10px]">
+            <span className="font-medium text-slate-500 tracking-wider uppercase text-[10px]">
               Professional Hardware & Tools
             </span>
           </div>
@@ -71,26 +71,24 @@ export function Header() {
         <div className="container flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-full overflow-hidden shadow-lg group-hover:scale-105 transition-transform shrink-0 bg-white">
-              <Image src="/logo.png" width={36} height={36} alt="DTT Logo" className="w-full h-full object-cover" />
-            </div>
+            <LogoMark size={36} className="shadow-lg group-hover:scale-105 transition-transform" />
             <div className="hidden sm:block">
-              <p className="text-white font-black text-sm leading-none tracking-tight">
+              <p className="text-white font-extrabold text-sm leading-none tracking-tight">
                 DTT Hardware
               </p>
-              <p className="text-white/40 text-[10px] font-medium tracking-wider">
+              <p className="text-slate-400 text-[10px] font-medium tracking-wider">
                 PARO, BHUTAN
               </p>
             </div>
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1.5">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                className="relative px-4 py-2 text-sm font-medium text-slate-300 hover:text-white rounded-lg transition-all duration-200 hover:bg-white/[0.07] after:absolute after:left-4 after:right-4 after:-bottom-px after:h-0.5 after:rounded-full after:bg-brand-orange after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-200 after:origin-left"
               >
                 {link.label}
               </Link>
@@ -98,7 +96,7 @@ export function Header() {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {user ? (
               <div className="relative hidden md:block">
                 <Button
@@ -119,21 +117,21 @@ export function Header() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.97 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-10 z-50 w-44 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden"
+                        className="absolute right-0 top-10 z-50 w-48 bg-slate-800 rounded-xl shadow-2xl shadow-black/40 border border-slate-700 overflow-hidden"
                       >
                         <Link
                           href="/profile"
                           onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-orange transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-700/60 hover:text-brand-orange transition-colors"
                         >
                           <User className="h-4 w-4" />
-                          My Profile
+                          My Account
                         </Link>
                         {user.role === "admin" && (
                           <Link
                             href="/admin"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand-orange transition-colors border-t border-slate-50"
+                            className="flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-700/60 hover:text-brand-orange transition-colors border-t border-slate-700/60"
                           >
                             <LayoutDashboard className="h-4 w-4" />
                             Admin Dashboard
@@ -141,7 +139,7 @@ export function Header() {
                         )}
                         <button
                           onClick={() => { signOut(); setUserMenuOpen(false); }}
-                          className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-red-500 transition-colors border-t border-slate-50 cursor-pointer"
+                          className="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-700/60 hover:text-red-400 transition-colors border-t border-slate-700/60 cursor-pointer"
                         >
                           <LogOut className="h-4 w-4" />
                           Sign Out

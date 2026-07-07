@@ -30,15 +30,15 @@ const CATEGORY_ICONS: Record<ProductCategory, LucideIcon> = {
 };
 
 const CATEGORY_COLORS: Record<ProductCategory, string> = {
-  "Power Tools": "text-yellow-400 bg-yellow-500/20",
-  "Agricultural Machinery": "text-green-400 bg-green-500/20",
-  "Hand Tools": "text-orange-400 bg-orange-500/20",
-  "Safety Equipment": "text-blue-400 bg-blue-500/20",
-  "Irrigation & Water": "text-cyan-400 bg-cyan-500/20",
-  "Spare Parts": "text-slate-300 bg-slate-500/20",
-  "Garden & Landscaping": "text-emerald-400 bg-emerald-500/20",
-  "Welding Equipment": "text-red-400 bg-red-500/20",
-  "Measuring Tools": "text-purple-400 bg-purple-500/20",
+  "Power Tools": "text-yellow-400 bg-yellow-500/10",
+  "Agricultural Machinery": "text-green-400 bg-green-500/10",
+  "Hand Tools": "text-orange-400 bg-orange-500/10",
+  "Safety Equipment": "text-blue-400 bg-blue-500/10",
+  "Irrigation & Water": "text-cyan-400 bg-cyan-500/10",
+  "Spare Parts": "text-slate-300 bg-slate-500/10",
+  "Garden & Landscaping": "text-emerald-400 bg-emerald-500/10",
+  "Welding Equipment": "text-red-400 bg-red-500/10",
+  "Measuring Tools": "text-purple-400 bg-purple-500/10",
 };
 
 interface ProductCardProps {
@@ -55,6 +55,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const inCart = items.some((i) => i.product.id === product.id);
   const isLowStock = product.stock > 0 && product.stock <= 5;
   const isOutOfStock = product.stock <= 0;
+  const hasPrice = product.price > 0;
 
   function handleAddToCart(e?: React.MouseEvent) {
     e?.stopPropagation();
@@ -75,7 +76,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-40px" }}
         transition={{ duration: 0.4, delay: (index % 6) * 0.07 }}
-        className="group relative flex flex-col rounded-2xl border border-slate-700 bg-slate-800 overflow-hidden cursor-pointer"
+        className="group relative flex flex-col rounded-2xl border border-slate-700/70 bg-slate-800 overflow-hidden cursor-pointer hover:border-slate-600 transition-colors"
         style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)" }}
         whileHover={{
           y: -5,
@@ -105,8 +106,8 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           </div>
         )}
 
-        {/* Image area */}
-        <div className={cn("relative h-44 flex items-center justify-center overflow-hidden", product.image ? "bg-slate-700" : bgColor)}>
+        {/* Image area — unified surface for every card */}
+        <div className="relative h-44 flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900">
           {product.image ? (
             <Image
               src={product.image}
@@ -118,10 +119,14 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
             />
           ) : (
             <motion.div
-              whileHover={{ scale: 1.08, rotate: 4 }}
+              whileHover={{ scale: 1.06 }}
               transition={{ type: "spring", stiffness: 300 }}
+              className={cn(
+                "w-20 h-20 rounded-2xl ring-1 ring-slate-600/50 flex items-center justify-center",
+                bgColor
+              )}
             >
-              <Icon className={cn("h-16 w-16 opacity-50", iconColor)} strokeWidth={1.2} />
+              <Icon className={cn("h-9 w-9", iconColor)} strokeWidth={1.4} />
             </motion.div>
           )}
           {/* Category label */}
@@ -140,12 +145,20 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 flex-1 leading-relaxed">
             {product.description}
           </p>
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700">
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/70">
             <div>
-              <p className="text-lg font-extrabold text-brand-orange leading-none">
-                {formatPrice(product.price)}
-              </p>
-              <p className="text-[10px] text-slate-500 mt-0.5">per {product.unit}</p>
+              {hasPrice ? (
+                <>
+                  <p className="text-lg font-extrabold text-brand-orange leading-none">
+                    {formatPrice(product.price)}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">per {product.unit}</p>
+                </>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-300 bg-orange-500/10 border border-orange-500/30 rounded-full px-2.5 py-1">
+                  Contact for Price
+                </span>
+              )}
             </div>
             <Button
               size="sm"
@@ -230,7 +243,9 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
                   </div>
                 </button>
               ) : (
-                <Icon className={cn("h-28 w-28 opacity-25", iconColor)} strokeWidth={1.2} />
+                <div className={cn("w-28 h-28 rounded-3xl ring-1 ring-slate-600/50 flex items-center justify-center", bgColor)}>
+                  <Icon className={cn("h-12 w-12", iconColor)} strokeWidth={1.4} />
+                </div>
               )}
             </div>
 
@@ -254,10 +269,21 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               <div className="mt-5 pt-4 border-t border-slate-700">
                 <div className="flex items-end justify-between mb-4">
                   <div>
-                    <p className="text-3xl font-black text-brand-orange leading-none">
-                      {formatPrice(product.price)}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">per {product.unit}</p>
+                    {hasPrice ? (
+                      <>
+                        <p className="text-3xl font-black text-brand-orange leading-none">
+                          {formatPrice(product.price)}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">per {product.unit}</p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-orange-300 bg-orange-500/10 border border-orange-500/30 rounded-full px-3 py-1.5">
+                          Contact for Price
+                        </span>
+                        <p className="text-xs text-slate-500 mt-2">Call 17716895 for a quote</p>
+                      </>
+                    )}
                   </div>
                   <div className="text-right space-y-1">
                     {isLowStock && <Badge variant="warning" className="text-[10px]">Low Stock</Badge>}
