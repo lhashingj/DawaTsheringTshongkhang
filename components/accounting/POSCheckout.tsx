@@ -166,6 +166,13 @@ export function POSCheckout() {
       const saved = { ...record, id };
       setSavedInvoice(saved);
       setShowModal(true);
+      // Reset the form immediately so the next invoice is ready while the print modal is open
+      setCustomerMode('cash');
+      setSelectedPartyId(null);
+      setCustomer(defaultCustomer);
+      setItems([]);
+      setItemForm(defaultItem);
+      setError('');
       // Post-save: GL entries + stock + balance — best-effort; invoice already stored
       try {
         await decrementStockAndPostCOGS(items, saved.invoiceNo, new Date(saved.timestamp));
