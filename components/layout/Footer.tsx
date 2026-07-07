@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Phone, MapPin, Mail, Clock } from "lucide-react";
+import { LogoMark } from "./Logo";
 
 export function Footer() {
   return (
@@ -10,9 +10,7 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-brand-gold/30 bg-white shrink-0">
-                <Image src="/logo.png" width={40} height={40} alt="DTT Logo" className="w-full h-full object-cover" />
-              </div>
+              <LogoMark size={40} className="ring-1 ring-brand-gold/30" />
               <div>
                 <p className="font-black text-base leading-none">DTT Hardware</p>
                 <p className="text-white/40 text-xs mt-0.5">Dawa Tshering Tshongkhang</p>
