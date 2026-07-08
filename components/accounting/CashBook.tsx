@@ -422,7 +422,7 @@ export function CashBook() {
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       <div className="overflow-x-auto rounded-xl border border-slate-700">
-        <table className="w-full text-xs">
+        <table className="w-full min-w-[680px] text-xs">
           <thead className="bg-slate-700">
             <tr>
               <th className="text-left px-3 py-3 text-slate-400 font-medium">Date/Time</th>

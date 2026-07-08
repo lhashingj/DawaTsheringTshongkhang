@@ -405,7 +405,7 @@ export default function PartyProfilePage() {
         {/* ── HISTORY TAB ─────────────────────────────────────────────────────── */}
         {tab === 'history' && (
           <div className="overflow-x-auto rounded-xl border border-slate-700">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[600px] text-sm">
               <thead className="bg-slate-700">
                 <tr>
                   <th className="text-left px-4 py-3 text-slate-400 font-medium">Date</th>
@@ -480,7 +480,7 @@ export default function PartyProfilePage() {
               </button>
             </div>
             <div className="overflow-x-auto rounded-xl border border-slate-700">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[600px] text-sm">
                 <thead className="bg-slate-700">
                   <tr>
                     <th className="text-left px-4 py-3 text-slate-400 font-medium">Date</th>
@@ -543,7 +543,7 @@ export default function PartyProfilePage() {
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-slate-700">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[600px] text-sm">
                 <thead className="bg-slate-700">
                   <tr>
                     <th className="text-left px-4 py-3 text-slate-400 font-medium">Date</th>

@@ -233,7 +233,7 @@ export function SalesLedger() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-slate-700">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[800px] text-sm">
           <thead className="bg-slate-700">
             <tr>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Invoice No.</th>
@@ -373,8 +373,8 @@ export function SalesLedger() {
                 <div><label className="block text-slate-400 text-xs mb-1">TPN</label><input className={inputCls} value={editCustomer.tpn} onChange={e => setEditCustomer(p => ({ ...p, tpn: e.target.value }))} /></div>
               </div>
 
-              <div className="border border-slate-700 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border border-slate-700 rounded-lg overflow-x-auto">
+                <table className="w-full min-w-[480px] text-sm">
                   <thead className="bg-slate-700"><tr>
                     <th className="text-left px-3 py-2 text-slate-400">Description</th>
                     <th className="text-right px-3 py-2 text-slate-400 w-16">Qty</th>

@@ -251,7 +251,7 @@ export function TaxReport() {
         </button>
         {showDetailSales && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[540px] text-sm">
               <thead className="bg-slate-700">
                 <tr>
                   <th className="text-left px-4 py-2 text-slate-400">Invoice</th>
@@ -302,7 +302,7 @@ export function TaxReport() {
         </button>
         {showDetailPurchases && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[540px] text-sm">
               <thead className="bg-slate-700">
                 <tr>
                   <th className="text-left px-4 py-2 text-slate-400">PO No.</th>

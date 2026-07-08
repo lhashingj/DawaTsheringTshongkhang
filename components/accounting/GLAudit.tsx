@@ -380,7 +380,7 @@ export function GLAudit() {
 
           {/* GL Table */}
           <div className="overflow-x-auto rounded-xl border border-slate-700">
-            <table className="w-full text-xs">
+            <table className="w-full min-w-[800px] text-xs">
               <thead className="bg-slate-700">
                 <tr>
                   <th className="px-3 py-3 w-8">
@@ -537,7 +537,7 @@ export function GLAudit() {
 
           {/* Party Table */}
           <div className="overflow-x-auto rounded-xl border border-slate-700">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[600px] text-sm">
               <thead className="bg-slate-700">
                 <tr>
                   <th className="px-4 py-3 w-8">

@@ -219,7 +219,7 @@ export function TrialBalance() {
 
       {/* ── Trial Balance Table ───────────────────────────────────────────────── */}
       <div className="overflow-x-auto rounded-xl border border-slate-700">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[540px] text-sm">
           <thead className="bg-slate-700">
             <tr>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Particulars</th>

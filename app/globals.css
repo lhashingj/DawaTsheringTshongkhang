@@ -124,3 +124,24 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
+
+/* ── Compact typography for admin & accounting screens on phones ──
+   Applied via the .mobile-compact wrapper in app/admin/layout.tsx.
+   Two-class selectors out-rank single Tailwind utilities, so these
+   shrink fonts/padding on small screens without touching desktop. */
+@media screen and (max-width: 640px) {
+  .mobile-compact { font-size: 13px; }
+  .mobile-compact .text-3xl { font-size: 1.35rem; }
+  .mobile-compact .text-2xl { font-size: 1.15rem; }
+  .mobile-compact .text-xl  { font-size: 1rem; }
+  .mobile-compact .text-lg  { font-size: 0.95rem; }
+  .mobile-compact .text-base { font-size: 0.85rem; }
+  .mobile-compact .text-sm  { font-size: 0.78rem; }
+  .mobile-compact .text-xs  { font-size: 0.7rem; }
+  .mobile-compact th,
+  .mobile-compact td { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .mobile-compact .py-8 { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+  .mobile-compact .p-5 { padding: 0.875rem; }
+  .mobile-compact .p-6 { padding: 1rem; }
+  .mobile-compact .px-4 { padding-left: 0.75rem; padding-right: 0.75rem; }
+}

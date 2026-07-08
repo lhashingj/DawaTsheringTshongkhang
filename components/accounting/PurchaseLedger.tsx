@@ -225,7 +225,7 @@ export function PurchaseLedger() {
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-slate-700">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[680px] text-sm">
           <thead className="bg-slate-700">
             <tr>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">PO No.</th>
@@ -278,7 +278,7 @@ export function PurchaseLedger() {
               {selected.supplierTPN && <div><span className="text-slate-400">TPN:</span> <span className="text-white">{selected.supplierTPN}</span></div>}
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-700">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[440px] text-sm">
                 <thead className="bg-slate-700"><tr>
                   <th className="text-left px-3 py-2 text-slate-400">Description</th>
                   <th className="text-right px-3 py-2 text-slate-400">Qty</th>
@@ -457,8 +457,8 @@ export function PurchaseLedger() {
 
               {/* Items list */}
               {formItems.length > 0 ? (
-                <div className="border border-slate-700 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="border border-slate-700 rounded-lg overflow-x-auto">
+                  <table className="w-full min-w-[480px] text-sm">
                     <thead className="bg-slate-700/80">
                       <tr>
                         <th className="text-left px-3 py-2 text-slate-400 font-medium">Description</th>

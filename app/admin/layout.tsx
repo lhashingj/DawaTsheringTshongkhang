@@ -7,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <AdminGuard>{children}</AdminGuard>;
+  return (
+    <AdminGuard>
+      <div className="mobile-compact">{children}</div>
+    </AdminGuard>
+  );
 }
