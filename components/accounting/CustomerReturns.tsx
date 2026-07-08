@@ -14,6 +14,7 @@ import {
   partyCRUD,
   glCRUD,
   postCreditNoteToGL,
+  toBaseQty,
 } from '@/lib/accounting-db';
 import {
   Plus, Trash2, Search, RefreshCw, X, Save, AlertTriangle,
@@ -170,12 +171,13 @@ export function CustomerReturns() {
     const id = await creditNoteCRUD.create(cn) as number;
     await postCreditNoteToGL({ ...cn, id });
 
-    // Restore inventory stock for each returned item
+    // Restore inventory stock for each returned item (converted to the
+    // stock-keeping unit for multi-unit items, e.g. meters back into rolls)
     for (const item of validItems) {
       const inv = (inventory || []).find(
         i => i.description.toLowerCase().trim() === item.description.toLowerCase().trim()
       );
-      if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, item.qty);
+      if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, toBaseQty(item, inv));
     }
 
     // Update party balance: customer gets credit → their outstanding balance decreases
@@ -207,7 +209,7 @@ export function CustomerReturns() {
       const allInv = await inventoryCRUD.getAll();
       for (const item of cn.items) {
         const inv = allInv.find(i => i.description.toLowerCase().trim() === item.description.toLowerCase().trim());
-        if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, -item.qty);
+        if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, -toBaseQty(item, inv));
       }
       // Reverse party balance
       if (cn.partyId) await partyCRUD.updateBalance(cn.partyId, cn.netAmount);

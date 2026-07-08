@@ -9,6 +9,7 @@ import {
   postPurchaseToGL,
   postExpenseToGL,
   decrementStockAndPostCOGS,
+  toBaseQty,
   SaleRecord,
   PurchaseRecord,
   ExpenseRecord,
@@ -35,7 +36,7 @@ export async function deleteSaleWithCascade(saleId: number, partyId?: number): P
   if (!sale) return;
   for (const item of sale.items) {
     const inv = await findInvItem(item.description);
-    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, item.qty);
+    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, toBaseQty(item, inv));
   }
   if (partyId != null) await partyCRUD.updateBalance(partyId, -sale.netAmount);
   await glCRUD.deleteByRef(sale.invoiceNo);
@@ -52,7 +53,7 @@ export async function editSaleWithCascade(
   if (!old) return;
   for (const item of old.items) {
     const inv = await findInvItem(item.description);
-    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, item.qty);
+    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, toBaseQty(item, inv));
   }
   if (oldPartyId != null) await partyCRUD.updateBalance(oldPartyId, -old.netAmount);
   await glCRUD.deleteByRef(old.invoiceNo);

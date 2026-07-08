@@ -13,6 +13,43 @@ export type PaymentDirection = 'in' | 'out';
 export type CashBookType = 'received' | 'payment';
 export type ReturnSettlement = 'cash' | 'ledger';
 
+// ── Multi-unit pricing ────────────────────────────────────────────────────────
+// Items sold in more than one unit (e.g. a roll sold whole or by the meter).
+// Selling rate per unit; the POS auto-fills the rate when the unit changes,
+// and stock/COGS are consumed proportionally (rate ratio ≈ physical ratio,
+// e.g. steel core: 1200/25 = 48 MTR per roll).
+export const UNIT_PRICING: Record<string, Partial<Record<UnitType, number>>> = {
+  'TRIMMER LINER STEEL CORE 3MM': { MTR: 25, EACH: 1200 },
+  'TRIMMER LINER NYLON': { MTR: 20, EACH: 750 },
+};
+
+export function getUnitRates(description: string): Partial<Record<UnitType, number>> | undefined {
+  const key = description.trim().toUpperCase();
+  for (const [name, rates] of Object.entries(UNIT_PRICING)) {
+    if (name.toUpperCase() === key) return rates;
+  }
+  return undefined;
+}
+
+/**
+ * Quantity of the inventory's base unit consumed by a sold line item.
+ * Same-unit sales pass through unchanged; cross-unit sales (e.g. 6 MTR cut
+ * from an EACH roll) convert via the listed per-unit rates.
+ */
+export function toBaseQty(
+  item: { description: string; unit: UnitType; qty: number },
+  inv: { unit: UnitType; baseRate: number },
+): number {
+  if (item.unit === inv.unit) return item.qty;
+  const rates = getUnitRates(item.description);
+  const soldRate = rates?.[item.unit];
+  const baseRate = rates?.[inv.unit] ?? inv.baseRate;
+  if (soldRate && soldRate > 0 && baseRate > 0) {
+    return Math.round(((item.qty * soldRate) / baseRate) * 10000) / 10000;
+  }
+  return item.qty;
+}
+
 // ── Record interfaces ─────────────────────────────────────────────────────────
 
 export interface SaleItem {
@@ -541,25 +578,35 @@ export async function decrementStockAndPostCOGS(
 
   for (const item of items) {
     const inv = await findInventoryItem(item.description);
-    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, -item.qty);
+
+    // If sold in a different unit than stock is kept in (e.g. MTR from an EACH
+    // roll), convert via the listed per-unit rates so stock and COGS reflect
+    // the fraction of the base unit actually consumed.
+    const baseQty = inv ? toBaseQty(item, inv) : item.qty;
+    const converted = inv != null && item.unit !== inv.unit && baseQty !== item.qty;
+
+    if (inv?.id != null) await inventoryCRUD.adjustStock(inv.id, -baseQty);
 
     let unitCost = inv?.baseRate ?? 0;
     if (unitCost <= 0) unitCost = item.rate * 0.60;
 
-    const cogsCost = Math.round(unitCost * item.qty * 100) / 100;
+    const cogsCost = Math.round(unitCost * baseQty * 100) / 100;
+    const qtyLabel = converted
+      ? `${item.qty} ${item.unit} ≈ ${baseQty} ${inv!.unit} × Nu.${unitCost.toFixed(2)}`
+      : `${item.qty} × Nu.${unitCost.toFixed(2)}`;
     if (cogsCost > 0) {
       cogsEntries.push(
         {
           timestamp, transactionRef: invoiceNo, transactionType: 'sale',
           account: 'Cost of Goods Sold', accountType: 'expense',
           debit: cogsCost, credit: 0,
-          description: `COGS — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})`,
+          description: `COGS — ${item.description} (${qtyLabel})`,
         },
         {
           timestamp, transactionRef: invoiceNo, transactionType: 'sale',
           account: 'Inventory / COGS', accountType: 'asset',
           debit: 0, credit: cogsCost,
-          description: `Stock sold — ${item.description} (${item.qty} × Nu.${unitCost.toFixed(2)})`,
+          description: `Stock sold — ${item.description} (${qtyLabel})`,
         },
       );
     }

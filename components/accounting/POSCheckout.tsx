@@ -13,6 +13,7 @@ import {
   LOW_STOCK_THRESHOLD,
   decrementStockAndPostCOGS,
   postSaleToGL,
+  getUnitRates,
 } from '@/lib/accounting-db';
 import { numberToWords } from '@/lib/number-to-words';
 import { InvoicePrint } from './InvoicePrint';
@@ -137,6 +138,15 @@ export function POSCheckout() {
       rate: inv.baseRate.toString(),
     }));
     setSuggestions([]);
+  }
+
+  // For multi-unit items (e.g. trimmer liner sold per meter or per roll),
+  // switching the unit auto-fills the listed rate for that unit.
+  function changeUnit(unit: UnitType) {
+    setItemForm(prev => {
+      const listed = getUnitRates(prev.description)?.[unit];
+      return { ...prev, unit, rate: listed != null ? String(listed) : prev.rate };
+    });
   }
 
   async function saveInvoice() {
@@ -342,7 +352,13 @@ export function POSCheckout() {
                   >
                     <span className="text-white">{inv.description}</span>
                     <span className="text-slate-400 ml-2 text-xs">
-                      Nu.{fmtNum(inv.baseRate)}/{inv.unit} · Stock:{inv.stockQty}
+                      {(() => {
+                        const rates = getUnitRates(inv.description);
+                        const listed = rates
+                          ? Object.entries(rates).map(([u, r]) => `Nu.${fmtNum(r as number)}/${u}`).join(' · ')
+                          : `Nu.${fmtNum(inv.baseRate)}/${inv.unit}`;
+                        return `${listed} · Stock:${inv.stockQty}`;
+                      })()}
                     </span>
                     {inv.stockQty <= LOW_STOCK_THRESHOLD && inv.stockQty > 0 && (
                       <span className="ml-2 text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">LOW</span>
@@ -376,7 +392,7 @@ export function POSCheckout() {
               <select
                 className={inputCls + ' appearance-none pr-8 cursor-pointer'}
                 value={itemForm.unit}
-                onChange={e => setItemForm(p => ({ ...p, unit: e.target.value as UnitType }))}
+                onChange={e => changeUnit(e.target.value as UnitType)}
               >
                 {UNITS.map(u => (
                   <option key={u} value={u}>{u}</option>
