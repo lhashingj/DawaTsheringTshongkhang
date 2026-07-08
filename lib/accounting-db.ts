@@ -15,13 +15,26 @@ export type ReturnSettlement = 'cash' | 'ledger';
 
 // ── Multi-unit pricing ────────────────────────────────────────────────────────
 // Items sold in more than one unit (e.g. a roll sold whole or by the meter).
-// Selling rate per unit; the POS auto-fills the rate when the unit changes,
-// and stock/COGS are consumed proportionally (rate ratio ≈ physical ratio,
-// e.g. steel core: 1200/25 = 48 MTR per roll).
+// Selling rate per unit; the POS auto-fills the rate when the unit changes.
 export const UNIT_PRICING: Record<string, Partial<Record<UnitType, number>>> = {
   'TRIMMER LINER STEEL CORE 3MM': { MTR: 25, EACH: 1200 },
   'TRIMMER LINER NYLON': { MTR: 20, EACH: 750 },
 };
+
+// Physical conversion: how many of the alt unit make up one stock (base) unit.
+// Both trimmer liner rolls are 50 meters long.
+export const UNIT_CONVERSIONS: Record<string, Partial<Record<UnitType, number>>> = {
+  'TRIMMER LINER STEEL CORE 3MM': { MTR: 50 },
+  'TRIMMER LINER NYLON': { MTR: 50 },
+};
+
+export function getUnitsPerBase(description: string, unit: UnitType): number | undefined {
+  const key = description.trim().toUpperCase();
+  for (const [name, conv] of Object.entries(UNIT_CONVERSIONS)) {
+    if (name.toUpperCase() === key) return conv[unit];
+  }
+  return undefined;
+}
 
 export function getUnitRates(description: string): Partial<Record<UnitType, number>> | undefined {
   const key = description.trim().toUpperCase();
@@ -34,13 +47,18 @@ export function getUnitRates(description: string): Partial<Record<UnitType, numb
 /**
  * Quantity of the inventory's base unit consumed by a sold line item.
  * Same-unit sales pass through unchanged; cross-unit sales (e.g. 6 MTR cut
- * from an EACH roll) convert via the listed per-unit rates.
+ * from an EACH roll) use the physical conversion (50 m per roll), falling
+ * back to the listed price ratio if no conversion is defined.
  */
 export function toBaseQty(
   item: { description: string; unit: UnitType; qty: number },
   inv: { unit: UnitType; baseRate: number },
 ): number {
   if (item.unit === inv.unit) return item.qty;
+  const perBase = getUnitsPerBase(item.description, item.unit);
+  if (perBase && perBase > 0) {
+    return Math.round((item.qty / perBase) * 10000) / 10000;
+  }
   const rates = getUnitRates(item.description);
   const soldRate = rates?.[item.unit];
   const baseRate = rates?.[inv.unit] ?? inv.baseRate;
