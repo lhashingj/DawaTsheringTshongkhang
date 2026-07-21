@@ -1,7 +1,7 @@
 'use client';
 
 import { useLiveQuery } from 'dexie-react-hooks';
-import { salesCRUD, purchaseCRUD, partyCRUD } from '@/lib/accounting-db';
+import { salesCRUD, purchaseCRUD, partyCRUD, type SaleRecord } from '@/lib/accounting-db';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -17,6 +17,8 @@ import {
   Clock,
   Wallet,
   CreditCard,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 type Product = { id: string; name: string; sku: string; stock: number; unit: string; price: number; category: string };
@@ -43,18 +45,18 @@ function normalizeNote(note?: string): string {
 }
 
 const NOTE_PALETTE = [
-  { chip: 'bg-blue-500/20 text-blue-400 border-blue-500/30',     bar: 'bg-blue-500'   },
-  { chip: 'bg-purple-500/20 text-purple-400 border-purple-500/30', bar: 'bg-purple-500' },
-  { chip: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',     bar: 'bg-cyan-500'   },
-  { chip: 'bg-pink-500/20 text-pink-400 border-pink-500/30',     bar: 'bg-pink-500'   },
-  { chip: 'bg-amber-500/20 text-amber-400 border-amber-500/30',   bar: 'bg-amber-500'  },
-  { chip: 'bg-teal-500/20 text-teal-400 border-teal-500/30',     bar: 'bg-teal-500'   },
+  { chip: 'bg-blue-500/20 text-blue-400 border-blue-500/30',       bar: 'bg-blue-500',   text: 'text-blue-400'   },
+  { chip: 'bg-purple-500/20 text-purple-400 border-purple-500/30', bar: 'bg-purple-500', text: 'text-purple-400' },
+  { chip: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',       bar: 'bg-cyan-500',   text: 'text-cyan-400'   },
+  { chip: 'bg-pink-500/20 text-pink-400 border-pink-500/30',       bar: 'bg-pink-500',   text: 'text-pink-400'   },
+  { chip: 'bg-amber-500/20 text-amber-400 border-amber-500/30',    bar: 'bg-amber-500',  text: 'text-amber-400'  },
+  { chip: 'bg-teal-500/20 text-teal-400 border-teal-500/30',       bar: 'bg-teal-500',   text: 'text-teal-400'   },
 ];
 
 /** Stable colour per label, so an account keeps its colour as totals shift. */
 function noteStyle(label: string) {
-  if (label === 'CASH') return { chip: 'bg-green-500/20 text-green-400 border-green-500/30', bar: 'bg-green-500' };
-  if (label === UNTAGGED) return { chip: 'bg-slate-600/30 text-slate-400 border-slate-600/40', bar: 'bg-slate-500' };
+  if (label === 'CASH') return { chip: 'bg-green-500/20 text-green-400 border-green-500/30', bar: 'bg-green-500', text: 'text-green-400' };
+  if (label === UNTAGGED) return { chip: 'bg-slate-600/30 text-slate-400 border-slate-600/40', bar: 'bg-slate-500', text: 'text-slate-400' };
   let h = 0;
   for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
   return NOTE_PALETTE[h % NOTE_PALETTE.length];
@@ -122,6 +124,7 @@ export default function AccountingDashboard() {
   const [notePeriod, setNotePeriod] = useState<NotePeriod>('month');
   const [noteFrom, setNoteFrom] = useState('');
   const [noteTo, setNoteTo] = useState('');
+  const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({});
 
   const noteGroups = useMemo(() => {
     if (!sales) return [];
@@ -144,14 +147,18 @@ export default function AccountingDashboard() {
       return (from === null || t >= from) && (to === null || t <= to);
     });
 
-    const map = new Map<string, { label: string; count: number; net: number; gst: number }>();
+    const map = new Map<string, { label: string; count: number; net: number; gst: number; rows: SaleRecord[] }>();
     for (const s of scoped) {
       const label = normalizeNote(s.notes);
-      const g = map.get(label) ?? { label, count: 0, net: 0, gst: 0 };
+      const g = map.get(label) ?? { label, count: 0, net: 0, gst: 0, rows: [] };
       g.count += 1;
       g.net += s.netAmount;
       g.gst += s.gstAmount;
+      g.rows.push(s);
       map.set(label, g);
+    }
+    for (const g of map.values()) {
+      g.rows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }
     return [...map.values()].sort((a, b) => b.net - a.net);
   }, [sales, notePeriod, noteFrom, noteTo]);
@@ -325,27 +332,79 @@ export default function AccountingDashboard() {
                       {noteGroups.map(g => {
                         const pct = noteTotalNet > 0 ? (g.net / noteTotalNet) * 100 : 0;
                         const style = noteStyle(g.label);
+                        const open = !!openNotes[g.label];
                         return (
-                          <div key={g.label} className="px-4 sm:px-5 py-3.5">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-md border ${style.chip}`}>
-                                  {g.label}
-                                </span>
-                                <span className="text-slate-400 text-xs shrink-0">
-                                  {g.count} invoice{g.count !== 1 ? 's' : ''}
-                                </span>
+                          <div key={g.label}>
+                            <button
+                              onClick={() => setOpenNotes(p => ({ ...p, [g.label]: !p[g.label] }))}
+                              aria-expanded={open}
+                              className="w-full text-left px-4 sm:px-5 py-3.5 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  {open
+                                    ? <ChevronUp className="w-4 h-4 text-orange-400 shrink-0" />
+                                    : <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />}
+                                  <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-md border ${style.chip}`}>
+                                    {g.label}
+                                  </span>
+                                  <span className="text-slate-400 text-xs shrink-0">
+                                    {g.count} invoice{g.count !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-white font-mono font-semibold text-sm">Nu. {fmtNum(g.net)}</p>
+                                  <p className="text-slate-500 text-[10px] mt-0.5">
+                                    {pct.toFixed(1)}% · GST Nu. {fmtNum(g.gst)}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="text-right shrink-0">
-                                <p className="text-white font-mono font-semibold text-sm">Nu. {fmtNum(g.net)}</p>
-                                <p className="text-slate-500 text-[10px] mt-0.5">
-                                  {pct.toFixed(1)}% · GST Nu. {fmtNum(g.gst)}
-                                </p>
+                              <div className="mt-2 h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${pct}%` }} />
                               </div>
-                            </div>
-                            <div className="mt-2 h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${pct}%` }} />
-                            </div>
+                            </button>
+
+                            {/* Invoice list for this account */}
+                            {open && (
+                              <div className="bg-slate-900/50 border-t border-slate-700/60">
+                                <div className="max-h-80 overflow-y-auto overflow-x-auto">
+                                  <table className="w-full min-w-[520px] text-xs">
+                                    <thead className="sticky top-0 bg-slate-900/95 backdrop-blur-sm">
+                                      <tr className="text-slate-500">
+                                        <th className="text-left font-medium px-4 sm:px-5 py-2">Invoice</th>
+                                        <th className="text-left font-medium px-3 py-2">Date</th>
+                                        <th className="text-left font-medium px-3 py-2">Customer</th>
+                                        <th className="text-center font-medium px-3 py-2">Items</th>
+                                        <th className="text-right font-medium px-3 py-2">GST</th>
+                                        <th className="text-right font-medium px-4 sm:px-5 py-2">Net</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700/50">
+                                      {g.rows.map(s => (
+                                        <tr key={s.id} className="hover:bg-slate-700/30 transition-colors">
+                                          <td className="px-4 sm:px-5 py-2 text-orange-400 font-mono whitespace-nowrap">{s.invoiceNo}</td>
+                                          <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{fmtDate(s.timestamp)}</td>
+                                          <td className="px-3 py-2 text-slate-200 max-w-[200px] truncate">
+                                            {s.customerName || <span className="text-slate-500 italic">Cash Sale</span>}
+                                          </td>
+                                          <td className="px-3 py-2 text-center text-slate-400">{s.items.length}</td>
+                                          <td className="px-3 py-2 text-right text-yellow-400/80 font-mono">{fmtNum(s.gstAmount)}</td>
+                                          <td className="px-4 sm:px-5 py-2 text-right text-white font-mono font-semibold whitespace-nowrap">{fmtNum(s.netAmount)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 border-t border-slate-700/60">
+                                  <span className="text-slate-400 text-xs">
+                                    {g.count} invoice{g.count !== 1 ? 's' : ''} in {g.label}
+                                  </span>
+                                  <span className={`font-mono text-xs font-bold ${style.text}`}>
+                                    Nu. {fmtNum(g.net)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
