@@ -60,7 +60,7 @@ function noteStyle(label: string) {
   return NOTE_PALETTE[h % NOTE_PALETTE.length];
 }
 
-type NotePeriod = 'today' | 'month' | 'all';
+type NotePeriod = 'today' | 'month' | 'all' | 'custom';
 
 function StatCard({ label, value, sub, color, icon: Icon }: {
   label: string; value: string; sub?: string; color: string; icon: React.ElementType;
@@ -120,17 +120,29 @@ export default function AccountingDashboard() {
 
   // ── Sales grouped by the Notes tag (CASH / OD ACCOUNT / LHASHING … ) ──
   const [notePeriod, setNotePeriod] = useState<NotePeriod>('month');
+  const [noteFrom, setNoteFrom] = useState('');
+  const [noteTo, setNoteTo] = useState('');
 
   const noteGroups = useMemo(() => {
     if (!sales) return [];
     const now = new Date();
-    let cutoff: number | null = null;
-    if (notePeriod === 'today') cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    else if (notePeriod === 'month') cutoff = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    let from: number | null = null;
+    let to: number | null = null;
 
-    const scoped = cutoff === null
-      ? sales
-      : sales.filter(s => new Date(s.timestamp).getTime() >= cutoff!);
+    if (notePeriod === 'today') {
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    } else if (notePeriod === 'month') {
+      from = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    } else if (notePeriod === 'custom') {
+      // Blank ends stay open, so From-only or To-only both work
+      if (noteFrom) from = new Date(noteFrom + 'T00:00:00').getTime();
+      if (noteTo) to = new Date(noteTo + 'T23:59:59.999').getTime();
+    }
+
+    const scoped = sales.filter(s => {
+      const t = new Date(s.timestamp).getTime();
+      return (from === null || t >= from) && (to === null || t <= to);
+    });
 
     const map = new Map<string, { label: string; count: number; net: number; gst: number }>();
     for (const s of scoped) {
@@ -142,10 +154,11 @@ export default function AccountingDashboard() {
       map.set(label, g);
     }
     return [...map.values()].sort((a, b) => b.net - a.net);
-  }, [sales, notePeriod]);
+  }, [sales, notePeriod, noteFrom, noteTo]);
 
   const noteTotalNet = noteGroups.reduce((s, g) => s + g.net, 0);
   const noteTotalCount = noteGroups.reduce((s, g) => s + g.count, 0);
+  const noteRangeInvalid = notePeriod === 'custom' && !!noteFrom && !!noteTo && noteFrom > noteTo;
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -240,11 +253,12 @@ export default function AccountingDashboard() {
                   <CreditCard className="w-4 h-4 text-orange-400" />
                   Sales by Payment Mode / Account
                 </h2>
-                <div className="flex gap-1 bg-slate-800 border border-slate-700 rounded-lg p-1">
+                <div className="flex gap-1 bg-slate-800 border border-slate-700 rounded-lg p-1 overflow-x-auto no-scrollbar">
                   {([
-                    ['today', 'Today'],
-                    ['month', 'This Month'],
-                    ['all',   'All Time'],
+                    ['today',  'Today'],
+                    ['month',  'This Month'],
+                    ['all',    'All Time'],
+                    ['custom', 'Custom Range'],
                   ] as [NotePeriod, string][]).map(([id, label]) => (
                     <button
                       key={id}
@@ -258,6 +272,47 @@ export default function AccountingDashboard() {
                   ))}
                 </div>
               </div>
+
+              {/* Custom date range */}
+              {notePeriod === 'custom' && (
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4 flex flex-wrap gap-3 items-end">
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">From</label>
+                    <input
+                      type="date"
+                      value={noteFrom}
+                      max={noteTo || undefined}
+                      onChange={e => setNoteFrom(e.target.value)}
+                      className="bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-xs mb-1">To</label>
+                    <input
+                      type="date"
+                      value={noteTo}
+                      min={noteFrom || undefined}
+                      onChange={e => setNoteTo(e.target.value)}
+                      className="bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  {(noteFrom || noteTo) && (
+                    <button
+                      onClick={() => { setNoteFrom(''); setNoteTo(''); }}
+                      className="px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-700 border border-slate-600 transition-colors"
+                    >
+                      Clear dates
+                    </button>
+                  )}
+                  <p className="text-slate-500 text-xs basis-full sm:basis-auto sm:ml-auto">
+                    {noteRangeInvalid
+                      ? <span className="text-red-400">“From” is after “To” — no invoices match.</span>
+                      : !noteFrom && !noteTo
+                      ? 'Pick a start and/or end date — leave one blank to leave that end open.'
+                      : `Showing ${noteFrom ? fmtDate(noteFrom + 'T00:00:00') : 'the beginning'} → ${noteTo ? fmtDate(noteTo + 'T00:00:00') : 'today'}`}
+                  </p>
+                </div>
+              )}
 
               <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
                 {noteGroups.length === 0 ? (
