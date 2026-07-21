@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { salesCRUD, purchaseCRUD, partyCRUD } from '@/lib/accounting-db';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ShoppingCart,
   Package,
@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Clock,
   Wallet,
+  CreditCard,
 } from 'lucide-react';
 
 type Product = { id: string; name: string; sku: string; stock: number; unit: string; price: number; category: string };
@@ -33,6 +34,33 @@ function fmtInt(n: number) {
 function fmtNum(n: number) {
   return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+// ── Payment mode / account grouping (driven by the invoice Notes field) ──────
+const UNTAGGED = 'NOT TAGGED';
+
+function normalizeNote(note?: string): string {
+  return (note || '').trim().toUpperCase() || UNTAGGED;
+}
+
+const NOTE_PALETTE = [
+  { chip: 'bg-blue-500/20 text-blue-400 border-blue-500/30',     bar: 'bg-blue-500'   },
+  { chip: 'bg-purple-500/20 text-purple-400 border-purple-500/30', bar: 'bg-purple-500' },
+  { chip: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',     bar: 'bg-cyan-500'   },
+  { chip: 'bg-pink-500/20 text-pink-400 border-pink-500/30',     bar: 'bg-pink-500'   },
+  { chip: 'bg-amber-500/20 text-amber-400 border-amber-500/30',   bar: 'bg-amber-500'  },
+  { chip: 'bg-teal-500/20 text-teal-400 border-teal-500/30',     bar: 'bg-teal-500'   },
+];
+
+/** Stable colour per label, so an account keeps its colour as totals shift. */
+function noteStyle(label: string) {
+  if (label === 'CASH') return { chip: 'bg-green-500/20 text-green-400 border-green-500/30', bar: 'bg-green-500' };
+  if (label === UNTAGGED) return { chip: 'bg-slate-600/30 text-slate-400 border-slate-600/40', bar: 'bg-slate-500' };
+  let h = 0;
+  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
+  return NOTE_PALETTE[h % NOTE_PALETTE.length];
+}
+
+type NotePeriod = 'today' | 'month' | 'all';
 
 function StatCard({ label, value, sub, color, icon: Icon }: {
   label: string; value: string; sub?: string; color: string; icon: React.ElementType;
@@ -89,6 +117,35 @@ export default function AccountingDashboard() {
   const totalReceivable = (parties || []).filter(p => p.outstandingBalance > 0).reduce((s, p) => s + p.outstandingBalance, 0);
 
   const recentSales = [...(sales || [])].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 6);
+
+  // ── Sales grouped by the Notes tag (CASH / OD ACCOUNT / LHASHING … ) ──
+  const [notePeriod, setNotePeriod] = useState<NotePeriod>('month');
+
+  const noteGroups = useMemo(() => {
+    if (!sales) return [];
+    const now = new Date();
+    let cutoff: number | null = null;
+    if (notePeriod === 'today') cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    else if (notePeriod === 'month') cutoff = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    const scoped = cutoff === null
+      ? sales
+      : sales.filter(s => new Date(s.timestamp).getTime() >= cutoff!);
+
+    const map = new Map<string, { label: string; count: number; net: number; gst: number }>();
+    for (const s of scoped) {
+      const label = normalizeNote(s.notes);
+      const g = map.get(label) ?? { label, count: 0, net: 0, gst: 0 };
+      g.count += 1;
+      g.net += s.netAmount;
+      g.gst += s.gstAmount;
+      map.set(label, g);
+    }
+    return [...map.values()].sort((a, b) => b.net - a.net);
+  }, [sales, notePeriod]);
+
+  const noteTotalNet = noteGroups.reduce((s, g) => s + g.net, 0);
+  const noteTotalCount = noteGroups.reduce((s, g) => s + g.count, 0);
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -174,6 +231,79 @@ export default function AccountingDashboard() {
                 color="bg-slate-600/30 text-slate-300"
                 icon={Package}
               />
+            </div>
+
+            {/* Sales by Payment Mode / Account (from invoice Notes) */}
+            <div>
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <h2 className="text-white font-semibold flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-orange-400" />
+                  Sales by Payment Mode / Account
+                </h2>
+                <div className="flex gap-1 bg-slate-800 border border-slate-700 rounded-lg p-1">
+                  {([
+                    ['today', 'Today'],
+                    ['month', 'This Month'],
+                    ['all',   'All Time'],
+                  ] as [NotePeriod, string][]).map(([id, label]) => (
+                    <button
+                      key={id}
+                      onClick={() => setNotePeriod(id)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                        notePeriod === id ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+                {noteGroups.length === 0 ? (
+                  <div className="px-5 py-10 text-center text-slate-500 text-sm">
+                    No invoices in this period.
+                  </div>
+                ) : (
+                  <>
+                    <div className="divide-y divide-slate-700">
+                      {noteGroups.map(g => {
+                        const pct = noteTotalNet > 0 ? (g.net / noteTotalNet) * 100 : 0;
+                        const style = noteStyle(g.label);
+                        return (
+                          <div key={g.label} className="px-4 sm:px-5 py-3.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-md border ${style.chip}`}>
+                                  {g.label}
+                                </span>
+                                <span className="text-slate-400 text-xs shrink-0">
+                                  {g.count} invoice{g.count !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="text-white font-mono font-semibold text-sm">Nu. {fmtNum(g.net)}</p>
+                                <p className="text-slate-500 text-[10px] mt-0.5">
+                                  {pct.toFixed(1)}% · GST Nu. {fmtNum(g.gst)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 bg-slate-700/40 border-t border-slate-700">
+                      <span className="text-slate-300 text-sm font-semibold">
+                        Total · {noteTotalCount} invoice{noteTotalCount !== 1 ? 's' : ''}
+                      </span>
+                      <span className="text-orange-400 font-mono font-bold">Nu. {fmtNum(noteTotalNet)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Quick Actions */}

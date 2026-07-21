@@ -31,6 +31,10 @@ import {
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS', 'PAIR'];
 const GST_RATE = 5;
+// Quick-pick tags saved to the invoice Notes field; the accounting dashboard
+// groups sales by this value. Free text is still allowed alongside these.
+const PAYMENT_TAGS = ['CASH', 'OD ACCOUNT', 'LHASHING ACCOUNT', 'ZAMIN ACCOUNT'];
+const DEFAULT_NOTE = 'CASH';
 function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 interface CustomerForm {
@@ -65,6 +69,7 @@ export function POSCheckout() {
   const [applyGST, setApplyGST] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [notes, setNotes] = useState(DEFAULT_NOTE);
 
   const [inventory, setInventory] = useState<(InventoryItem & { id: number })[] | null>(null);
   const [customerParties, setCustomerParties] = useState<(PartyRecord & { id: number })[] | null>(null);
@@ -169,6 +174,7 @@ export function POSCheckout() {
         gstRate: applyGST ? GST_RATE : 0,
         gstAmount,
         netAmount,
+        notes: notes.trim() || undefined,
         syncStatus: 'pending',
       };
       const id = await salesCRUD.create(record) as number;
@@ -182,6 +188,7 @@ export function POSCheckout() {
       setItems([]);
       setItemForm(defaultItem);
       setError('');
+      setNotes(DEFAULT_NOTE);
       // Post-save: GL entries + stock + balance — best-effort; invoice already stored
       try {
         await decrementStockAndPostCOGS(items, saved.invoiceNo, new Date(saved.timestamp));
@@ -319,6 +326,33 @@ export function POSCheckout() {
               value={customer.address}
               readOnly={customerMode === 'party' && !!selectedPartyId}
               onChange={e => customerMode === 'cash' && setCustomer(p => ({ ...p, address: e.target.value }))}
+            />
+          </div>
+
+          {/* Payment mode / account — drives the dashboard's sales breakdown */}
+          <div className="col-span-2 sm:col-span-4">
+            <label className="block text-slate-400 text-xs mb-1">Payment Mode / Account</label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {PAYMENT_TAGS.map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setNotes(tag)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    notes.trim().toUpperCase() === tag
+                      ? 'bg-orange-500 text-white border-orange-500'
+                      : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-orange-500 hover:text-orange-400'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+            <input
+              className={inputCls}
+              placeholder="Or type another account name…"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
             />
           </div>
         </div>
