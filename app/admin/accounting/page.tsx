@@ -3,6 +3,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { salesCRUD, purchaseCRUD, partyCRUD, type SaleRecord } from '@/lib/accounting-db';
 import { AccountingNav } from '@/components/accounting/AccountingNav';
+import { InvoicePrint } from '@/components/accounting/InvoicePrint';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -19,6 +20,7 @@ import {
   CreditCard,
   ChevronDown,
   ChevronUp,
+  Eye,
 } from 'lucide-react';
 
 type Product = { id: string; name: string; sku: string; stock: number; unit: string; price: number; category: string };
@@ -125,6 +127,7 @@ export default function AccountingDashboard() {
   const [noteFrom, setNoteFrom] = useState('');
   const [noteTo, setNoteTo] = useState('');
   const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({});
+  const [viewInvoice, setViewInvoice] = useState<SaleRecord | null>(null);
 
   const noteGroups = useMemo(() => {
     if (!sales) return [];
@@ -368,7 +371,7 @@ export default function AccountingDashboard() {
                             {open && (
                               <div className="bg-slate-900/50 border-t border-slate-700/60">
                                 <div className="max-h-80 overflow-y-auto overflow-x-auto">
-                                  <table className="w-full min-w-[520px] text-xs">
+                                  <table className="w-full min-w-[620px] text-xs">
                                     <thead className="sticky top-0 bg-slate-900/95 backdrop-blur-sm">
                                       <tr className="text-slate-500">
                                         <th className="text-left font-medium px-4 sm:px-5 py-2">Invoice</th>
@@ -376,7 +379,8 @@ export default function AccountingDashboard() {
                                         <th className="text-left font-medium px-3 py-2">Customer</th>
                                         <th className="text-center font-medium px-3 py-2">Items</th>
                                         <th className="text-right font-medium px-3 py-2">GST</th>
-                                        <th className="text-right font-medium px-4 sm:px-5 py-2">Net</th>
+                                        <th className="text-right font-medium px-3 py-2">Net</th>
+                                        <th className="text-center font-medium px-4 sm:px-5 py-2">Actions</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-700/50">
@@ -389,7 +393,18 @@ export default function AccountingDashboard() {
                                           </td>
                                           <td className="px-3 py-2 text-center text-slate-400">{s.items.length}</td>
                                           <td className="px-3 py-2 text-right text-yellow-400/80 font-mono">{fmtNum(s.gstAmount)}</td>
-                                          <td className="px-4 sm:px-5 py-2 text-right text-white font-mono font-semibold whitespace-nowrap">{fmtNum(s.netAmount)}</td>
+                                          <td className="px-3 py-2 text-right text-white font-mono font-semibold whitespace-nowrap">{fmtNum(s.netAmount)}</td>
+                                          <td className="px-4 sm:px-5 py-2">
+                                            <div className="flex justify-center">
+                                              <button
+                                                onClick={() => setViewInvoice(s)}
+                                                title={`View invoice ${s.invoiceNo}`}
+                                                className="p-1.5 rounded-md text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+                                              >
+                                                <Eye className="w-4 h-4" />
+                                              </button>
+                                            </div>
+                                          </td>
                                         </tr>
                                       ))}
                                     </tbody>
@@ -528,6 +543,18 @@ export default function AccountingDashboard() {
           </>
         )}
       </div>
+
+      {/* Invoice viewer (read-only — edit/delete stay in the Sales Ledger) */}
+      {viewInvoice && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={e => e.target === e.currentTarget && setViewInvoice(null)}
+        >
+          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+            <InvoicePrint invoice={viewInvoice} onClose={() => setViewInvoice(null)} embedded />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
