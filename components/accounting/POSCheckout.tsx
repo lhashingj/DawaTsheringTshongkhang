@@ -27,14 +27,31 @@ import {
   X,
   User,
   Building2,
+  Settings,
+  Check,
 } from 'lucide-react';
 
 const UNITS: UnitType[] = ['EACH', 'PCS', 'KG', 'MTR', 'SET', 'BOX', 'LTR', 'NOS', 'PAIR'];
 const GST_RATE = 5;
 // Quick-pick tags saved to the invoice Notes field; the accounting dashboard
 // groups sales by this value. Free text is still allowed alongside these.
-const PAYMENT_TAGS = ['CASH', 'OD ACCOUNT', 'LHASHING ACCOUNT', 'ZAMIN ACCOUNT'];
-const DEFAULT_NOTE = 'CASH';
+// The list is user-editable and persisted in localStorage.
+const PAYMENT_TAGS_KEY = 'dtt-payment-tags';
+const DEFAULT_PAYMENT_TAGS = ['CASH', 'OD ACCOUNT', 'LHASHING ACCOUNT', 'ZAMIN ACCOUNT'];
+
+function loadPaymentTags(): string[] {
+  try {
+    const raw = localStorage.getItem(PAYMENT_TAGS_KEY);
+    if (!raw) return DEFAULT_PAYMENT_TAGS;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return arr.filter(t => typeof t === 'string');
+    return DEFAULT_PAYMENT_TAGS;
+  } catch { return DEFAULT_PAYMENT_TAGS; }
+}
+function savePaymentTags(tags: string[]) {
+  try { localStorage.setItem(PAYMENT_TAGS_KEY, JSON.stringify(tags)); } catch { /* ignore */ }
+}
+
 function fmtNum(n: number) { return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 interface CustomerForm {
@@ -69,7 +86,35 @@ export function POSCheckout() {
   const [applyGST, setApplyGST] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const [notes, setNotes] = useState(DEFAULT_NOTE);
+  const [notes, setNotes] = useState('');
+  const [paymentTags, setPaymentTags] = useState<string[]>(DEFAULT_PAYMENT_TAGS);
+  const [manageTags, setManageTags] = useState(false);
+  const [newTag, setNewTag] = useState('');
+
+  // Load the saved account list and default the note to the first account
+  useEffect(() => {
+    const tags = loadPaymentTags();
+    setPaymentTags(tags);
+    setNotes(tags[0] ?? '');
+  }, []);
+
+  function persistTags(next: string[]) {
+    setPaymentTags(next);
+    savePaymentTags(next);
+  }
+  function addTag() {
+    const t = newTag.trim();
+    if (!t) return;
+    if (paymentTags.some(x => x.toUpperCase() === t.toUpperCase())) { setNewTag(''); return; }
+    persistTags([...paymentTags, t]);
+    setNewTag('');
+  }
+  function renameTag(idx: number, value: string) {
+    persistTags(paymentTags.map((t, i) => (i === idx ? value : t)));
+  }
+  function removeTag(tag: string) {
+    persistTags(paymentTags.filter(t => t !== tag));
+  }
 
   const [inventory, setInventory] = useState<(InventoryItem & { id: number })[] | null>(null);
   const [customerParties, setCustomerParties] = useState<(PartyRecord & { id: number })[] | null>(null);
@@ -188,7 +233,7 @@ export function POSCheckout() {
       setItems([]);
       setItemForm(defaultItem);
       setError('');
-      setNotes(DEFAULT_NOTE);
+      setNotes(paymentTags[0] ?? '');
       // Post-save: GL entries + stock + balance — best-effort; invoice already stored
       try {
         await decrementStockAndPostCOGS(items, saved.invoiceNo, new Date(saved.timestamp));
@@ -331,29 +376,85 @@ export function POSCheckout() {
 
           {/* Payment mode / account — drives the dashboard's sales breakdown */}
           <div className="col-span-2 sm:col-span-4">
-            <label className="block text-slate-400 text-xs mb-1">Payment Mode / Account</label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {PAYMENT_TAGS.map(tag => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setNotes(tag)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    notes.trim().toUpperCase() === tag
-                      ? 'bg-orange-500 text-white border-orange-500'
-                      : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-orange-500 hover:text-orange-400'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-slate-400 text-xs">Payment Mode / Account</label>
+              <button
+                type="button"
+                onClick={() => setManageTags(v => !v)}
+                className="flex items-center gap-1 text-xs font-medium text-orange-400 hover:text-orange-300 transition-colors cursor-pointer"
+              >
+                {manageTags ? <><Check className="w-3.5 h-3.5" /> Done</> : <><Settings className="w-3.5 h-3.5" /> Manage</>}
+              </button>
             </div>
-            <input
-              className={inputCls}
-              placeholder="Or type another account name…"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-            />
+
+            {manageTags ? (
+              <div className="bg-slate-900/40 border border-slate-700 rounded-lg p-3 space-y-2">
+                {paymentTags.length === 0 && (
+                  <p className="text-slate-500 text-xs">No accounts yet — add one below.</p>
+                )}
+                {paymentTags.map((tag, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      value={tag}
+                      onChange={e => renameTag(idx, e.target.value)}
+                      className="flex-1 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      title="Delete account"
+                      className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-700/60">
+                  <input
+                    value={newTag}
+                    onChange={e => setNewTag(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                    placeholder="New account name…"
+                    className="flex-1 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500 placeholder-slate-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={addTag}
+                    className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shrink-0"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+                <p className="text-slate-500 text-[11px] leading-relaxed">
+                  These are quick-pick buttons for tagging invoices. Renaming or deleting one here does not change invoices already saved with that tag.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {paymentTags.map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setNotes(tag)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        notes.trim().toUpperCase() === tag.trim().toUpperCase()
+                          ? 'bg-orange-500 text-white border-orange-500'
+                          : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-orange-500 hover:text-orange-400'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  className={inputCls}
+                  placeholder="Or type another account name…"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
