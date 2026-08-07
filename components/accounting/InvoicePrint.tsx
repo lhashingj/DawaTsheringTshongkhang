@@ -35,9 +35,11 @@ interface Props {
   invoice: SaleRecord;
   onClose?: () => void;
   embedded?: boolean;
+  /** Show the Bank of Bhutan / Bhutan National Bank payment QR codes. */
+  showPayment?: boolean;
 }
 
-export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
+export function InvoicePrint({ invoice, onClose, embedded = false, showPayment = false }: Props) {
   const [bobAccount, setBobAccount] = useState(DEFAULT_BOB);
   const [editingBank, setEditingBank] = useState(false);
   const [bankInput, setBankInput] = useState(DEFAULT_BOB);
@@ -347,6 +349,42 @@ export function InvoicePrint({ invoice, onClose, embedded = false }: Props) {
             </div>
           </div>
         </div>
+
+        {/* ── Scan-to-Pay (dynamic Bhutan QR) ── */}
+        {showPayment && invoice.id != null && (
+          <div style={{ marginTop: '10px', borderTop: '2px solid #000', paddingTop: '8px' }}>
+            <div style={{ fontWeight: 800, fontSize: '12px', marginBottom: '6px', textAlign: 'center' }}>
+              Scan to Pay
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap' }}>
+              <div style={{ textAlign: 'center' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/invoices/${invoice.id}/qr?bank=bob&amount=${invoice.netAmount}`}
+                  alt="Bank of Bhutan payment QR"
+                  width={160}
+                  height={160}
+                  style={{ width: '160px', height: '160px', objectFit: 'contain', border: '1px solid #000' }}
+                />
+                <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>Pay via Bank of Bhutan</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/invoices/${invoice.id}/qr?bank=bnb&amount=${invoice.netAmount}`}
+                  alt="Bhutan National Bank payment QR"
+                  width={160}
+                  height={160}
+                  style={{ width: '160px', height: '160px', objectFit: 'contain', border: '1px solid #000' }}
+                />
+                <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>Pay via Bhutan National Bank</div>
+              </div>
+            </div>
+            <div style={{ fontSize: '9px', textAlign: 'center', marginTop: '4px', fontStyle: 'italic' }}>
+              Amount Nu.&nbsp;{fmtNum(invoice.netAmount)} &middot; Ref&nbsp;INV-{invoice.id}
+            </div>
+          </div>
+        )}
       </div>
 
       {embedded && (

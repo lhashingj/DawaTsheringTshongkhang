@@ -329,7 +329,7 @@ export function SalesLedger() {
       {modalMode === 'view' && selected && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setModalMode(null)}>
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
-            <InvoicePrint invoice={selected} onClose={() => setModalMode(null)} embedded />
+            <InvoicePrint invoice={selected} onClose={() => setModalMode(null)} embedded showPayment />
           </div>
         </div>
       )}
