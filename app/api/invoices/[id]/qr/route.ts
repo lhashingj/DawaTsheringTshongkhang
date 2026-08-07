@@ -6,9 +6,17 @@ export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 
+// These are the shop's public merchant QR payloads (printed on the physical
+// standee — not secrets). Kept as built-in defaults so the feature works even
+// where .env.local isn't loaded (e.g. Vercel); env vars still override them.
+const DEFAULT_BOB_QR =
+  '000201010211091694009400084712315204000053030645802BT5914JLW ENTERPRISE6006Thimpu62280208177168950812mBoBMerchant63041E52';
+const DEFAULT_BNB_QR =
+  '000201010211091694009401110540805204999953030645802BT5916JLW  ENTERPRISE 6004PARO62120208177168956304A9A6';
+
 const STATIC_QR: Record<string, string | undefined> = {
-  bob: process.env.BOB_STATIC_QR,
-  bnb: process.env.BNB_STATIC_QR,
+  bob: process.env.BOB_STATIC_QR || DEFAULT_BOB_QR,
+  bnb: process.env.BNB_STATIC_QR || DEFAULT_BNB_QR,
 };
 
 // GET /api/invoices/[id]/qr?bank=bob|bnb
