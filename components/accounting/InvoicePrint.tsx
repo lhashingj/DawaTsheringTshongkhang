@@ -162,17 +162,18 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
           }
           #dtt-invoice-print {
             position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
+            /* Center the scaled invoice on the sheet (both axes). Oversize the
+               width by 1/scale so, once scaled, it spans the full printable
+               width; --print-fit is measured per-invoice to size the block. */
+            top: 50% !important;
+            left: 50% !important;
             right: auto !important;
             bottom: auto !important;
             height: auto !important;
             overflow: visible !important;
-            /* Oversize the width by 1/scale, then uniformly scale: the invoice
-               keeps full A4 width while its height is fitted to the top half.
-               --print-fit is measured per-invoice so the half page is filled. */
             width: calc(100% / var(--print-fit, 0.72)) !important;
-            transform: scale(var(--print-fit, 0.72)) !important;
+            max-width: none !important;
+            transform: scale(var(--print-fit, 0.72)) translate(-50%, -50%) !important;
             transform-origin: top left !important;
             padding: 10px 16px !important;
             background: white !important;
