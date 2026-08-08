@@ -394,7 +394,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
       </div>
 
       {embedded && (
-        <div className="no-print flex gap-2 mt-4 px-4 pb-4 flex-wrap items-center">
+        <div className="no-print sticky bottom-0 z-10 flex gap-2 px-4 py-3 flex-wrap items-center bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
           {controls}
         </div>
       )}
