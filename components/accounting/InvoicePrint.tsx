@@ -143,11 +143,18 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
           }
           #dtt-invoice-print {
             position: fixed !important;
-            inset: 0 !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: auto !important;
+            bottom: auto !important;
             height: auto !important;
             overflow: visible !important;
-            width: 100% !important;
-            padding: 14px 20px !important;
+            /* Oversize the width, then uniformly scale down: the invoice keeps
+               full A4 width while its height shrinks into the top half (A5). */
+            width: 138.89% !important;
+            transform: scale(0.72) !important;
+            transform-origin: top left !important;
+            padding: 10px 16px !important;
             background: white !important;
             font-family: Arial, Helvetica, sans-serif !important;
             font-weight: 500 !important;
@@ -173,11 +180,11 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
             font-size: 12px !important;
           }
           .no-print { display: none !important; }
-          /* Fit the whole invoice on a single A5 sheet (half of A4). */
-          @page { margin: 0.4cm; size: A5 portrait; }
-          #dtt-invoice-print { padding: 8px 12px !important; }
-          #dtt-invoice-print .qr-pay-section { margin-top: 6px !important; padding-top: 6px !important; }
-          #dtt-invoice-print .qr-pay-img { width: 30mm !important; height: 30mm !important; }
+          /* Print on A4 (the paper the shop actually loads); the scale above
+             keeps the invoice in the top half so the sheet can be cut in two. */
+          @page { margin: 0.4cm; size: A4 portrait; }
+          #dtt-invoice-print .qr-pay-section { margin-top: 5px !important; padding-top: 5px !important; }
+          #dtt-invoice-print .qr-pay-img { width: 34mm !important; height: 34mm !important; }
         }
       `}</style>
 
