@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SaleRecord } from '@/lib/accounting-db';
 import { numberToWords } from '@/lib/number-to-words';
 import { Printer, X, Pencil, Check } from 'lucide-react';
@@ -43,6 +43,25 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
   const [bobAccount, setBobAccount] = useState(DEFAULT_BOB);
   const [editingBank, setEditingBank] = useState(false);
   const [bankInput, setBankInput] = useState(DEFAULT_BOB);
+
+  // Auto-fit the invoice to the top half of an A4 sheet: measure the natural
+  // content height and derive a print scale so short and long invoices alike
+  // fill (without overflowing) the ~144mm top half that gets cut off.
+  const printRef = useRef<HTMLDivElement>(null);
+  const [printFit, setPrintFit] = useState(0.72);
+
+  useEffect(() => {
+    function computeFit() {
+      const el = printRef.current;
+      if (!el || !el.scrollHeight) return;
+      const targetPx = (144 * 96) / 25.4; // top half of A4 (~144mm) in CSS px
+      const fit = targetPx / el.scrollHeight;
+      setPrintFit(Math.max(0.5, Math.min(1.15, Number(fit.toFixed(3)))));
+    }
+    computeFit();
+    window.addEventListener('beforeprint', computeFit);
+    return () => window.removeEventListener('beforeprint', computeFit);
+  }, [invoice, showPayment]);
 
   useEffect(() => {
     const saved = localStorage.getItem('dtt-bob-account');
@@ -149,10 +168,11 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
             bottom: auto !important;
             height: auto !important;
             overflow: visible !important;
-            /* Oversize the width, then uniformly scale down: the invoice keeps
-               full A4 width while its height shrinks into the top half (A5). */
-            width: 138.89% !important;
-            transform: scale(0.72) !important;
+            /* Oversize the width by 1/scale, then uniformly scale: the invoice
+               keeps full A4 width while its height is fitted to the top half.
+               --print-fit is measured per-invoice so the half page is filled. */
+            width: calc(100% / var(--print-fit, 0.72)) !important;
+            transform: scale(var(--print-fit, 0.72)) !important;
             transform-origin: top left !important;
             padding: 10px 16px !important;
             background: white !important;
@@ -197,6 +217,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
 
       <div
         id="dtt-invoice-print"
+        ref={printRef}
         className="bg-white text-black p-4 max-w-[720px] mx-auto"
         style={{
           fontFamily: 'Arial, Helvetica, sans-serif',
@@ -204,6 +225,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
           fontWeight: 500,
           lineHeight: 1.4,
           color: '#000',
+          ['--print-fit' as string]: String(printFit),
         }}
       >
         {/* ── Header ── */}
