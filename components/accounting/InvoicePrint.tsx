@@ -173,7 +173,11 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
             font-size: 12px !important;
           }
           .no-print { display: none !important; }
-          @page { margin: 0.4cm; size: A4; }
+          /* Fit the whole invoice on a single A5 sheet (half of A4). */
+          @page { margin: 0.4cm; size: A5 portrait; }
+          #dtt-invoice-print { padding: 8px 12px !important; }
+          #dtt-invoice-print .qr-pay-section { margin-top: 6px !important; padding-top: 6px !important; }
+          #dtt-invoice-print .qr-pay-img { width: 30mm !important; height: 30mm !important; }
         }
       `}</style>
 
@@ -352,7 +356,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
 
         {/* ── Scan-to-Pay (dynamic Bhutan QR) ── */}
         {showPayment && invoice.id != null && (
-          <div style={{ marginTop: '10px', borderTop: '2px solid #000', paddingTop: '8px' }}>
+          <div className="qr-pay-section" style={{ marginTop: '10px', borderTop: '2px solid #000', paddingTop: '8px' }}>
             <div style={{ fontWeight: 800, fontSize: '12px', marginBottom: '6px', textAlign: 'center' }}>
               Scan to Pay
             </div>
@@ -360,22 +364,24 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
               <div style={{ textAlign: 'center' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
+                  className="qr-pay-img"
                   src={`/api/invoices/${invoice.id}/qr?bank=bob&amount=${invoice.netAmount}`}
                   alt="Bank of Bhutan payment QR"
-                  width={160}
-                  height={160}
-                  style={{ width: '160px', height: '160px', objectFit: 'contain', border: '1px solid #000' }}
+                  width={140}
+                  height={140}
+                  style={{ width: '140px', height: '140px', objectFit: 'contain', border: '1px solid #000' }}
                 />
                 <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>Pay via Bank of Bhutan</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
+                  className="qr-pay-img"
                   src={`/api/invoices/${invoice.id}/qr?bank=bnb&amount=${invoice.netAmount}`}
                   alt="Bhutan National Bank payment QR"
-                  width={160}
-                  height={160}
-                  style={{ width: '160px', height: '160px', objectFit: 'contain', border: '1px solid #000' }}
+                  width={140}
+                  height={140}
+                  style={{ width: '140px', height: '140px', objectFit: 'contain', border: '1px solid #000' }}
                 />
                 <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>Pay via Bhutan National Bank</div>
               </div>
