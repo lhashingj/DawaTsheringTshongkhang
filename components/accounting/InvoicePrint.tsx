@@ -168,13 +168,15 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
             bottom: auto !important;
             height: auto !important;
             overflow: visible !important;
-            /* Oversize the width by 1/scale, then uniformly scale: the invoice
-               keeps full A4 width while its height is fitted to the top half.
-               --print-fit is measured per-invoice so the half page is filled. */
+            /* Oversize the width by 1/scale, then uniformly scale: once scaled
+               the invoice spans the full printable width (no side blanks), and
+               its height is auto-fitted into the top half of the sheet.
+               max-width:none overrides the on-screen 720px cap. */
             width: calc(100% / var(--print-fit, 0.72)) !important;
+            max-width: none !important;
             transform: scale(var(--print-fit, 0.72)) !important;
             transform-origin: top left !important;
-            padding: 10px 16px !important;
+            padding: 8px 10px !important;
             background: white !important;
             font-family: Arial, Helvetica, sans-serif !important;
             font-weight: 500 !important;
