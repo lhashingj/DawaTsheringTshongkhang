@@ -669,7 +669,7 @@ export function POSCheckout() {
             >
               <X className="w-4 h-4 text-slate-600" />
             </button>
-            <InvoicePrint invoice={savedInvoice} onClose={() => setShowModal(false)} embedded />
+            <InvoicePrint invoice={savedInvoice} onClose={() => setShowModal(false)} embedded showPayment />
           </div>
         </div>
       )}
