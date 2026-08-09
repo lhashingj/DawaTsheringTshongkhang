@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { SaleRecord } from '@/lib/accounting-db';
+import { accountHasQR } from '@/lib/bhutan-qr';
 import { numberToWords } from '@/lib/number-to-words';
 import { Printer, X, Pencil, Check } from 'lucide-react';
 
@@ -206,7 +207,7 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
              keeps the invoice in the top half so the sheet can be cut in two. */
           @page { margin: 0.4cm; size: A4 portrait; }
           #dtt-invoice-print .qr-pay-section { margin-top: 5px !important; padding-top: 5px !important; }
-          #dtt-invoice-print .qr-pay-img { width: 34mm !important; height: 34mm !important; }
+          #dtt-invoice-print .qr-pay-img { width: 40mm !important; height: 40mm !important; }
         }
       `}</style>
 
@@ -385,36 +386,24 @@ export function InvoicePrint({ invoice, onClose, embedded = false, showPayment =
           </div>
         </div>
 
-        {/* ── Scan-to-Pay (dynamic Bhutan QR) ── */}
-        {showPayment && invoice.id != null && (
-          <div className="qr-pay-section" style={{ marginTop: '10px', borderTop: '2px solid #000', paddingTop: '8px' }}>
+        {/* ── Scan-to-Pay (single dynamic Bhutan QR for the selected account) ── */}
+        {showPayment && invoice.id != null && accountHasQR(invoice.notes) && (
+          <div className="qr-pay-section" style={{ marginTop: '10px', paddingTop: '8px' }}>
             <div style={{ fontWeight: 800, fontSize: '12px', marginBottom: '6px', textAlign: 'center' }}>
               Scan to Pay
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div style={{ textAlign: 'center' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   className="qr-pay-img"
-                  src={`/api/invoices/${invoice.id}/qr?bank=bob&amount=${invoice.netAmount}`}
-                  alt="Bank of Bhutan payment QR"
-                  width={140}
-                  height={140}
-                  style={{ width: '140px', height: '140px', objectFit: 'contain', border: '1px solid #000' }}
+                  src={`/api/invoices/${invoice.id}/qr?account=${encodeURIComponent(invoice.notes ?? '')}&amount=${invoice.netAmount}`}
+                  alt={`${invoice.notes} payment QR`}
+                  width={150}
+                  height={150}
+                  style={{ width: '150px', height: '150px', objectFit: 'contain', border: '1px solid #000' }}
                 />
-                <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>Pay via Bank of Bhutan</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="qr-pay-img"
-                  src={`/api/invoices/${invoice.id}/qr?bank=bnb&amount=${invoice.netAmount}`}
-                  alt="Bhutan National Bank payment QR"
-                  width={140}
-                  height={140}
-                  style={{ width: '140px', height: '140px', objectFit: 'contain', border: '1px solid #000' }}
-                />
-                <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>Pay via Bhutan National Bank</div>
+                <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>Pay via {invoice.notes}</div>
               </div>
             </div>
             <div style={{ fontSize: '9px', textAlign: 'center', marginTop: '4px', fontStyle: 'italic' }}>

@@ -15,6 +15,34 @@ export interface EmvTag {
   value: string;
 }
 
+/**
+ * Static merchant QR payload per payment account, decoded from the shop's
+ * physical Scan-&-Pay standees (all CRC-verified). These are public merchant
+ * codes, keyed by the POS "Payment Mode / Account" name (upper-cased). An
+ * account not listed here (e.g. CASH) simply shows no QR on the invoice.
+ */
+export const QR_ACCOUNT_PAYLOADS: Record<string, string> = {
+  'BOB CD ACCOUNT': '000201010211091694009400084712315204000053030645802BT5914JLW ENTERPRISE6006Thimpu62280208177168950812mBoBMerchant63041E52',
+  'BNB CD ACCOUNT': '000201010211091694009401110540805204999953030645802BT5916JLW  ENTERPRISE 6004PARO62120208177168956304A9A6',
+  'LHASHING ACCOUNT': '000201010211091694009401110429375204999953030645802BT5917JAMYANG LHASHING 6004PARO6212020817242393630498EC',
+  'ZAMIN ACCOUNT': '000201010211091694009400043070175204000053030645802BT5918TSHERING  LHAMO   6006Thimpu62280208174275810812mBoBCustomer6304AB0D',
+};
+
+/** Normalize a payment-mode / account label for QR lookup. */
+export function normalizeAccount(note?: string): string {
+  return (note || '').trim().toUpperCase();
+}
+
+/** The static payload for an account, or undefined if it has no QR (e.g. CASH). */
+export function getAccountPayload(note?: string): string | undefined {
+  return QR_ACCOUNT_PAYLOADS[normalizeAccount(note)];
+}
+
+/** Whether the given payment mode / account has a payment QR. */
+export function accountHasQR(note?: string): boolean {
+  return normalizeAccount(note) in QR_ACCOUNT_PAYLOADS;
+}
+
 /** Parse an EMVCo TLV payload into an ordered list of tags. */
 export function parseTags(payload: string): EmvTag[] {
   const tags: EmvTag[] = [];
